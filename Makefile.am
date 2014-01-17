@@ -28,6 +28,7 @@ fstrm_libfstrm_la_SOURCES = \
 	fstrm/options.c \
 	fstrm/time.c \
 	fstrm/unix_writer.c \
+	fstrm/writer.c \
 	libmy/my_alloc.h \
 	libmy/my_memory_barrier.h \
 	libmy/my_queue.c \

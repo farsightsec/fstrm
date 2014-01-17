@@ -54,18 +54,12 @@
 /* writer */
 
 struct fstrm_writer {
-	int	(*create)
-			(const struct fstrm_writer_options *, void **data);
-	int	(*destroy)
-			(void *data);
-	int	(*open)
-			(void *data);
-	int	(*close)
-			(void *data);
-	int	(*is_opened)
-			(void *data);
-	int	(*writev)
-			(void *data, struct iovec *iov, int iovcnt, unsigned nbytes);
+	fstrm_writer_create_func	create;
+	fstrm_writer_destroy_func	destroy;
+	fstrm_writer_open_func		open;
+	fstrm_writer_close_func		close;
+	fstrm_writer_is_opened_func	is_opened;
+	fstrm_writer_writev_func	writev;
 };
 
 /* options */

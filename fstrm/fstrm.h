@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+#include <sys/uio.h>
 #include <stddef.h>
 
 #define FSTRM_CONTROL_ACCEPT	0x01
@@ -103,6 +104,60 @@ fstrm_io_options_set_writer(
 	struct fstrm_io_options *,
 	const struct fstrm_writer *,
 	const void *writer_options);
+
+/* fstrm_writer */
+
+typedef int (*fstrm_writer_create_func)(
+	const struct fstrm_writer_options *,
+	void **data);
+
+typedef int (*fstrm_writer_destroy_func)(void *);
+
+typedef int (*fstrm_writer_open_func)(void *);
+
+typedef int (*fstrm_writer_close_func)(void *);
+
+typedef int (*fstrm_writer_is_opened_func)(void *);
+
+typedef int (*fstrm_writer_writev_func)(void *,
+					struct iovec *, int iovcnt,
+					unsigned nbytes);
+
+struct fstrm_writer *
+fstrm_writer_init(void);
+
+void
+fstrm_writer_destroy(struct fstrm_writer **);
+
+void
+fstrm_writer_set_create_func(
+	struct fstrm_writer *,
+	fstrm_writer_create_func);
+
+void
+fstrm_writer_set_destroy_func(
+	struct fstrm_writer *,
+	fstrm_writer_destroy_func);
+
+void
+fstrm_writer_set_open_func(
+	struct fstrm_writer *,
+	fstrm_writer_open_func);
+
+void
+fstrm_writer_set_close_func(
+	struct fstrm_writer *,
+	fstrm_writer_close_func);
+
+void
+fstrm_writer_set_is_opened_func(
+	struct fstrm_writer *,
+	fstrm_writer_is_opened_func);
+
+void
+fstrm_writer_set_writev_func(
+	struct fstrm_writer *,
+	fstrm_writer_writev_func);
 
 /* fstrm_unix_writer, fstrm_unix_writer_options */
 
