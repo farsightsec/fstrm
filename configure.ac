@@ -39,6 +39,8 @@ AX_PTHREAD([
     CC="$PTHREAD_CC"
 ])
 
+AC_SEARCH_LIBS([clock_gettime], [rt])
+
 AC_OUTPUT
 AC_MSG_RESULT([
     $PACKAGE $VERSION
