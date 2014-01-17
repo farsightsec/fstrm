@@ -41,6 +41,8 @@ AX_PTHREAD([
 
 AC_SEARCH_LIBS([clock_gettime], [rt])
 
+gl_VALGRIND_TESTS
+
 AC_OUTPUT
 AC_MSG_RESULT([
     $PACKAGE $VERSION
