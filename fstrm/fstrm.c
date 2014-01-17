@@ -101,7 +101,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 
 	/* Initialize fstrm_io and copy options. */
 	io = my_calloc(1, sizeof(*io));
-	memmove(&io->opt, opt, sizeof(*opt));
+	fs_io_options_dup(&io->opt, opt);
 
 	/* Detect best clocks. */
 	if (!fs_get_best_monotonic_clocks(&io->clkid_gettime,
@@ -204,6 +204,7 @@ fstrm_io_destroy(struct fstrm_io **io)
 		if ((*io)->opt.writer->destroy != NULL)
 			(*io)->opt.writer->destroy((*io)->writer_data);
 
+		free((*io)->opt.content_type);
 		free((*io)->opt.writer);
 		free((*io)->iov_array);
 		free((*io)->qe_array);

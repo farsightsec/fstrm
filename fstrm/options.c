@@ -36,6 +36,18 @@ struct fstrm_io_options default_fstrm_io_options = {
 	.reconnect_interval =		FS_DEFAULT_RECONNECT_INTERVAL,
 };
 
+void
+fs_io_options_dup(struct fstrm_io_options *out, const struct fstrm_io_options *opt)
+{
+	memmove(out, opt, sizeof(*out));
+	if (out->content_type != NULL) {
+		out->content_type = my_calloc(1, out->len_content_type);
+		memmove(out->content_type,
+			opt->content_type,
+			out->len_content_type);
+	}
+}
+
 struct fstrm_io_options *
 fstrm_io_options_init(void)
 {
