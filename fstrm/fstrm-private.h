@@ -58,11 +58,11 @@ struct fstrm_writer {
 			(const struct fstrm_writer_options *, void **data);
 	int	(*destroy)
 			(void *data);
-	int	(*connect)
+	int	(*open)
 			(void *data);
-	int	(*disconnect)
+	int	(*close)
 			(void *data);
-	int	(*is_connected)
+	int	(*is_opened)
 			(void *data);
 	int	(*writev)
 			(void *data, struct iovec *iov, int iovcnt, unsigned nbytes);

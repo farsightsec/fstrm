@@ -36,7 +36,7 @@ struct fs_unix_writer {
 };
 
 static int
-fs_unix_writer_connect(void *data)
+fs_unix_writer_open(void *data)
 {
 	struct fs_unix_writer *w = data;
 
@@ -68,7 +68,7 @@ fs_unix_writer_connect(void *data)
 }
 
 static int
-fs_unix_writer_disconnect(void *data)
+fs_unix_writer_close(void *data)
 {
 	struct fs_unix_writer *w = data;
 
@@ -82,7 +82,7 @@ fs_unix_writer_disconnect(void *data)
 }
 
 static int
-fs_unix_writer_is_connected(void *data)
+fs_unix_writer_is_opened(void *data)
 {
 	struct fs_unix_writer *w = data;
 
@@ -147,7 +147,7 @@ fs_unix_writer_create(const struct fstrm_writer_options *opt, void **data)
 	w->sa.sun_family = AF_UNIX;
 	strncpy(w->sa.sun_path, wopt->socket_path, sizeof(w->sa.sun_path) - 1);
 
-	(void) fs_unix_writer_connect(w);
+	(void) fs_unix_writer_open(w);
 
 	*data = w;
 	return 0; /* success */
@@ -157,7 +157,7 @@ static int
 fs_unix_writer_destroy(void *data)
 {
 	struct fs_unix_writer *w = data;
-	(void) fs_unix_writer_disconnect(w);
+	(void) fs_unix_writer_close(w);
 	free(w);
 	return 0; /* success */
 }
@@ -198,12 +198,12 @@ static const struct fstrm_writer fs_writer_impl_unix = {
 		fs_unix_writer_create,
 	.destroy =
 		fs_unix_writer_destroy,
-	.connect =
-		fs_unix_writer_connect,
-	.disconnect =
-		fs_unix_writer_disconnect,
-	.is_connected =
-		fs_unix_writer_is_connected,
+	.open =
+		fs_unix_writer_open,
+	.close =
+		fs_unix_writer_close,
+	.is_opened =
+		fs_unix_writer_is_opened,
 	.writev =
 		fs_unix_writer_writev,
 };

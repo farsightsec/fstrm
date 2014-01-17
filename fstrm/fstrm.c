@@ -282,7 +282,7 @@ fs_thr_setup(void)
 static void
 fs_maybe_connect(struct fstrm_io *io)
 {
-	if (unlikely(!io->opt.writer->is_connected(io->writer_data))) {
+	if (unlikely(!io->opt.writer->is_opened(io->writer_data))) {
 		int res;
 		time_t since;
 		struct timespec ts;
@@ -291,7 +291,7 @@ fs_maybe_connect(struct fstrm_io *io)
 		assert(res == 0);
 		since = ts.tv_sec - io->last_connect_attempt;
 		if (since >= (time_t) io->opt.reconnect_interval) {
-			io->opt.writer->connect(io->writer_data);
+			io->opt.writer->open(io->writer_data);
 			io->last_connect_attempt = ts.tv_sec;
 		}
 	}
@@ -303,14 +303,14 @@ fs_flush_output(struct fstrm_io *io)
 	unsigned i;
 
 	/* Do the actual write. */
-	if (likely(io->opt.writer->is_connected(io->writer_data)) &&
+	if (likely(io->opt.writer->is_opened(io->writer_data)) &&
 	    io->iov_idx > 0)
 	{
 		if (io->opt.writer->writev(io->writer_data,
 					   io->iov_array, io->iov_idx,
 					   io->iov_bytes) != 0)
 		{
-			io->opt.writer->disconnect(io->writer_data);
+			io->opt.writer->close(io->writer_data);
 		}
 	}
 
@@ -347,7 +347,7 @@ fs_maybe_flush_output(struct fstrm_io *io, size_t n_bytes)
 static void
 fs_process_queue_entry(struct fstrm_io *io, struct fs_queue_entry *entry)
 {
-	if (likely(io->opt.writer->is_connected(io->writer_data))) {
+	if (likely(io->opt.writer->is_opened(io->writer_data))) {
 		size_t n_bytes = sizeof(entry->be32_len) + ntohl(entry->be32_len);
 
 		fs_maybe_flush_output(io, n_bytes);
@@ -412,7 +412,7 @@ fs_thr_io(void *arg)
 		if (unlikely(io->shutting_down)) {
 			while (fs_process_queues(io));
 			fs_flush_output(io);
-			io->opt.writer->disconnect(io->writer_data);
+			io->opt.writer->close(io->writer_data);
 			break;
 		}
 

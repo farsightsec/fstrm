@@ -143,9 +143,9 @@ fs_validate_io_options(const struct fstrm_io_options *opt, char **errstr_out)
 	if (opt->writer != NULL) {
 		if (opt->writer->create == NULL ||
 		    opt->writer->destroy == NULL ||
-		    opt->writer->connect == NULL ||
-		    opt->writer->disconnect == NULL ||
-		    opt->writer->is_connected == NULL ||
+		    opt->writer->open == NULL ||
+		    opt->writer->close == NULL ||
+		    opt->writer->is_opened == NULL ||
 		    opt->writer->writev == NULL)
 		{
 			err = "missing writer method";
