@@ -124,7 +124,9 @@ fs_unix_writer_write(void *data,
 }
 
 static fstrm_res
-fs_unix_writer_create(const struct fstrm_writer_options *opt, void **data)
+fs_unix_writer_create(struct fstrm_io *io __attribute__((__unused__)),
+		      const struct fstrm_writer_options *opt,
+		      void **data)
 {
 	struct fs_unix_writer *w;
 	const struct fstrm_unix_writer_options *wopt = 

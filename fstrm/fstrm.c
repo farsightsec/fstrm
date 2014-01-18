@@ -155,7 +155,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	 * only once, here in fstrm_io_init(). The corresponding 'destroy'
 	 * method will be called in fstrm_io_destroy().
 	 */
-	res = io->opt.writer->create(io->opt.writer_options, &io->writer_data);
+	res = io->opt.writer->create(io, io->opt.writer_options, &io->writer_data);
 	if (res != FSTRM_RES_SUCCESS) {
 		if (err != NULL)
 			*err = my_strdup("writer 'create' method failed");

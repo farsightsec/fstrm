@@ -118,6 +118,7 @@ fstrm_io_options_set_writer(
 /* fstrm_writer */
 
 typedef fstrm_res (*fstrm_writer_create_func)(
+	struct fstrm_io *,
 	const struct fstrm_writer_options *,
 	void **data);
 
