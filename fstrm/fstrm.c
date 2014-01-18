@@ -303,6 +303,37 @@ fs_io_close(struct fstrm_io *io)
 }
 
 static int
+fs_io_write_data(struct fstrm_io *io,
+		 struct iovec *iov, int iovcnt,
+		 size_t total_length)
+{
+	int res;
+
+	res = io->opt.writer->write_data(io->writer_data,
+					 iov, iovcnt,
+					 total_length);
+	if (res != 0)
+		(void)fs_io_close(io);
+	return res;
+}
+
+static int
+fs_io_write_control(struct fstrm_io *io,
+		    struct iovec *iov, int iovcnt,
+		    size_t total_length)
+{
+	int res;
+
+	res = io->opt.writer->write_control(io->writer_data,
+					    iov, iovcnt,
+					    total_length);
+
+	if (res != 0)
+		(void)fs_io_close(io);
+	return res;
+}
+
+static int
 fs_io_write_control_start(struct fstrm_io *io)
 {
 	size_t total_length = 0;
@@ -374,7 +405,7 @@ fs_io_write_control_start(struct fstrm_io *io)
 		.iov_base = (void *) &buf[0],
 		.iov_len = total_length,
 	};
-	return io->opt.writer->write_control(io->writer_data, &control_iov, 1, total_length);
+	return fs_io_write_control(io, &control_iov, 1, total_length);
 }
 
 static int
@@ -400,7 +431,7 @@ fs_io_write_control_stop(struct fstrm_io *io)
 		.iov_base = (void *) &buf[0],
 		.iov_len = total_length,
 	};
-	return io->opt.writer->write_control(io->writer_data, &control_iov, 1, total_length);
+	return fs_io_write_control(io, &control_iov, 1, total_length);
 }
 
 static void
@@ -445,14 +476,8 @@ fs_io_flush_output(struct fstrm_io *io)
 	unsigned i;
 
 	/* Do the actual write. */
-	if (likely(io->writable && io->iov_idx > 0)) {
-		if (io->opt.writer->write_data(io->writer_data,
-					       io->iov_array, io->iov_idx,
-					       io->iov_bytes) != 0)
-		{
-			fs_io_close(io);
-		}
-	}
+	if (likely(io->writable && io->iov_idx > 0))
+		fs_io_write_data(io, io->iov_array, io->iov_idx, io->iov_bytes);
 
 	/* Perform the deferred deallocations. */
 	for (i = 0; i < io->qe_idx; i++) {
