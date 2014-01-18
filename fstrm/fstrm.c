@@ -150,7 +150,11 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	res = pthread_mutex_init(&io->get_queue_lock, NULL);
 	assert(res == 0);
 
-	/* Initialize the writer by calling its 'create' method. */
+	/*
+	 * Initialize the writer by calling its 'create' method. This is done
+	 * only once, here in fstrm_io_init(). The corresponding 'destroy'
+	 * method will be called in fstrm_io_destroy().
+	 */
 	res = io->opt.writer->create(io->opt.writer_options, &io->writer_data);
 	if (res != 0) {
 		if (err != NULL)
@@ -198,15 +202,20 @@ void
 fstrm_io_destroy(struct fstrm_io **io)
 {
 	if (*io != NULL) {
+		/*
+		 * Signal the I/O thread that a shutdown is in progress.
+		 * This waits for the I/O thread to finish.
+		 */
 		(*io)->shutting_down = true;
 		pthread_cond_signal(&(*io)->cv);
 		pthread_join((*io)->thr, NULL);
 
-		fs_io_free_queues(*io);
-
+		/* Destroy the writer by calling its 'destroy' method. */
 		if ((*io)->opt.writer->destroy != NULL)
 			(*io)->opt.writer->destroy((*io)->writer_data);
 
+		/* Cleanup our allocations. */
+		fs_io_free_queues(*io);
 		free((*io)->opt.content_type);
 		free((*io)->opt.writer);
 		free((*io)->iov_array);
@@ -309,6 +318,11 @@ fs_io_write_data(struct fstrm_io *io,
 {
 	int res;
 
+	/*
+	 * Invoke the writer's 'write_data' method call.
+	 * If this fails we need to clean up by invoking the 'close' method call
+	 * and marking the writer non-writable.
+	 */
 	res = io->opt.writer->write_data(io->writer_data,
 					 iov, iovcnt,
 					 total_length);
@@ -324,10 +338,14 @@ fs_io_write_control(struct fstrm_io *io,
 {
 	int res;
 
+	/*
+	 * Invoke the writer's 'write_control' method call.
+	 * If this fails we need to clean up by invoking the 'close' method call
+	 * and marking the writer non-writable.
+	 */
 	res = io->opt.writer->write_control(io->writer_data,
 					    iov, iovcnt,
 					    total_length);
-
 	if (res != 0)
 		(void)fs_io_close(io);
 	return res;
