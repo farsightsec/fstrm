@@ -258,9 +258,12 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	if (unlikely(io->shutting_down))
 		return FSTRM_RES_FAILURE;
 
+	if (unlikely(len >= UINT32_MAX))
+		return FSTRM_RES_FAILURE;
+
 	entry = my_malloc(sizeof(*entry));
 	entry->bytes = buf;
-	entry->be32_len = htonl(len);
+	entry->be32_len = htonl((uint32_t) len);
 	if (free_func != NULL) {
 		entry->free_func = free_func;
 		entry->free_data = free_data;
@@ -314,7 +317,7 @@ fs_io_close(struct fstrm_io *io)
 static fstrm_res
 fs_io_write_data(struct fstrm_io *io,
 		 struct iovec *iov, int iovcnt,
-		 size_t total_length)
+		 unsigned total_length)
 {
 	fstrm_res res;
 
@@ -334,7 +337,7 @@ fs_io_write_data(struct fstrm_io *io,
 static fstrm_res
 fs_io_write_control(struct fstrm_io *io,
 		    struct iovec *iov, int iovcnt,
-		    size_t total_length)
+		    unsigned total_length)
 {
 	fstrm_res res;
 
@@ -398,7 +401,7 @@ fs_io_write_control_start(struct fstrm_io *io)
 	 * the frame length field itself, so subtract 2*4 bytes from the total
 	 * length.
 	 */
-	tmp = htonl(total_length - 2*sizeof(uint32_t));
+	tmp = htonl((uint32_t) (total_length - 2*sizeof(uint32_t)));
 	memmove(&buf[1*sizeof(uint32_t)], &tmp, sizeof(tmp));
 
 	/* Control type: 32-bit BE integer. */
@@ -411,7 +414,7 @@ fs_io_write_control_start(struct fstrm_io *io)
 		memmove(&buf[3*sizeof(uint32_t)], &tmp, sizeof(tmp));
 
 		/* Length of content type string: 32-bit BE integer. */
-		tmp = htonl(io->opt.len_content_type);
+		tmp = htonl((uint32_t) io->opt.len_content_type);
 		memmove(&buf[4*sizeof(uint32_t)], &tmp, sizeof(tmp));
 
 		/* The content type string itself. */
@@ -423,7 +426,7 @@ fs_io_write_control_start(struct fstrm_io *io)
 		.iov_base = (void *) &buf[0],
 		.iov_len = total_length,
 	};
-	return fs_io_write_control(io, &control_iov, 1, total_length);
+	return fs_io_write_control(io, &control_iov, 1, (unsigned) total_length);
 }
 
 static fstrm_res
@@ -437,7 +440,7 @@ fs_io_write_control_stop(struct fstrm_io *io)
 	memset(&buf[0*sizeof(uint32_t)], 0, sizeof(uint32_t));
 
 	/* Frame length: 32-bit BE integer. */
-	tmp = htonl(total_length - 2*sizeof(uint32_t));
+	tmp = htonl((uint32_t) (total_length - 2*sizeof(uint32_t)));
 	memmove(&buf[1*sizeof(uint32_t)], &tmp, sizeof(tmp));
 
 	/* Control type: 32-bit BE integer. */
@@ -449,7 +452,7 @@ fs_io_write_control_stop(struct fstrm_io *io)
 		.iov_base = (void *) &buf[0],
 		.iov_len = total_length,
 	};
-	return fs_io_write_control(io, &control_iov, 1, total_length);
+	return fs_io_write_control(io, &control_iov, 1, (unsigned) total_length);
 }
 
 static void
