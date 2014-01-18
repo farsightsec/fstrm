@@ -57,6 +57,9 @@ struct fstrm_io {
 	/* The I/O thread. */
 	pthread_t			thr;
 
+	/* Whether the writer is writable or not. */
+	bool				writable;
+
 	/* Whether the I/O thread is shutting down. */
 	volatile bool			shutting_down;
 
@@ -281,6 +284,25 @@ fs_io_thr_setup(void)
 }
 
 static int
+fs_io_open(struct fstrm_io *io)
+{
+	int res;
+	res = io->opt.writer->open(io->writer_data);
+	if (res == 0)
+		io->writable = true;
+	else
+		io->writable = false;
+	return res;
+}
+
+static int
+fs_io_close(struct fstrm_io *io)
+{
+	io->writable = false;
+	return io->opt.writer->close(io->writer_data);
+}
+
+static int
 fs_io_write_control_start(struct fstrm_io *io)
 {
 	size_t total_length = 0;
@@ -384,7 +406,7 @@ fs_io_write_control_stop(struct fstrm_io *io)
 static void
 fs_io_maybe_connect(struct fstrm_io *io)
 {
-	if (unlikely(!io->opt.writer->is_opened(io->writer_data))) {
+	if (unlikely(!io->writable)) {
 		int res;
 		time_t since;
 		struct timespec ts;
@@ -399,7 +421,7 @@ fs_io_maybe_connect(struct fstrm_io *io)
 		if (since >= (time_t) io->opt.reconnect_interval) {
 			/* The reconnect interval expired. */
 
-			if (io->opt.writer->open(io->writer_data) == 0) {
+			if (fs_io_open(io) == 0) {
 				/*
 				 * The transport has been reopened, so send the
 				 * start frame.
@@ -409,7 +431,7 @@ fs_io_maybe_connect(struct fstrm_io *io)
 					 * Writing the control frame failed, so
 					 * close the transport.
 					 */
-					io->opt.writer->close(io->writer_data);
+					fs_io_close(io);
 				}
 			}
 			io->last_connect_attempt = ts.tv_sec;
@@ -423,14 +445,12 @@ fs_io_flush_output(struct fstrm_io *io)
 	unsigned i;
 
 	/* Do the actual write. */
-	if (likely(io->opt.writer->is_opened(io->writer_data)) &&
-	    io->iov_idx > 0)
-	{
+	if (likely(io->writable && io->iov_idx > 0)) {
 		if (io->opt.writer->write_data(io->writer_data,
-					   io->iov_array, io->iov_idx,
-					   io->iov_bytes) != 0)
+					       io->iov_array, io->iov_idx,
+					       io->iov_bytes) != 0)
 		{
-			io->opt.writer->close(io->writer_data);
+			fs_io_close(io);
 		}
 	}
 
@@ -467,7 +487,7 @@ fs_io_maybe_flush_output(struct fstrm_io *io, size_t n_bytes)
 static void
 fs_io_process_queue_entry(struct fstrm_io *io, struct fs_queue_entry *entry)
 {
-	if (likely(io->opt.writer->is_opened(io->writer_data))) {
+	if (likely(io->writable)) {
 		size_t n_bytes = sizeof(entry->be32_len) + ntohl(entry->be32_len);
 
 		fs_io_maybe_flush_output(io, n_bytes);
@@ -533,7 +553,7 @@ fs_io_thr(void *arg)
 			while (fs_io_process_queues(io));
 			fs_io_flush_output(io);
 			fs_io_write_control_stop(io);
-			io->opt.writer->close(io->writer_data);
+			fs_io_close(io);
 			break;
 		}
 

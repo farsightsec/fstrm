@@ -62,13 +62,6 @@ fstrm_writer_set_close(struct fstrm_writer *w,
 }
 
 void
-fstrm_writer_set_is_opened(struct fstrm_writer *w,
-			   fstrm_writer_is_opened_func w_is_opened)
-{
-	w->is_opened = w_is_opened;
-}
-
-void
 fstrm_writer_set_write_control(struct fstrm_writer *w,
 			       fstrm_writer_write_func w_write_control)
 {

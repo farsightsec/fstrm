@@ -157,7 +157,6 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 		    !opt->writer->destroy ||
 		    !opt->writer->open ||
 		    !opt->writer->close ||
-		    !opt->writer->is_opened ||
 		    !opt->writer->write_control ||
 		    !opt->writer->write_data)
 		{

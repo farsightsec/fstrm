@@ -30,7 +30,6 @@ struct fstrm_unix_writer_options {
 
 struct fs_unix_writer {
 	bool			connected;
-	bool			fd_opened;
 	int			fd;
 	struct sockaddr_un	sa;
 };
@@ -40,30 +39,35 @@ fs_unix_writer_open(void *data)
 {
 	struct fs_unix_writer *w = data;
 
-	if (w->fd_opened) {
-		close(w->fd);
-		w->fd_opened = false;
-		w->connected = false;
-	}
+	/* Nothing to do if the socket is already connected. */
+	if (w->connected)
+		return 0; /* success */
 
+	/* Open an AF_UNIX socket. */
 	w->fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (w->fd < 0)
 		return 1; /* failure */
-	w->fd_opened = true;
 
 #if defined(SO_NOSIGPIPE)
+	/*
+	 * Ugh, no signals, please!
+	 *
+	 * https://lwn.net/Articles/414618/
+	 */
 	static const int on = 1;
 	if (setsockopt(w->fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on)) != 0) {
 		close(w->fd);
-		w->fd_opened = false;
 		return 1; /* failure */
 	}
 #endif
 
-	if (connect(w->fd, (struct sockaddr *) &w->sa, sizeof(w->sa)) < 0)
+	/* Connect the AF_UNIX socket. */
+	if (connect(w->fd, (struct sockaddr *) &w->sa, sizeof(w->sa)) < 0) {
+		close(w->fd);
 		return 1; /* failure */
-	w->connected = true;
+	}
 
+	w->connected = true;
 	return 0; /* success */
 }
 
@@ -72,23 +76,11 @@ fs_unix_writer_close(void *data)
 {
 	struct fs_unix_writer *w = data;
 
-	if (w->fd_opened) {
+	if (w->connected)
 		close(w->fd);
-		w->fd_opened = false;
-		w->connected = false;
-	}
+	w->connected = false;
 
 	return 0; /* success */
-}
-
-static int
-fs_unix_writer_is_opened(void *data)
-{
-	struct fs_unix_writer *w = data;
-
-	if (w->connected)
-		return 1;
-	return 0;
 }
 
 static int
@@ -104,24 +96,28 @@ fs_unix_writer_write(void *data,
 		.msg_iovlen = iovcnt,
 	};
 
-	for (;;) {
-		do {
-			written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
-		} while (written == -1 && errno == EINTR);
-		if (written == -1)
-			return 1; /* failure */
-		if (cur == 0 && written == (ssize_t) nbytes)
-			return 0; /* success */
+	if (likely(w->connected)) {
+		for (;;) {
+			do {
+				written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
+			} while (written == -1 && errno == EINTR);
+			if (written == -1)
+				return 1; /* failure */
+			if (cur == 0 && written == (ssize_t) nbytes)
+				return 0; /* success */
 
-		while (written >= (ssize_t) msg.msg_iov[cur].iov_len)
-		       written -= msg.msg_iov[cur++].iov_len;
+			while (written >= (ssize_t) msg.msg_iov[cur].iov_len)
+			       written -= msg.msg_iov[cur++].iov_len;
 
-		if (cur == iovcnt)
-			return 0; /* success */
+			if (cur == iovcnt)
+				return 0; /* success */
 
-		msg.msg_iov[cur].iov_base = (void *)
-			((char *) msg.msg_iov[cur].iov_base + written);
-		msg.msg_iov[cur].iov_len -= written;
+			msg.msg_iov[cur].iov_base = (void *)
+				((char *) msg.msg_iov[cur].iov_base + written);
+			msg.msg_iov[cur].iov_len -= written;
+		}
+	} else {
+		return 1; /* failure */
 	}
 
 	return 0; /* success */
@@ -202,8 +198,6 @@ static const struct fstrm_writer fs_writer_impl_unix = {
 		fs_unix_writer_open,
 	.close =
 		fs_unix_writer_close,
-	.is_opened =
-		fs_unix_writer_is_opened,
 	.write_control =
 		fs_unix_writer_write,
 	.write_data =
