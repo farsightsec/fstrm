@@ -307,7 +307,7 @@ fs_flush_output(struct fstrm_io *io)
 	if (likely(io->opt.writer->is_opened(io->writer_data)) &&
 	    io->iov_idx > 0)
 	{
-		if (io->opt.writer->writev(io->writer_data,
+		if (io->opt.writer->write_data(io->writer_data,
 					   io->iov_array, io->iov_idx,
 					   io->iov_bytes) != 0)
 		{

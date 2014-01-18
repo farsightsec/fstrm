@@ -119,9 +119,9 @@ typedef int (*fstrm_writer_close_func)(void *);
 
 typedef int (*fstrm_writer_is_opened_func)(void *);
 
-typedef int (*fstrm_writer_writev_func)(void *,
-					struct iovec *, int iovcnt,
-					unsigned nbytes);
+typedef int (*fstrm_writer_write_func)(void *,
+				       struct iovec *, int iovcnt,
+				       unsigned nbytes);
 
 struct fstrm_writer *
 fstrm_writer_init(void);
@@ -155,9 +155,14 @@ fstrm_writer_set_is_opened_func(
 	fstrm_writer_is_opened_func);
 
 void
-fstrm_writer_set_writev_func(
+fstrm_writer_set_write_control_func(
 	struct fstrm_writer *,
-	fstrm_writer_writev_func);
+	fstrm_writer_write_func);
+
+void
+fstrm_writer_set_write_data_func(
+	struct fstrm_writer *,
+	fstrm_writer_write_func);
 
 /* fstrm_unix_writer, fstrm_unix_writer_options */
 

@@ -69,8 +69,15 @@ fstrm_writer_set_is_opened_func(struct fstrm_writer *w,
 }
 
 void
-fstrm_writer_set_writev_func(struct fstrm_writer *w,
-			     fstrm_writer_writev_func writev)
+fstrm_writer_set_write_control_func(struct fstrm_writer *w,
+				    fstrm_writer_write_func write_control)
 {
-	w->writev = writev;
+	w->write_control = write_control;
+}
+
+void
+fstrm_writer_set_write_data_func(struct fstrm_writer *w,
+				 fstrm_writer_write_func write_data)
+{
+	w->write_data = write_data;
 }

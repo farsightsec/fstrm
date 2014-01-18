@@ -92,9 +92,9 @@ fs_unix_writer_is_opened(void *data)
 }
 
 static int
-fs_unix_writer_writev(void *data,
-		      struct iovec *iov, int iovcnt,
-		      unsigned nbytes)
+fs_unix_writer_write(void *data,
+		     struct iovec *iov, int iovcnt,
+		     unsigned nbytes)
 {
 	struct fs_unix_writer *w = data;
 	ssize_t written = 0;
@@ -204,7 +204,9 @@ static const struct fstrm_writer fs_writer_impl_unix = {
 		fs_unix_writer_close,
 	.is_opened =
 		fs_unix_writer_is_opened,
-	.writev =
-		fs_unix_writer_writev,
+	.write_control =
+		fs_unix_writer_write,
+	.write_data =
+		fs_unix_writer_write,
 };
 const struct fstrm_writer *fstrm_unix_writer = &fs_writer_impl_unix;
