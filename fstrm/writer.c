@@ -34,50 +34,50 @@ fstrm_writer_destroy(struct fstrm_writer **w)
 }
 
 void
-fstrm_writer_set_create_func(struct fstrm_writer *w,
-			     fstrm_writer_create_func create)
+fstrm_writer_set_create(struct fstrm_writer *w,
+			fstrm_writer_create_func w_create)
 {
-	w->create = create;
+	w->create = w_create;
 }
 
 void
-fstrm_writer_set_destroy_func(struct fstrm_writer *w,
-			      fstrm_writer_destroy_func destroy)
+fstrm_writer_set_destroy(struct fstrm_writer *w,
+			 fstrm_writer_destroy_func w_destroy)
 {
-	w->destroy = destroy;
+	w->destroy = w_destroy;
 }
 
 void
-fstrm_writer_set_open_func(struct fstrm_writer *w,
-			   fstrm_writer_open_func open)
+fstrm_writer_set_open(struct fstrm_writer *w,
+		      fstrm_writer_open_func w_open)
 {
-	w->open = open;
+	w->open = w_open;
 }
 
 void
-fstrm_writer_set_close_func(struct fstrm_writer *w,
-			    fstrm_writer_close_func close)
+fstrm_writer_set_close(struct fstrm_writer *w,
+		       fstrm_writer_close_func w_close)
 {
-	w->close = close;
+	w->close = w_close;
 }
 
 void
-fstrm_writer_set_is_opened_func(struct fstrm_writer *w,
-				fstrm_writer_is_opened_func is_opened)
+fstrm_writer_set_is_opened(struct fstrm_writer *w,
+			   fstrm_writer_is_opened_func w_is_opened)
 {
-	w->is_opened = is_opened;
+	w->is_opened = w_is_opened;
 }
 
 void
-fstrm_writer_set_write_control_func(struct fstrm_writer *w,
-				    fstrm_writer_write_func write_control)
+fstrm_writer_set_write_control(struct fstrm_writer *w,
+			       fstrm_writer_write_func w_write_control)
 {
-	w->write_control = write_control;
+	w->write_control = w_write_control;
 }
 
 void
-fstrm_writer_set_write_data_func(struct fstrm_writer *w,
-				 fstrm_writer_write_func write_data)
+fstrm_writer_set_write_data(struct fstrm_writer *w,
+			    fstrm_writer_write_func w_write_data)
 {
-	w->write_data = write_data;
+	w->write_data = w_write_data;
 }

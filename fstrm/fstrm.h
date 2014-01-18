@@ -130,37 +130,37 @@ void
 fstrm_writer_destroy(struct fstrm_writer **);
 
 void
-fstrm_writer_set_create_func(
+fstrm_writer_set_create(
 	struct fstrm_writer *,
 	fstrm_writer_create_func);
 
 void
-fstrm_writer_set_destroy_func(
+fstrm_writer_set_destroy(
 	struct fstrm_writer *,
 	fstrm_writer_destroy_func);
 
 void
-fstrm_writer_set_open_func(
+fstrm_writer_set_open(
 	struct fstrm_writer *,
 	fstrm_writer_open_func);
 
 void
-fstrm_writer_set_close_func(
+fstrm_writer_set_close(
 	struct fstrm_writer *,
 	fstrm_writer_close_func);
 
 void
-fstrm_writer_set_is_opened_func(
+fstrm_writer_set_is_opened(
 	struct fstrm_writer *,
 	fstrm_writer_is_opened_func);
 
 void
-fstrm_writer_set_write_control_func(
+fstrm_writer_set_write_control(
 	struct fstrm_writer *,
 	fstrm_writer_write_func);
 
 void
-fstrm_writer_set_write_data_func(
+fstrm_writer_set_write_data(
 	struct fstrm_writer *,
 	fstrm_writer_write_func);
 
