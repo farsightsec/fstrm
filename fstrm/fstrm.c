@@ -156,7 +156,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	 * method will be called in fstrm_io_destroy().
 	 */
 	res = io->opt.writer->create(io->opt.writer_options, &io->writer_data);
-	if (res != 0) {
+	if (res != FSTRM_RES_SUCCESS) {
 		if (err != NULL)
 			*err = my_strdup("writer 'create' method failed");
 		goto err_out;
@@ -247,7 +247,7 @@ fs_free_wrapper(void *ptr,
 	free(ptr);
 }
 
-int
+fstrm_res
 fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 		void *buf, size_t len,
 		void (*free_func)(void *, void *), void *free_data)
@@ -256,7 +256,7 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	struct fs_queue_entry *entry;
 
 	if (unlikely(io->shutting_down))
-		return 0; /* failure */
+		return FSTRM_RES_FAILURE;
 
 	entry = my_malloc(sizeof(*entry));
 	entry->bytes = buf;
@@ -272,11 +272,11 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	if (likely(len > 0) && my_queue_insert(q->q, entry, &space)) {
 		if (space == io->opt.queue_notify_threshold)
 			pthread_cond_signal(&io->cv);
-		return 1; /* success */
+		return FSTRM_RES_SUCCESS;
 	} else {
 		entry->free_func(entry->bytes, entry->free_data);
 		free(entry);
-		return 0; /* failure */
+		return FSTRM_RES_AGAIN;
 	}
 }
 
@@ -292,31 +292,31 @@ fs_io_thr_setup(void)
 	assert(s == 0);
 }
 
-static int
+static fstrm_res
 fs_io_open(struct fstrm_io *io)
 {
-	int res;
+	fstrm_res res;
 	res = io->opt.writer->open(io->writer_data);
-	if (res == 0)
+	if (res == FSTRM_RES_SUCCESS)
 		io->writable = true;
 	else
 		io->writable = false;
 	return res;
 }
 
-static int
+static fstrm_res
 fs_io_close(struct fstrm_io *io)
 {
 	io->writable = false;
 	return io->opt.writer->close(io->writer_data);
 }
 
-static int
+static fstrm_res
 fs_io_write_data(struct fstrm_io *io,
 		 struct iovec *iov, int iovcnt,
 		 size_t total_length)
 {
-	int res;
+	fstrm_res res;
 
 	/*
 	 * Invoke the writer's 'write_data' method call.
@@ -326,17 +326,17 @@ fs_io_write_data(struct fstrm_io *io,
 	res = io->opt.writer->write_data(io->writer_data,
 					 iov, iovcnt,
 					 total_length);
-	if (res != 0)
+	if (res != FSTRM_RES_SUCCESS)
 		(void)fs_io_close(io);
 	return res;
 }
 
-static int
+static fstrm_res
 fs_io_write_control(struct fstrm_io *io,
 		    struct iovec *iov, int iovcnt,
 		    size_t total_length)
 {
-	int res;
+	fstrm_res res;
 
 	/*
 	 * Invoke the writer's 'write_control' method call.
@@ -346,12 +346,12 @@ fs_io_write_control(struct fstrm_io *io,
 	res = io->opt.writer->write_control(io->writer_data,
 					    iov, iovcnt,
 					    total_length);
-	if (res != 0)
+	if (res != FSTRM_RES_SUCCESS)
 		(void)fs_io_close(io);
 	return res;
 }
 
-static int
+static fstrm_res
 fs_io_write_control_start(struct fstrm_io *io)
 {
 	size_t total_length = 0;
@@ -426,7 +426,7 @@ fs_io_write_control_start(struct fstrm_io *io)
 	return fs_io_write_control(io, &control_iov, 1, total_length);
 }
 
-static int
+static fstrm_res
 fs_io_write_control_stop(struct fstrm_io *io)
 {
 	size_t total_length = 3*sizeof(uint32_t);
@@ -470,12 +470,12 @@ fs_io_maybe_connect(struct fstrm_io *io)
 		if (since >= (time_t) io->opt.reconnect_interval) {
 			/* The reconnect interval expired. */
 
-			if (fs_io_open(io) == 0) {
+			if (fs_io_open(io) == FSTRM_RES_SUCCESS) {
 				/*
 				 * The transport has been reopened, so send the
 				 * start frame.
 				 */
-				if (fs_io_write_control_start(io) != 0) {
+				if (fs_io_write_control_start(io) != FSTRM_RES_SUCCESS) {
 					/*
 					 * Writing the control frame failed, so
 					 * close the transport.

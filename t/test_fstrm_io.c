@@ -74,7 +74,7 @@ thr_producer(void *arg)
 	memset(pstat, 0, sizeof(*pstat));
 
 	for (unsigned i = 0; i < num_messages; i++) {
-		int res;
+		fstrm_res res;
 		size_t len = 0;
 		uint8_t *message = NULL;
 		ubuf *u = ubuf_init(512);
@@ -87,7 +87,7 @@ thr_producer(void *arg)
 		ubuf_destroy(&u);
 
 		res = fstrm_io_submit(fio, fq, message, (uint32_t) len, NULL, NULL);
-		if (res > 0) {
+		if (res == FSTRM_RES_SUCCESS) {
 			pstat->count_submitted++;
 			pstat->bytes_submitted += len;
 		}

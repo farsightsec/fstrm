@@ -36,6 +36,14 @@ struct fstrm_queue;
 struct fstrm_writer;
 struct fstrm_writer_options;
 
+/* fstrm_res */
+
+typedef enum {
+	FSTRM_RES_SUCCESS,
+	FSTRM_RES_FAILURE,
+	FSTRM_RES_AGAIN,
+} fstrm_res;
+
 /* fstrm_io */
 
 struct fstrm_io *
@@ -47,7 +55,7 @@ fstrm_io_destroy(struct fstrm_io **);
 struct fstrm_queue *
 fstrm_io_get_queue(struct fstrm_io *);
 
-int
+fstrm_res
 fstrm_io_submit(struct fstrm_io *, struct fstrm_queue *,
 		void *buf, size_t len,
 		void (*free_func)(void *buf, void *free_data),
@@ -109,19 +117,19 @@ fstrm_io_options_set_writer(
 
 /* fstrm_writer */
 
-typedef int (*fstrm_writer_create_func)(
+typedef fstrm_res (*fstrm_writer_create_func)(
 	const struct fstrm_writer_options *,
 	void **data);
 
-typedef int (*fstrm_writer_destroy_func)(void *);
+typedef fstrm_res (*fstrm_writer_destroy_func)(void *);
 
-typedef int (*fstrm_writer_open_func)(void *);
+typedef fstrm_res (*fstrm_writer_open_func)(void *);
 
-typedef int (*fstrm_writer_close_func)(void *);
+typedef fstrm_res (*fstrm_writer_close_func)(void *);
 
-typedef int (*fstrm_writer_write_func)(void *,
-				       struct iovec *, int iovcnt,
-				       unsigned nbytes);
+typedef fstrm_res (*fstrm_writer_write_func)(void *,
+					     struct iovec *, int iovcnt,
+					     unsigned nbytes);
 
 struct fstrm_writer *
 fstrm_writer_init(void);
