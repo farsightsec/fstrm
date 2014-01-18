@@ -72,4 +72,13 @@ t_test_fstrm_io_LDADD = \
     -lm
 TESTS += t/run_test_fstrm_io.sh
 
+check_PROGRAMS += t/test_writer_hello
+t_test_writer_hello_SOURCES = \
+    t/test_writer_hello.c \
+    libmy/my_alloc.h \
+    libmy/print_string.h
+t_test_writer_hello_LDADD = \
+    fstrm/libfstrm.la
+TESTS += t/test_writer_hello
+
 EXTRA_DIST += $(TESTS)
