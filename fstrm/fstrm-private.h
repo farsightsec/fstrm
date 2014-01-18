@@ -83,7 +83,7 @@ struct fstrm_io_options {
 
 void fs_io_options_dup(struct fstrm_io_options *, const struct fstrm_io_options *);
 
-bool fs_validate_io_options(const struct fstrm_io_options *, char **errstr_out);
+bool fs_io_options_validate(const struct fstrm_io_options *, char **errstr_out);
 
 /* time */
 

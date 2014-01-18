@@ -23,7 +23,7 @@
 
 #include "fstrm-private.h"
 
-static void *fs_thr_io(void *);
+static void *fs_io_thr(void *);
 
 struct fs_queue_entry {
 	/* The actual payload's bytes, allocated by the caller. */
@@ -96,7 +96,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	pthread_condattr_t ca;
 
 	/* Validate options. */
-	if (!fs_validate_io_options(opt, err))
+	if (!fs_io_options_validate(opt, err))
 		goto err_out;
 
 	/* Initialize fstrm_io and copy options. */
@@ -163,7 +163,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	io->opt.writer_options = NULL;
 
 	/* Start the I/O thread. */
-	res = pthread_create(&io->thr, NULL, fs_thr_io, io);
+	res = pthread_create(&io->thr, NULL, fs_io_thr, io);
 	assert(res == 0);
 
 	return io;
@@ -174,7 +174,7 @@ err_out:
 }
 
 static void
-fs_free_queues(struct fstrm_io *io)
+fs_io_free_queues(struct fstrm_io *io)
 {
 	size_t i;
 	for (i = 0; i < io->opt.num_queues; i++) {
@@ -199,7 +199,7 @@ fstrm_io_destroy(struct fstrm_io **io)
 		pthread_cond_signal(&(*io)->cv);
 		pthread_join((*io)->thr, NULL);
 
-		fs_free_queues(*io);
+		fs_io_free_queues(*io);
 
 		if ((*io)->opt.writer->destroy != NULL)
 			(*io)->opt.writer->destroy((*io)->writer_data);
@@ -269,7 +269,7 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 }
 
 static void
-fs_thr_setup(void)
+fs_io_thr_setup(void)
 {
 	sigset_t set;
 	int s;
@@ -281,7 +281,7 @@ fs_thr_setup(void)
 }
 
 static int
-fs_write_control_start(struct fstrm_io *io)
+fs_io_write_control_start(struct fstrm_io *io)
 {
 	size_t total_length = 0;
 
@@ -356,7 +356,7 @@ fs_write_control_start(struct fstrm_io *io)
 }
 
 static int
-fs_write_control_stop(struct fstrm_io *io)
+fs_io_write_control_stop(struct fstrm_io *io)
 {
 	size_t total_length = 3*sizeof(uint32_t);
 	uint8_t buf[total_length];
@@ -382,7 +382,7 @@ fs_write_control_stop(struct fstrm_io *io)
 }
 
 static void
-fs_maybe_connect(struct fstrm_io *io)
+fs_io_maybe_connect(struct fstrm_io *io)
 {
 	if (unlikely(!io->opt.writer->is_opened(io->writer_data))) {
 		int res;
@@ -404,7 +404,7 @@ fs_maybe_connect(struct fstrm_io *io)
 				 * The transport has been reopened, so send the
 				 * start frame.
 				 */
-				if (fs_write_control_start(io) != 0) {
+				if (fs_io_write_control_start(io) != 0) {
 					/*
 					 * Writing the control frame failed, so
 					 * close the transport.
@@ -418,7 +418,7 @@ fs_maybe_connect(struct fstrm_io *io)
 }
 
 static void
-fs_flush_output(struct fstrm_io *io)
+fs_io_flush_output(struct fstrm_io *io)
 {
 	unsigned i;
 
@@ -447,7 +447,7 @@ fs_flush_output(struct fstrm_io *io)
 }
 
 static void
-fs_maybe_flush_output(struct fstrm_io *io, size_t n_bytes)
+fs_io_maybe_flush_output(struct fstrm_io *io, size_t n_bytes)
 {
 	assert(io->iov_idx <= io->opt.iovec_size);
 	if (io->iov_idx > 0) {
@@ -459,18 +459,18 @@ fs_maybe_flush_output(struct fstrm_io *io, size_t n_bytes)
 			 * more than 'buffer_hint' bytes of data ready to be
 			 * sent, flush the output.
 			 */
-			fs_flush_output(io);
+			fs_io_flush_output(io);
 		}
 	}
 }
 
 static void
-fs_process_queue_entry(struct fstrm_io *io, struct fs_queue_entry *entry)
+fs_io_process_queue_entry(struct fstrm_io *io, struct fs_queue_entry *entry)
 {
 	if (likely(io->opt.writer->is_opened(io->writer_data))) {
 		size_t n_bytes = sizeof(entry->be32_len) + ntohl(entry->be32_len);
 
-		fs_maybe_flush_output(io, n_bytes);
+		fs_io_maybe_flush_output(io, n_bytes);
 
 		/* Copy the entry to the array of outstanding queue entries. */
 		io->qe_array[io->qe_idx] = *entry;
@@ -496,7 +496,7 @@ fs_process_queue_entry(struct fstrm_io *io, struct fs_queue_entry *entry)
 }
 
 static unsigned
-fs_process_queues(struct fstrm_io *io)
+fs_io_process_queues(struct fstrm_io *io)
 {
 	struct fs_queue_entry *entry;
 	unsigned i;
@@ -508,7 +508,7 @@ fs_process_queues(struct fstrm_io *io)
 	 */
 	for (i = 0; i < io->opt.num_queues; i++) {
 		if (my_queue_remove(io->queues[i].q, (void **) &entry, NULL)) {
-			fs_process_queue_entry(io, entry);
+			fs_io_process_queue_entry(io, entry);
 			free(entry);
 			total++;
 		}
@@ -518,28 +518,28 @@ fs_process_queues(struct fstrm_io *io)
 }
 
 static void *
-fs_thr_io(void *arg)
+fs_io_thr(void *arg)
 {
 	struct fstrm_io *io = (struct fstrm_io *) arg;
 
-	fs_thr_setup();
-	fs_maybe_connect(io);
+	fs_io_thr_setup();
+	fs_io_maybe_connect(io);
 
 	for (;;) {
 		int res;
 		unsigned count;
 
 		if (unlikely(io->shutting_down)) {
-			while (fs_process_queues(io));
-			fs_flush_output(io);
-			fs_write_control_stop(io);
+			while (fs_io_process_queues(io));
+			fs_io_flush_output(io);
+			fs_io_write_control_stop(io);
 			io->opt.writer->close(io->writer_data);
 			break;
 		}
 
-		fs_maybe_connect(io);
+		fs_io_maybe_connect(io);
 
-		count = fs_process_queues(io);
+		count = fs_io_process_queues(io);
 		if (count != 0)
 			continue;
 
@@ -547,7 +547,7 @@ fs_thr_io(void *arg)
 						&io->cv, &io->cv_lock,
 						io->opt.flush_timeout);
 		if (res == ETIMEDOUT)
-			fs_flush_output(io);
+			fs_io_flush_output(io);
 	}
 
 	return NULL;

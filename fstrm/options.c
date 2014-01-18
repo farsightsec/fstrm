@@ -143,7 +143,7 @@ fstrm_io_options_set_writer(struct fstrm_io_options *opt,
 }
 
 bool
-fs_validate_io_options(const struct fstrm_io_options *opt, char **errstr_out)
+fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 {
 	const char *err = NULL;
 
