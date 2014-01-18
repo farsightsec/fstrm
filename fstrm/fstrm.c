@@ -280,6 +280,107 @@ fs_thr_setup(void)
 	assert(s == 0);
 }
 
+static int
+fs_write_control_start(struct fstrm_io *io)
+{
+	size_t total_length = 0;
+
+	/*
+	 * Calculate the total amount of space needed for the control frame.
+	 */
+
+	/* Escape: 32-bit BE integer. Zero. */
+	total_length += sizeof(uint32_t);
+
+	/* Frame length: 32-bit BE integer. */
+	total_length += sizeof(uint32_t);
+
+	/* Control type: 32-bit BE integer. */
+	total_length += sizeof(uint32_t);
+
+	if (io->opt.content_type != NULL) {
+		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
+		total_length += sizeof(uint32_t);
+
+		/* Length of content type string: 32-bit BE integer. */
+		total_length += sizeof(uint32_t);
+
+		/* The content type string itself: 'len_content_type' bytes. */
+		total_length += io->opt.len_content_type;
+	}
+
+	/* Allocate the storage for the control frame. */
+	uint8_t buf[total_length];
+	uint32_t tmp;
+
+	/*
+	 * Now actually serialize the control frame.
+	 */
+
+	/* Escape: 32-bit BE integer. Zero. */
+	memset(&buf[0*sizeof(uint32_t)], 0, sizeof(uint32_t));
+
+	/*
+	 * Frame length: 32-bit BE integer.
+	 *
+	 * This does not include the length of the escape frame or the length of
+	 * the frame length field itself, so subtract 2*4 bytes from the total
+	 * length.
+	 */
+	tmp = htonl(total_length - 2*sizeof(uint32_t));
+	memmove(&buf[1*sizeof(uint32_t)], &tmp, sizeof(tmp));
+
+	/* Control type: 32-bit BE integer. */
+	tmp = htonl(FSTRM_CONTROL_START);
+	memmove(&buf[2*sizeof(uint32_t)], &tmp, sizeof(tmp));
+
+	if (io->opt.content_type != NULL) {
+		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
+		tmp = htonl(FSTRM_CONTROL_FIELD_CONTENT_TYPE);
+		memmove(&buf[3*sizeof(uint32_t)], &tmp, sizeof(tmp));
+
+		/* Length of content type string: 32-bit BE integer. */
+		tmp = htonl(io->opt.len_content_type);
+		memmove(&buf[4*sizeof(uint32_t)], &tmp, sizeof(tmp));
+
+		/* The content type string itself. */
+		memmove(&buf[5*sizeof(uint32_t)], io->opt.content_type, io->opt.len_content_type);
+	}
+
+	/* Write the control frame. */
+	struct iovec control_iov = {
+		.iov_base = (void *) &buf[0],
+		.iov_len = total_length,
+	};
+	return io->opt.writer->write_control(io->writer_data, &control_iov, 1, total_length);
+}
+
+static int
+fs_write_control_stop(struct fstrm_io *io)
+{
+	size_t total_length = 3*sizeof(uint32_t);
+	uint8_t buf[total_length];
+	uint32_t tmp;
+
+	/* Escape: 32-bit BE integer. Zero. */
+	memset(&buf[0*sizeof(uint32_t)], 0, sizeof(uint32_t));
+
+	/* Frame length: 32-bit BE integer. */
+	tmp = htonl(total_length - 2*sizeof(uint32_t));
+	memmove(&buf[1*sizeof(uint32_t)], &tmp, sizeof(tmp));
+
+	/* Control type: 32-bit BE integer. */
+	tmp = htonl(FSTRM_CONTROL_STOP);
+	memmove(&buf[2*sizeof(uint32_t)], &tmp, sizeof(tmp));
+
+	/* Write the control frame. */
+	struct iovec control_iov = {
+		.iov_base = (void *) &buf[0],
+		.iov_len = total_length,
+	};
+	return io->opt.writer->write_control(io->writer_data, &control_iov, 1, total_length);
+}
+
 static void
 fs_maybe_connect(struct fstrm_io *io)
 {
@@ -288,11 +389,29 @@ fs_maybe_connect(struct fstrm_io *io)
 		time_t since;
 		struct timespec ts;
 
+		/*
+		 * If we're disconnected and the reconnect interval has expired,
+		 * try to reopen the transport.
+		 */
 		res = clock_gettime(io->clkid_gettime, &ts);
 		assert(res == 0);
 		since = ts.tv_sec - io->last_connect_attempt;
 		if (since >= (time_t) io->opt.reconnect_interval) {
-			io->opt.writer->open(io->writer_data);
+			/* The reconnect interval expired. */
+
+			if (io->opt.writer->open(io->writer_data) == 0) {
+				/*
+				 * The transport has been reopened, so send the
+				 * start frame.
+				 */
+				if (fs_write_control_start(io) != 0) {
+					/*
+					 * Writing the control frame failed, so
+					 * close the transport.
+					 */
+					io->opt.writer->close(io->writer_data);
+				}
+			}
 			io->last_connect_attempt = ts.tv_sec;
 		}
 	}
@@ -413,6 +532,7 @@ fs_thr_io(void *arg)
 		if (unlikely(io->shutting_down)) {
 			while (fs_process_queues(io));
 			fs_flush_output(io);
+			fs_write_control_stop(io);
 			io->opt.writer->close(io->writer_data);
 			break;
 		}

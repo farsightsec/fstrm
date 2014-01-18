@@ -24,9 +24,11 @@ extern "C" {
 #include <sys/uio.h>
 #include <stddef.h>
 
-#define FSTRM_CONTROL_ACCEPT	0x01
-#define FSTRM_CONTROL_START	0x02
-#define FSTRM_CONTROL_STOP	0x03
+#define FSTRM_CONTROL_ACCEPT			0x01
+#define FSTRM_CONTROL_START			0x02
+#define FSTRM_CONTROL_STOP			0x03
+
+#define FSTRM_CONTROL_FIELD_CONTENT_TYPE	0x01
 
 struct fstrm_io;
 struct fstrm_io_options;
