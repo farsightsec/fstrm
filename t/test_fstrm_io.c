@@ -114,10 +114,10 @@ read_input(int fd, struct consumer_stats *cstat)
 
 	for (;;) {
 		size_t nbytes;
-		uint32_t len;
+		uint32_t len, wire_len;
 		uint8_t message[MAX_MESSAGE_SIZE];
 
-		nbytes = fread(&len, sizeof(len), 1, f);
+		nbytes = fread(&wire_len, sizeof(wire_len), 1, f);
 		if (ferror(f))
 			break;
 		if (nbytes == 0 && feof(f)) {
@@ -125,9 +125,18 @@ read_input(int fd, struct consumer_stats *cstat)
 			break;
 		}
 
-		len = ntohl(len);
-		if (len == 0)
+		len = ntohl(wire_len);
+		if (len == 0) {
+			/* Skip the control frame. */
+			nbytes = fread(&wire_len, sizeof(wire_len), 1, f);
+			assert(!ferror(f) && !feof(f));
+			len = ntohl(wire_len);
+			if (len > 0) {
+				nbytes = fread(message, len, 1, f);
+				assert(!ferror(f) && !feof(f));
+			}
 			continue;
+		}
 
 		assert(len < MAX_MESSAGE_SIZE);
 		nbytes = fread(message, len, 1, f);
