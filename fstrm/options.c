@@ -182,9 +182,9 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 		err = "iovec_size must be a multiple of 2";
 		goto out;
 	}
-	
-	if (opt->iovec_size > IOV_MAX) {
-		err = "iovec_size greater than IOV_MAX";
+
+	if (opt->iovec_size < 2 || opt->iovec_size > IOV_MAX) {
+		err = "iovec_size out of allowed range [2..IOV_MAX]";
 		goto out;
 	}
 
