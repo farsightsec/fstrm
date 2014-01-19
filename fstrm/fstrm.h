@@ -69,6 +69,9 @@ fstrm_io_submit(struct fstrm_io *, struct fstrm_queue *,
 		void (*free_func)(void *buf, void *free_data),
 		void *free_data);
 
+void
+fstrm_free_wrapper(void *buf, void *free_data);
+
 /* fstrm_io_options */
 
 struct fstrm_io_options *

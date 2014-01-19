@@ -181,6 +181,13 @@ err_out:
 }
 
 static void
+fs_entry_free_bytes(struct fs_queue_entry *entry)
+{
+	if (entry->free_func != NULL)
+		entry->free_func(entry->bytes, entry->free_data);
+}
+
+static void
 fs_io_free_queues(struct fstrm_io *io)
 {
 	size_t i;
@@ -190,7 +197,7 @@ fs_io_free_queues(struct fstrm_io *io)
 
 		queue = io->queues[i].q;
 		while (my_queue_remove(queue, (void **) &entry, NULL)) {
-			entry->free_func(entry->bytes, entry->free_data);
+			fs_entry_free_bytes(entry);
 			free(entry);
 		}
 		my_queue_destroy(&queue);
@@ -240,9 +247,9 @@ fstrm_io_get_queue(struct fstrm_io *io)
 	return q;
 }
 
-static void
-fs_free_wrapper(void *ptr,
-		void *data __attribute__((__unused__)))
+void
+fstrm_free_wrapper(void *ptr,
+		   void *data __attribute__((__unused__)))
 {
 	free(ptr);
 }
@@ -264,20 +271,14 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	entry = my_malloc(sizeof(*entry));
 	entry->bytes = buf;
 	entry->be32_len = htonl((uint32_t) len);
-	if (free_func != NULL) {
-		entry->free_func = free_func;
-		entry->free_data = free_data;
-	} else {
-		entry->free_func = fs_free_wrapper;
-		entry->free_data = NULL;
-	}
+	entry->free_func = free_func;
+	entry->free_data = free_data;
 
 	if (likely(len > 0) && my_queue_insert(q->q, entry, &space)) {
 		if (space == io->opt.queue_notify_threshold)
 			pthread_cond_signal(&io->cv);
 		return FSTRM_RES_SUCCESS;
 	} else {
-		entry->free_func(entry->bytes, entry->free_data);
 		free(entry);
 		return FSTRM_RES_AGAIN;
 	}
@@ -501,10 +502,8 @@ fs_io_flush_output(struct fstrm_io *io)
 		fs_io_write_data(io, io->iov_array, io->iov_idx, io->iov_bytes);
 
 	/* Perform the deferred deallocations. */
-	for (i = 0; i < io->qe_idx; i++) {
-		struct fs_queue_entry *entry = &io->qe_array[i];
-		entry->free_func(entry->bytes, entry->free_data);
-	}
+	for (i = 0; i < io->qe_idx; i++)
+		fs_entry_free_bytes(&io->qe_array[i]);
 
 	/* Zero counters and indices. */
 	io->iov_bytes = 0;
@@ -557,7 +556,7 @@ fs_io_process_queue_entry(struct fstrm_io *io, struct fs_queue_entry *entry)
 		io->iov_bytes += n_bytes;
 	} else {
 		/* No writer is connected, just discard the payload. */
-		entry->free_func(entry->bytes, entry->free_data);
+		fs_entry_free_bytes(entry);
 	}
 }
 
