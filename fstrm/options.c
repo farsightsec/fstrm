@@ -18,11 +18,11 @@
 
 #define FS_DEFAULT_NUM_QUEUES			1	/* queues */
 #define FS_DEFAULT_BUFFER_HINT			8192	/* bytes */
-#define FS_DEFAULT_FLUSH_TIMEOUT		1000	/* milliseconds */
+#define FS_DEFAULT_FLUSH_TIMEOUT		1	/* seconds */
 #define FS_DEFAULT_IOVEC_SIZE			64	/* struct iovec's */
 #define FS_DEFAULT_QUEUE_NOTIFY_THRESHOLD	32	/* entries */
 #define FS_DEFAULT_QUEUE_LENGTH			512	/* entries */
-#define FS_DEFAULT_RECONNECT_INTERVAL		5000	/* milliseconds */
+#define FS_DEFAULT_RECONNECT_INTERVAL		5	/* seconds */
 
 struct fstrm_io_options default_fstrm_io_options = {
 	.content_type =			NULL,
@@ -173,8 +173,8 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 		goto out;
 	}
 
-	if (opt->flush_timeout < 1 || opt->flush_timeout > 60000) {
-		err = "flush_timeout out of allowed range [1..60000]";
+	if (opt->flush_timeout < 1 || opt->flush_timeout > 600) {
+		err = "flush_timeout out of allowed range [1..600]";
 		goto out;
 	}
 
@@ -210,8 +210,8 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 		goto out;
 	}
 
-	if (opt->reconnect_interval < 1000 || opt->reconnect_interval > 60000) {
-		err = "reconnect_interval out of allowed range [1000..60000]";
+	if (opt->reconnect_interval < 1 || opt->reconnect_interval > 600) {
+		err = "reconnect_interval out of allowed range [1..600]";
 		goto out;
 	}
 
