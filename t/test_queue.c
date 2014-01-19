@@ -88,7 +88,6 @@ static void *
 thr_producer(void *arg)
 {
 	bool res;
-	void *item;
 	unsigned space = 0;
 
 	struct producer_stats *s;
@@ -98,9 +97,8 @@ thr_producer(void *arg)
 		for (int64_t i = 1; i <= 1000000; i++) {
 			if (shut_down)
 				goto out;
-			item = (void *) i;
 
-			res = my_queue_insert(q, item, &space);
+			res = my_queue_insert(q, &i, &space);
 			s->count_insert_calls++;
 			if (res) {
 				s->count_producer++;
@@ -124,7 +122,6 @@ static void *
 thr_consumer(void *arg)
 {
 	bool res;
-	void *item;
 	unsigned count = 0;
 
 	struct consumer_stats *s;
@@ -132,15 +129,14 @@ thr_consumer(void *arg)
 
 	for (unsigned loops = 1; ; loops++) {
 		for (int64_t i = 1; i <= 1000000; i++) {
-			res = my_queue_remove(q, &item, &count);
+			res = my_queue_remove(q, &i, &count);
 			s->count_remove_calls++;
 			if (res) {
-				int64_t v = (int64_t) item;
-				if (v == 0) {
+				if (i == 0) {
 					fprintf(stderr, "%s: received shutdown message\n", __func__);
 					goto out;
 				}
-				s->checksum_consumer += v;
+				s->checksum_consumer += i;
 				s->count_consumer++;
 			} else {
 				s->count_consumer_empty++;
@@ -159,8 +155,8 @@ out:
 static void
 send_shutdown_message(struct my_queue *my_q)
 {
-	void *item = (void *) 0;
-	while(!my_queue_insert(my_q, item, NULL));
+	int64_t i = 0;
+	while (!my_queue_insert(my_q, &i, NULL));
 }
 
 static void
@@ -234,7 +230,7 @@ main(int argc, char **argv)
 	seconds = atoi(argv[3]);
 	struct timespec ts = { .tv_sec = seconds, .tv_nsec = 0 };
 
-	q = my_queue_init(size);
+	q = my_queue_init(size, sizeof(int64_t));
 	if (q == NULL) {
 		fprintf(stderr, "my_queue_init() failed, size too small or not a power-of-2?\n");
 		return (EXIT_FAILURE);
