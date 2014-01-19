@@ -86,10 +86,12 @@ thr_producer(void *arg)
 		ubuf_detach(u, &message, &len);
 		ubuf_destroy(&u);
 
-		res = fstrm_io_submit(fio, fq, message, (uint32_t) len, NULL, NULL);
+		res = fstrm_io_submit(fio, fq, message, len, fstrm_free_wrapper, NULL);
 		if (res == FSTRM_RES_SUCCESS) {
 			pstat->count_submitted++;
 			pstat->bytes_submitted += len;
+		} else {
+			free(message);
 		}
 		pstat->count_generated++;
 		pstat->bytes_generated += len;
