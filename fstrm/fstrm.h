@@ -24,6 +24,14 @@ extern "C" {
 #include <sys/uio.h>
 #include <stddef.h>
 
+#define FSTRM_DEFAULT_IO_NUM_QUEUES		1	/* queues */
+#define FSTRM_DEFAULT_IO_BUFFER_HINT		8192	/* bytes */
+#define FSTRM_DEFAULT_IO_FLUSH_TIMEOUT		1	/* seconds */
+#define FSTRM_DEFAULT_IO_IOVEC_SIZE		64	/* struct iovec's */
+#define FSTRM_DEFAULT_IO_QUEUE_NOTIFY_THRESHOLD	32	/* queue entries */
+#define FSTRM_DEFAULT_IO_QUEUE_LENGTH		512	/* queue entries */
+#define FSTRM_DEFAULT_IO_RECONNECT_INTERVAL	5	/* seconds */
+
 #define FSTRM_CONTROL_ACCEPT			0x01
 #define FSTRM_CONTROL_START			0x02
 #define FSTRM_CONTROL_STOP			0x03

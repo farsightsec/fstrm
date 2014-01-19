@@ -16,24 +16,16 @@
 
 #include "fstrm-private.h"
 
-#define FS_DEFAULT_NUM_QUEUES			1	/* queues */
-#define FS_DEFAULT_BUFFER_HINT			8192	/* bytes */
-#define FS_DEFAULT_FLUSH_TIMEOUT		1	/* seconds */
-#define FS_DEFAULT_IOVEC_SIZE			64	/* struct iovec's */
-#define FS_DEFAULT_QUEUE_NOTIFY_THRESHOLD	32	/* entries */
-#define FS_DEFAULT_QUEUE_LENGTH			512	/* entries */
-#define FS_DEFAULT_RECONNECT_INTERVAL		5	/* seconds */
-
 struct fstrm_io_options default_fstrm_io_options = {
 	.content_type =			NULL,
 	.len_content_type =		0,
-	.buffer_hint =			FS_DEFAULT_BUFFER_HINT,
-	.flush_timeout =		FS_DEFAULT_FLUSH_TIMEOUT,
-	.iovec_size =			FS_DEFAULT_IOVEC_SIZE,
-	.num_queues =			FS_DEFAULT_NUM_QUEUES,
-	.queue_length =			FS_DEFAULT_QUEUE_LENGTH,
-	.queue_notify_threshold =	FS_DEFAULT_QUEUE_NOTIFY_THRESHOLD,
-	.reconnect_interval =		FS_DEFAULT_RECONNECT_INTERVAL,
+	.buffer_hint =			FSTRM_DEFAULT_IO_BUFFER_HINT,
+	.flush_timeout =		FSTRM_DEFAULT_IO_FLUSH_TIMEOUT,
+	.iovec_size =			FSTRM_DEFAULT_IO_IOVEC_SIZE,
+	.num_queues =			FSTRM_DEFAULT_IO_NUM_QUEUES,
+	.queue_length =			FSTRM_DEFAULT_IO_QUEUE_LENGTH,
+	.queue_notify_threshold =	FSTRM_DEFAULT_IO_QUEUE_NOTIFY_THRESHOLD,
+	.reconnect_interval =		FSTRM_DEFAULT_IO_RECONNECT_INTERVAL,
 };
 
 void
