@@ -22,6 +22,7 @@
  */
 
 #include <arpa/inet.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -241,6 +242,7 @@ main(void)
 
 	for (int i = 0; i < num_iterations; i++) {
 		char buf[100];
+		char *bytes;
 
 		buf[0] = '\0';
 		sprintf(buf, "hello world #%d", i);
@@ -250,9 +252,24 @@ main(void)
 		h_cur->len = strlen(buf);
 		h_cur->data = my_strdup(buf);
 
-		while (fstrm_io_submit(io, fq,
-				       my_strdup(buf), strlen(buf),
-				       NULL, NULL) != FSTRM_RES_SUCCESS);
+		bytes = my_strdup(buf);
+
+		for (;;) {
+			fstrm_res res;
+
+			res = fstrm_io_submit(io, fq, bytes, strlen(bytes),
+					      fstrm_free_wrapper, NULL);
+			if (res == FSTRM_RES_SUCCESS) {
+				break;
+			} else if (res == FSTRM_RES_AGAIN) {
+				poll(NULL, 0, 1); /* sleep for a millisecond */
+				continue;
+			} else {
+				free(bytes);
+				fprintf(stderr, "fstrm_io_submit() failed\n");
+				return EXIT_FAILURE;
+			}
+		}
 	}
 
 	fstrm_io_destroy(&io);
