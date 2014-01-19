@@ -169,12 +169,12 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 	}
 
 	if (opt->buffer_hint < 1024 || opt->buffer_hint > 65536) {
-		err = "buffer_hint out of allowed range [1024..65536]";
+		err = "buffer_hint out of allowed range [1024..65536] bytes";
 		goto out;
 	}
 
 	if (opt->flush_timeout < 1 || opt->flush_timeout > 600) {
-		err = "flush_timeout out of allowed range [1..600]";
+		err = "flush_timeout out of allowed range [1..600] seconds";
 		goto out;
 	}
 
@@ -211,7 +211,7 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 	}
 
 	if (opt->reconnect_interval < 1 || opt->reconnect_interval > 600) {
-		err = "reconnect_interval out of allowed range [1..600]";
+		err = "reconnect_interval out of allowed range [1..600] seconds";
 		goto out;
 	}
 
