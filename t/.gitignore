@@ -1,3 +1,4 @@
 test_fstrm_io
+test_fstrm_io_file
 test_queue
 test_writer_hello

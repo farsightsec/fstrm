@@ -77,6 +77,17 @@ t_test_fstrm_io_LDADD = \
     -lm
 TESTS += t/run_test_fstrm_io.sh
 
+check_PROGRAMS += t/test_fstrm_io_file
+t_test_fstrm_io_file_SOURCES = \
+    t/test_fstrm_io_file.c \
+    libmy/my_alloc.h \
+    libmy/my_time.h \
+    libmy/ubuf.h \
+    libmy/vector.h
+t_test_fstrm_io_file_LDADD = \
+    fstrm/libfstrm.la
+TESTS += t/run_test_fstrm_io_file.sh
+
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \
     t/test_writer_hello.c \
