@@ -64,7 +64,6 @@ TESTS += t/run_test_queue.sh
 check_PROGRAMS += t/test_fstrm_io
 t_test_fstrm_io_SOURCES = \
     t/test_fstrm_io.c \
-    libmy/rate.c libmy/rate.h \
     libmy/ubuf.h \
     libmy/vector.h
 t_test_fstrm_io_LDADD = \

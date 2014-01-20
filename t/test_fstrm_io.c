@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,7 +34,6 @@
 
 #include "libmy/my_alloc.h"
 #include "libmy/my_time.h"
-#include "libmy/rate.h"
 #include "libmy/ubuf.h"
 
 #define MAX_MESSAGE_SIZE	4096
@@ -63,13 +63,9 @@ thr_producer(void *arg)
 {
 	struct producer_stats *pstat = (struct producer_stats *) arg;
 	struct fstrm_queue *fq;
-	struct rate *r;
 
 	fq = fstrm_io_get_queue(fio);
 	assert(fq != NULL);
-
-	r = rate_init(MESSAGE_RATE, 100);
-	assert(r != NULL);
 
 	memset(pstat, 0, sizeof(*pstat));
 
@@ -96,10 +92,10 @@ thr_producer(void *arg)
 		pstat->count_generated++;
 		pstat->bytes_generated += len;
 
-		rate_sleep(r);
+		if ((i % 1000) == 0)
+			poll(NULL, 0, 1);
 	}
 
-	rate_destroy(&r);
 	return (NULL);
 }
 
