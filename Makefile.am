@@ -25,6 +25,7 @@ lib_LTLIBRARIES = fstrm/libfstrm.la
 fstrm_libfstrm_la_SOURCES = \
 	fstrm/fstrm-private.h \
 	fstrm/fstrm.c fstrm/fstrm.h \
+	fstrm/file_writer.c \
 	fstrm/options.c \
 	fstrm/time.c \
 	fstrm/unix_writer.c \

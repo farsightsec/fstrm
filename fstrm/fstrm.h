@@ -194,6 +194,22 @@ fstrm_writer_set_write_data(
 	struct fstrm_writer *,
 	fstrm_writer_write_func);
 
+/* fstrm_file_writer, fstrm_file_writer_options */
+
+extern const struct fstrm_writer *fstrm_file_writer;
+
+struct fstrm_file_writer_options *
+fstrm_file_writer_options_init(void);
+
+void
+fstrm_file_writer_options_destroy(
+	struct fstrm_file_writer_options **);
+
+void
+fstrm_file_writer_options_set_file_path(
+	struct fstrm_file_writer_options *,
+	const char *file_path);
+
 /* fstrm_unix_writer, fstrm_unix_writer_options */
 
 extern const struct fstrm_writer *fstrm_unix_writer;
