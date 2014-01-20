@@ -38,6 +38,7 @@ EXTRA_DIST += \
 	libmy/my_queue_mb.c \
 	libmy/my_queue_mutex.c
 
+fstrm_libfstrm_la_CFLAGS = $(AM_CFLAGS)
 fstrm_libfstrm_la_LDFLAGS = $(AM_LDFLAGS) \
 	-version-info $(LIBFSTRM_VERSION_INFO) \
 	-export-symbols-regex "^(fstrm_.*)"
