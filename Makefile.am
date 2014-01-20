@@ -67,17 +67,6 @@ t_test_queue_SOURCES = \
     libmy/my_time.h
 TESTS += t/run_test_queue.sh
 
-check_PROGRAMS += t/test_fstrm_io
-t_test_fstrm_io_SOURCES = \
-    t/test_fstrm_io.c \
-    libmy/my_alloc.h \
-    libmy/my_time.h \
-    libmy/ubuf.h \
-    libmy/vector.h
-t_test_fstrm_io_LDADD = \
-    fstrm/libfstrm.la
-TESTS += t/run_test_fstrm_io.sh
-
 check_PROGRAMS += t/test_fstrm_io_file
 t_test_fstrm_io_file_SOURCES = \
     t/test_fstrm_io_file.c \
@@ -88,6 +77,17 @@ t_test_fstrm_io_file_SOURCES = \
 t_test_fstrm_io_file_LDADD = \
     fstrm/libfstrm.la
 TESTS += t/run_test_fstrm_io_file.sh
+
+check_PROGRAMS += t/test_fstrm_io_unix
+t_test_fstrm_io_unix_SOURCES = \
+    t/test_fstrm_io_unix.c \
+    libmy/my_alloc.h \
+    libmy/my_time.h \
+    libmy/ubuf.h \
+    libmy/vector.h
+t_test_fstrm_io_unix_LDADD = \
+    fstrm/libfstrm.la
+TESTS += t/run_test_fstrm_io_unix.sh
 
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \

@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-TNAME="test_fstrm_io"
+TNAME="test_fstrm_io_unix"
 SOCKNAME="./test.sock"
 
 if [ -z "$DIRNAME" ]; then

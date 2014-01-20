@@ -1,4 +1,4 @@
-test_fstrm_io
 test_fstrm_io_file
+test_fstrm_io_unix
 test_queue
 test_writer_hello
