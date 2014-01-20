@@ -33,6 +33,7 @@
 #include "fstrm.h"
 
 #include "libmy/my_alloc.h"
+#include "libmy/my_memory_barrier.h"
 #include "libmy/my_queue.h"
 
 #if defined(__GNUC__)
@@ -97,5 +98,13 @@ bool fs_get_best_monotonic_clocks(clockid_t *clkid_gettime,
 				  char **errstr_out);
 
 int fs_pthread_cond_timedwait(clockid_t, pthread_cond_t *, pthread_mutex_t *, unsigned);
+
+/* queue */
+
+#ifdef MY_HAVE_MEMORY_BARRIERS
+extern const struct my_queue_ops my_queue_mb_ops;
+#endif
+
+extern const struct my_queue_ops my_queue_mutex_ops;
 
 #endif /* FSTRM_PRIVATE_H */

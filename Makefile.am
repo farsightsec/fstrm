@@ -31,8 +31,9 @@ fstrm_libfstrm_la_SOURCES = \
 	fstrm/writer.c \
 	libmy/my_alloc.h \
 	libmy/my_memory_barrier.h \
-	libmy/my_queue.c \
-	libmy/my_queue.h
+	libmy/my_queue.h \
+	libmy/my_queue_mb.c \
+	libmy/my_queue_mutex.c
 
 EXTRA_DIST += \
 	libmy/my_queue_mb.c \

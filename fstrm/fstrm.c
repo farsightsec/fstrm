@@ -45,6 +45,9 @@ struct fstrm_io {
 	/* Deep copy of options supplied by caller. */
 	struct fstrm_io_options		opt;
 
+	/* Queue implementation. */
+	const struct my_queue_ops	*queue_ops;
+
 	/* Data returned by call to writer's 'create' method. */
 	void				*writer_data;
 
@@ -111,6 +114,25 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	if (io->opt.iovec_size > IOV_MAX)
 		io->opt.iovec_size = IOV_MAX;
 
+	/*
+	 * Set the queue implementation.
+	 *
+	 * The memory barrier based queue implementation is the only one of our
+	 * queue implementations that supports SPSC, so if it is not available,
+	 * use the mutex based queue implementation instead. The mutex
+	 * implementation is technically MPSC, but MPSC is strictly stronger
+	 * than SPSC.
+	 */
+	if (io->opt.queue_model == FSTRM_QUEUE_MODEL_SPSC) {
+#ifdef MY_HAVE_MEMORY_BARRIERS
+		io->queue_ops = &my_queue_mb_ops;
+#else
+		io->queue_ops = &my_queue_mutex_ops;
+#endif
+	} else {
+		io->queue_ops = &my_queue_mutex_ops;
+	}
+
 	/* Validate options. */
 	if (!fs_io_options_validate(&io->opt, err))
 		goto err_out;
@@ -126,11 +148,11 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	/* Initialize the queues. */
 	io->queues = my_calloc(io->opt.num_queues, sizeof(struct fstrm_queue));
 	for (i = 0; i < io->opt.num_queues; i++) {
-		io->queues[i].q = my_queue_init(io->opt.queue_length,
-						sizeof(struct fs_queue_entry));
+		io->queues[i].q = io->queue_ops->init(io->opt.queue_length,
+						      sizeof(struct fs_queue_entry));
 		if (io->queues[i].q == NULL) {
 			if (err != NULL)
-				*err = my_strdup("my_queue_init() failed");
+				*err = my_strdup("io->queue_ops->init() failed");
 			goto err_out;
 		}
 	}
@@ -206,9 +228,9 @@ fs_io_free_queues(struct fstrm_io *io)
 		struct fs_queue_entry entry;
 
 		queue = io->queues[i].q;
-		while (my_queue_remove(queue, &entry, NULL))
+		while (io->queue_ops->remove(queue, &entry, NULL))
 			fs_entry_free_bytes(&entry);
-		my_queue_destroy(&queue);
+		io->queue_ops->destroy(&queue);
 	}
 	free(io->queues);
 }
@@ -281,7 +303,7 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	entry.free_func = free_func;
 	entry.free_data = free_data;
 
-	if (likely(len > 0) && my_queue_insert(q->q, &entry, &space)) {
+	if (likely(len > 0) && io->queue_ops->insert(q->q, &entry, &space)) {
 		if (space == io->opt.queue_notify_threshold)
 			pthread_cond_signal(&io->cv);
 		return FSTRM_RES_SUCCESS;
@@ -578,7 +600,7 @@ fs_io_process_queues(struct fstrm_io *io)
 	 * to our buffer.
 	 */
 	for (i = 0; i < io->opt.num_queues; i++) {
-		if (my_queue_remove(io->queues[i].q, &entry, NULL)) {
+		if (io->queue_ops->remove(io->queues[i].q, &entry, NULL)) {
 			fs_io_process_queue_entry(io, &entry);
 			total++;
 		}
