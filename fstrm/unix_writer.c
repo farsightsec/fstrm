@@ -44,7 +44,13 @@ fs_unix_writer_open(void *data)
 		return FSTRM_RES_SUCCESS;
 
 	/* Open an AF_UNIX socket. */
+#if defined(SOCK_CLOEXEC)
+	w->fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	if (w->fd < 0 && errno == EINVAL)
+		w->fd = socket(AF_UNIX, SOCK_STREAM, 0);
+#else
 	w->fd = socket(AF_UNIX, SOCK_STREAM, 0);
+#endif
 	if (w->fd < 0)
 		return FSTRM_RES_FAILURE;
 
