@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include "fstrm-private.h"
@@ -43,7 +44,7 @@ fs_unix_writer_open(void *data)
 	if (w->connected)
 		return FSTRM_RES_SUCCESS;
 
-	/* Open an AF_UNIX socket. */
+	/* Open an AF_UNIX socket. Request socket close-on-exec if available. */
 #if defined(SOCK_CLOEXEC)
 	w->fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 	if (w->fd < 0 && errno == EINVAL)
@@ -54,11 +55,28 @@ fs_unix_writer_open(void *data)
 	if (w->fd < 0)
 		return FSTRM_RES_FAILURE;
 
+	/*
+	 * Request close-on-exec if available. There is nothing that can be done
+	 * if the F_SETFD call to fcntl() fails, so don't bother checking the
+	 * return value.
+	 *
+	 * https://lwn.net/Articles/412131/
+	 * [ Ghosts of Unix past, part 2: Conflated designs ]
+	 */
+#if defined(FD_CLOEXEC)
+	int flags = fcntl(w->fd, F_GETFD, 0);
+	if (flags != -1) {
+		flags |= FD_CLOEXEC;
+		(void) fcntl(w->fd, F_SETFD, flags);
+	}
+#endif
+
 #if defined(SO_NOSIGPIPE)
 	/*
 	 * Ugh, no signals, please!
 	 *
 	 * https://lwn.net/Articles/414618/
+	 * [ Ghosts of Unix past, part 3: Unfixable designs ]
 	 */
 	static const int on = 1;
 	if (setsockopt(w->fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on)) != 0) {
