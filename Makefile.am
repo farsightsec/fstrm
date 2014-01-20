@@ -70,11 +70,12 @@ TESTS += t/run_test_queue.sh
 check_PROGRAMS += t/test_fstrm_io
 t_test_fstrm_io_SOURCES = \
     t/test_fstrm_io.c \
+    libmy/my_alloc.h \
+    libmy/my_time.h \
     libmy/ubuf.h \
     libmy/vector.h
 t_test_fstrm_io_LDADD = \
-    fstrm/libfstrm.la \
-    -lm
+    fstrm/libfstrm.la
 TESTS += t/run_test_fstrm_io.sh
 
 check_PROGRAMS += t/test_fstrm_io_file
