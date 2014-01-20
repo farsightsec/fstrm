@@ -40,6 +40,7 @@ AX_PTHREAD([
 ])
 
 AC_SEARCH_LIBS([clock_gettime], [rt])
+AC_SEARCH_LIBS([socket], [socket])
 
 gl_VALGRIND_TESTS
 
