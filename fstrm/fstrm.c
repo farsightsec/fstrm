@@ -98,13 +98,22 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	size_t i;
 	pthread_condattr_t ca;
 
-	/* Validate options. */
-	if (!fs_io_options_validate(opt, err))
-		goto err_out;
-
 	/* Initialize fstrm_io and copy options. */
 	io = my_calloc(1, sizeof(*io));
 	fs_io_options_dup(&io->opt, opt);
+
+	/*
+	 * Some platforms have a ridiculously low IOV_MAX, literally the lowest
+	 * value even allowed by POSIX, which is lower than our conservative
+	 * FSTRM_DEFAULT_IO_IOVEC_SIZE. Accomodate these platforms by silently
+	 * clamping io->opt.iovec_size to IOV_MAX.
+	 */
+	if (io->opt.iovec_size > IOV_MAX)
+		io->opt.iovec_size = IOV_MAX;
+
+	/* Validate options. */
+	if (!fs_io_options_validate(&io->opt, err))
+		goto err_out;
 
 	/* Detect best clocks. */
 	if (!fs_get_best_monotonic_clocks(&io->clkid_gettime,
