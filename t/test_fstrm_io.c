@@ -37,7 +37,6 @@
 #include "libmy/ubuf.h"
 
 #define MAX_MESSAGE_SIZE	4096
-#define MESSAGE_RATE		100000
 
 struct producer_stats {
 	uint64_t		count_generated;
