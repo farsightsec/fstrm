@@ -40,15 +40,26 @@
 #define MESSAGE_RATE		100000
 
 struct producer_stats {
-	uint64_t	count_generated;
-	uint64_t	count_submitted;
-	uint64_t	bytes_generated;
-	uint64_t	bytes_submitted;
+	uint64_t		count_generated;
+	uint64_t		count_submitted;
+	uint64_t		bytes_generated;
+	uint64_t		bytes_submitted;
+};
+
+struct producer {
+	pthread_t		thr;
+	struct producer_stats	pstat;
+	struct fstrm_queue	*fq;
 };
 
 struct consumer_stats {
-	uint64_t	count_received;
-	uint64_t	bytes_received;
+	uint64_t		count_received;
+	uint64_t		bytes_received;
+};
+
+struct consumer {
+	pthread_t		thr;
+	struct consumer_stats	cstat;
 };
 
 static unsigned num_messages;
@@ -61,13 +72,9 @@ static int server_fd;
 static void *
 thr_producer(void *arg)
 {
-	struct producer_stats *pstat = (struct producer_stats *) arg;
-	struct fstrm_queue *fq;
+	struct producer *p = (struct producer *) arg;
 
-	fq = fstrm_io_get_queue(fio);
-	assert(fq != NULL);
-
-	memset(pstat, 0, sizeof(*pstat));
+	memset(&p->pstat, 0, sizeof(p->pstat));
 
 	for (unsigned i = 0; i < num_messages; i++) {
 		fstrm_res res;
@@ -75,22 +82,22 @@ thr_producer(void *arg)
 		uint8_t *message = NULL;
 		ubuf *u = ubuf_init(512);
 
-		unsigned ndups = (pstat->count_generated % 4) + 1;
+		unsigned ndups = (p->pstat.count_generated % 4) + 1;
 		for (unsigned j = 0; j < ndups; j++)
 			ubuf_add_cstr(u, test_string);
 
 		ubuf_detach(u, &message, &len);
 		ubuf_destroy(&u);
 
-		res = fstrm_io_submit(fio, fq, message, len, fstrm_free_wrapper, NULL);
+		res = fstrm_io_submit(fio, p->fq, message, len, fstrm_free_wrapper, NULL);
 		if (res == FSTRM_RES_SUCCESS) {
-			pstat->count_submitted++;
-			pstat->bytes_submitted += len;
+			p->pstat.count_submitted++;
+			p->pstat.bytes_submitted += len;
 		} else {
 			free(message);
 		}
-		pstat->count_generated++;
-		pstat->bytes_generated += len;
+		p->pstat.count_generated++;
+		p->pstat.bytes_generated += len;
 
 		if ((i % 1000) == 0)
 			poll(NULL, 0, 1);
@@ -162,10 +169,10 @@ read_input(int fd, struct consumer_stats *cstat)
 static void *
 thr_consumer(void *arg)
 {
-	struct consumer_stats *cstat = (struct consumer_stats *) arg;
+	struct consumer *c = (struct consumer *) arg;
 	int client_fd;
 
-	memset(cstat, 0, sizeof(*cstat));
+	memset(&c->cstat, 0, sizeof(c->cstat));
 
 	client_fd = accept(server_fd, NULL, NULL);
 	if (client_fd == -1) {
@@ -174,7 +181,7 @@ thr_consumer(void *arg)
 	}
 	printf("%s(): accepted a connection\n", __func__);
 
-	read_input(client_fd, cstat);
+	read_input(client_fd, &c->cstat);
 
 	if (close(server_fd) == -1) {
 		perror("close");
@@ -225,15 +232,23 @@ main(int argc, char **argv)
 	struct timespec ts_a, ts_b;
 	double elapsed;
 	char *socket_path;
+	char *queue_model_str;
 	unsigned num_threads;
+	fstrm_queue_model queue_model;
 
-	if (argc != 4) {
-		fprintf(stderr, "Usage: %s <SOCKET> <NUM THREADS> <NUM MESSAGES>\n", argv[0]);
+	if (argc != 5) {
+		fprintf(stderr, "Usage: %s <SOCKET> <QUEUE MODEL> <NUM THREADS> <NUM MESSAGES>\n", argv[0]);
+		fprintf(stderr, "\n");
+		fprintf(stderr, "SOCKET is a filesystem path.\n");
+		fprintf(stderr, "QUEUE MODEL is the string 'SPSC' or 'MPSC'.\n");
+		fprintf(stderr, "NUM THREADS is an integer.\n");
+		fprintf(stderr, "NUM MESSAGES is an integer.\n");
 		return (EXIT_FAILURE);
 	}
 	socket_path = argv[1];
-	num_threads = atoi(argv[2]);
-	num_messages = atoi(argv[3]);
+	queue_model_str = argv[2];
+	num_threads = atoi(argv[3]);
+	num_messages = atoi(argv[4]);
 	if (num_threads < 1) {
 		fprintf(stderr, "%s: Error: invalid number of threads\n", argv[0]);
 		return (EXIT_FAILURE);
@@ -243,20 +258,29 @@ main(int argc, char **argv)
 		return (EXIT_FAILURE);
 	}
 
-	printf("testing fstrm_io with socket= %s num_threads= %u num_messages= %u\n",
-	       socket_path, num_threads, num_messages);
+	if (strcasecmp(queue_model_str, "SPSC") == 0) {
+		queue_model = FSTRM_QUEUE_MODEL_SPSC;
+	} else if (strcasecmp(queue_model_str, "MPSC") == 0) {
+		queue_model = FSTRM_QUEUE_MODEL_MPSC;
+	} else {
+		fprintf(stderr, "%s: Error: invalid queue model\n", argv[0]);
+		return (EXIT_FAILURE);
+	}
+
+	printf("testing fstrm_io with socket= %s "
+	       "queue_model= %s "
+	       "num_threads= %u "
+	       "num_messages= %u\n",
+	       socket_path, queue_model_str, num_threads, num_messages);
 
 	printf("opening server socket on %s\n", socket_path);
 	server_fd = get_server_socket(socket_path);
 
-	struct producer_stats pstat[num_threads];
-	struct consumer_stats cstat;
-
-	pthread_t thr_p[num_threads];
-	pthread_t thr_c;
+	struct producer test_producers[num_threads];
+	struct consumer test_consumer;
 
 	printf("creating consumer thread\n");
-	pthread_create(&thr_c, NULL, thr_consumer, &cstat);
+	pthread_create(&test_consumer.thr, NULL, thr_consumer, &test_consumer);
 
 	struct fstrm_unix_writer_options *fuwopt;
 	fuwopt = fstrm_unix_writer_options_init();
@@ -264,7 +288,15 @@ main(int argc, char **argv)
 
 	struct fstrm_io_options *fopt;
 	fopt = fstrm_io_options_init();
-	fstrm_io_options_set_num_queues(fopt, num_threads);
+
+	if (queue_model == FSTRM_QUEUE_MODEL_SPSC) {
+		fstrm_io_options_set_num_queues(fopt, num_threads);
+	} else if (queue_model == FSTRM_QUEUE_MODEL_MPSC) {
+		fstrm_io_options_set_num_queues(fopt, 1);
+	} else {
+		assert(0); /* not reached */
+	}
+	fstrm_io_options_set_queue_model(fopt, queue_model);
 	fstrm_io_options_set_writer(fopt, fstrm_unix_writer, fuwopt);
 
 	char *errstr = NULL;
@@ -277,21 +309,35 @@ main(int argc, char **argv)
 	fstrm_io_options_destroy(&fopt);
 	fstrm_unix_writer_options_destroy(&fuwopt);
 
+	if (queue_model == FSTRM_QUEUE_MODEL_SPSC) {
+		for (unsigned i = 0; i < num_threads; i++) {
+			test_producers[i].fq = fstrm_io_get_queue(fio);
+			assert(test_producers[i].fq != NULL);
+		}
+	} else if (queue_model == FSTRM_QUEUE_MODEL_MPSC) {
+		struct fstrm_queue *fq = fstrm_io_get_queue(fio);
+		assert(fq != NULL);
+		for (unsigned i = 0; i < num_threads; i++)
+			test_producers[i].fq = fq;
+	} else {
+		assert(0); /* not reached */
+	}
+
 	my_gettime(CLOCK_MONOTONIC, &ts_a);
 
 	printf("creating %u producer threads\n", num_threads);
 	for (unsigned i = 0; i < num_threads; i++)
-		pthread_create(&thr_p[i], NULL, thr_producer, &pstat[i]);
+		pthread_create(&test_producers[i].thr, NULL, thr_producer, &test_producers[i]);
 
 	printf("joining %u producer threads\n", num_threads);
 	for (unsigned i = 0; i < num_threads; i++)
-		pthread_join(thr_p[i], (void **) NULL);
+		pthread_join(test_producers[i].thr, (void **) NULL);
 
 	printf("destroying fstrm_io object\n");
 	fstrm_io_destroy(&fio);
 
 	printf("joining consumer thread\n");
-	pthread_join(thr_c, (void **) NULL);
+	pthread_join(test_consumer.thr, (void **) NULL);
 
 	my_gettime(CLOCK_MONOTONIC, &ts_b);
 	my_timespec_sub(&ts_a, &ts_b);
@@ -301,10 +347,10 @@ main(int argc, char **argv)
 	struct producer_stats pstat_sum;
 	memset(&pstat_sum, 0, sizeof(pstat_sum));
 	for (unsigned i = 0; i < num_threads; i++) {
-		pstat_sum.count_generated += pstat[i].count_generated;
-		pstat_sum.count_submitted += pstat[i].count_submitted;
-		pstat_sum.bytes_generated += pstat[i].bytes_generated;
-		pstat_sum.bytes_submitted += pstat[i].bytes_submitted;
+		pstat_sum.count_generated += test_producers[i].pstat.count_generated;
+		pstat_sum.count_submitted += test_producers[i].pstat.count_submitted;
+		pstat_sum.bytes_generated += test_producers[i].pstat.bytes_generated;
+		pstat_sum.bytes_submitted += test_producers[i].pstat.bytes_submitted;
 	}
 	printf("count_generated= %" PRIu64 "\n", pstat_sum.count_generated);
 	printf("bytes_generated= %" PRIu64 "\n", pstat_sum.bytes_generated);
@@ -312,16 +358,16 @@ main(int argc, char **argv)
 	printf("bytes_submitted= %" PRIu64 "\n", pstat_sum.bytes_submitted);
 
 	printf("count_received= %" PRIu64 " (%.3f)\n",
-	       cstat.count_received,
-	       (cstat.count_received + 0.0) / (pstat_sum.count_generated + 0.0)
+	       test_consumer.cstat.count_received,
+	       (test_consumer.cstat.count_received + 0.0) / (pstat_sum.count_generated + 0.0)
 	);
 	printf("bytes_received= %" PRIu64 " (%.3f)\n",
-	       cstat.bytes_received,
-	       (cstat.bytes_received + 0.0) / (pstat_sum.bytes_generated + 0.0)
+	       test_consumer.cstat.bytes_received,
+	       (test_consumer.cstat.bytes_received + 0.0) / (pstat_sum.bytes_generated + 0.0)
 	);
 
-	assert(pstat_sum.count_submitted == cstat.count_received);
-	assert(pstat_sum.bytes_submitted == cstat.bytes_received);
+	assert(pstat_sum.count_submitted == test_consumer.cstat.count_received);
+	assert(pstat_sum.bytes_submitted == test_consumer.cstat.bytes_received);
 
 	putchar('\n');
 
