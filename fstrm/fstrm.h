@@ -50,6 +50,7 @@ typedef enum {
 	FSTRM_RES_SUCCESS,
 	FSTRM_RES_FAILURE,
 	FSTRM_RES_AGAIN,
+	FSTRM_RES_INVALID,
 } fstrm_res;
 
 /* fstrm_io */

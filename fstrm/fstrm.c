@@ -273,8 +273,8 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	if (unlikely(io->shutting_down))
 		return FSTRM_RES_FAILURE;
 
-	if (unlikely(len >= UINT32_MAX))
-		return FSTRM_RES_FAILURE;
+	if (unlikely(len < 1 || len >= UINT32_MAX))
+		return FSTRM_RES_INVALID;
 
 	entry.bytes = buf;
 	entry.be32_len = htonl((uint32_t) len);
