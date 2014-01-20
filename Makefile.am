@@ -60,6 +60,9 @@ LOG_COMPILER = $(VALGRIND)
 check_PROGRAMS += t/test_queue
 t_test_queue_SOURCES = \
     t/test_queue.c \
+    libmy/my_queue.h \
+    libmy/my_queue_mb.c \
+    libmy/my_queue_mutex.c \
     libmy/my_time.h
 TESTS += t/run_test_queue.sh
 

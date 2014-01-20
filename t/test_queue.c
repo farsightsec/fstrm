@@ -26,8 +26,16 @@
 #include "libmy/my_alloc.h"
 #include "libmy/my_time.h"
 
+#include "libmy/my_memory_barrier.h"
 #include "libmy/my_queue.h"
-#include "libmy/my_queue.c"
+
+#ifdef MY_HAVE_MEMORY_BARRIERS
+extern const struct my_queue_ops my_queue_mb_ops;
+#endif
+
+extern const struct my_queue_ops my_queue_mutex_ops;
+
+const struct my_queue_ops *queue_ops;
 
 struct producer_stats {
 	uint64_t	count_producer_full;
@@ -57,6 +65,8 @@ static const char *wtype_s;
 static unsigned seconds;
 
 static struct my_queue *q;
+
+static int size;
 
 static inline void
 maybe_wait_producer(int64_t i)
@@ -98,7 +108,7 @@ thr_producer(void *arg)
 			if (shut_down)
 				goto out;
 
-			res = my_queue_insert(q, &i, &space);
+			res = queue_ops->insert(q, &i, &space);
 			s->count_insert_calls++;
 			if (res) {
 				s->count_producer++;
@@ -129,7 +139,7 @@ thr_consumer(void *arg)
 
 	for (unsigned loops = 1; ; loops++) {
 		for (int64_t i = 1; i <= 1000000; i++) {
-			res = my_queue_remove(q, &i, &count);
+			res = queue_ops->remove(q, &i, &count);
 			s->count_remove_calls++;
 			if (res) {
 				if (i == 0) {
@@ -156,26 +166,30 @@ static void
 send_shutdown_message(struct my_queue *my_q)
 {
 	int64_t i = 0;
-	while (!my_queue_insert(my_q, &i, NULL));
+	while (!queue_ops->insert(my_q, &i, NULL));
 }
 
-static void
+static int
 check_stats(struct producer_stats *ps, struct consumer_stats *cs)
 {
 	if (ps->checksum_producer != cs->checksum_consumer) {
-		printf("FATAL ERROR: producer checksum != consumer checksum "
-		       "(%" PRIu64 " != %" PRIu64 ")\n",
-		       ps->checksum_producer,
-		       cs->checksum_consumer
+		fprintf(stderr,
+			"FATAL ERROR: producer checksum != consumer checksum "
+			"(%" PRIu64 " != %" PRIu64 ")\n",
+			ps->checksum_producer,
+			cs->checksum_consumer
 		);
+		return EXIT_FAILURE;
 	}
 	if (ps->count_producer != cs->count_consumer) {
-		printf("FATAL ERROR: producer count != consumer count "
-		       "(%" PRIu64 " != %" PRIu64 ")\n",
-		       ps->count_producer,
-		       cs->count_consumer
+		fprintf(stderr, "FATAL ERROR: producer count != consumer count "
+			"(%" PRIu64 " != %" PRIu64 ")\n",
+			ps->count_producer,
+			cs->count_consumer
 		);
+		return EXIT_FAILURE;
 	}
+	return EXIT_SUCCESS;
 }
 
 static void
@@ -185,29 +199,73 @@ print_stats(struct timespec *a, struct timespec *b,
 	double dur;
 	dur = my_timespec_to_double(b) - my_timespec_to_double(a);
 
-	printf("%s: ran for %'.4f seconds in %s mode\n", __func__, dur, wtype_s);
-	printf("%s: producer: %'.0f iter/sec [%d nsec/iter] (%.2f%% full)\n",
-	       __func__,
-	       ps->count_insert_calls / dur,
-	       (int) (1E9 * dur / ps->count_insert_calls),
-	       100.0 * ps->count_producer_full / ps->count_insert_calls
+	fprintf(stderr, "%s: ran for %'.4f seconds in %s mode\n", __func__, dur, wtype_s);
+	fprintf(stderr, "%s: producer: %'.0f iter/sec [%d nsec/iter] (%.2f%% full)\n",
+		__func__,
+		ps->count_insert_calls / dur,
+		(int) (1E9 * dur / ps->count_insert_calls),
+		100.0 * ps->count_producer_full / ps->count_insert_calls
 	);
-	printf("%s: consumer: %'.0f iter/sec [%d nsec/iter] (%.2f%% empty)\n",
-	       __func__,
-	       cs->count_remove_calls / dur,
-	       (int) (1E9 * dur / cs->count_remove_calls),
-	       100.0 * cs->count_consumer_empty / cs->count_remove_calls
+	fprintf(stderr, "%s: consumer: %'.0f iter/sec [%d nsec/iter] (%.2f%% empty)\n",
+		__func__,
+		cs->count_remove_calls / dur,
+		(int) (1E9 * dur / cs->count_remove_calls),
+		100.0 * cs->count_consumer_empty / cs->count_remove_calls
 	);
+}
+
+static int
+run_test(void)
+{
+	int res;
+	struct timespec ts_a, ts_b;
+	struct producer_stats *ps;
+	struct consumer_stats *cs;
+	struct timespec ts = { .tv_sec = seconds, .tv_nsec = 0 };
+
+	q = queue_ops->init(size, sizeof(int64_t));
+	if (q == NULL) {
+		fprintf(stderr, "queue_ops->init() failed, size too small or not a power-of-2?\n");
+		return (EXIT_FAILURE);
+	}
+	fprintf(stderr, "queue implementation type: %s\n", queue_ops->impl_type());
+	fprintf(stderr, "queue size: %d entries\n", size);
+	fprintf(stderr, "running for %d seconds\n", seconds);
+
+	pthread_t thr_p;
+	pthread_t thr_c;
+
+	my_gettime(CLOCK_MONOTONIC, &ts_a);
+
+	pthread_create(&thr_p, NULL, thr_producer, NULL);
+	pthread_create(&thr_c, NULL, thr_consumer, NULL);
+
+	my_nanosleep(&ts);
+	shut_down = true;
+
+	pthread_join(thr_p, (void **) &ps);
+	send_shutdown_message(q);
+	pthread_join(thr_c, (void **) &cs);
+
+	my_gettime(CLOCK_MONOTONIC, &ts_b);
+
+	res = check_stats(ps, cs);
+	print_stats(&ts_a, &ts_b, ps, cs);
+
+	free(ps);
+	free(cs);
+
+	queue_ops->destroy(&q);
+
+	return res;
 }
 
 int
 main(int argc, char **argv)
 {
+	int res;
+
 	setlocale(LC_ALL, "");
-	struct timespec ts_a, ts_b;
-	struct producer_stats *ps;
-	struct consumer_stats *cs;
-	int size;
 
 	if (argc != 4) {
 		fprintf(stderr, "Usage: %s <slow_producer | slow_consumer | spin> <QUEUE SIZE> <RUN SECONDS>\n", argv[0]);
@@ -228,41 +286,20 @@ main(int argc, char **argv)
 	}
 	size = atoi(argv[2]);
 	seconds = atoi(argv[3]);
-	struct timespec ts = { .tv_sec = seconds, .tv_nsec = 0 };
 
-	q = my_queue_init(size, sizeof(int64_t));
-	if (q == NULL) {
-		fprintf(stderr, "my_queue_init() failed, size too small or not a power-of-2?\n");
-		return (EXIT_FAILURE);
-	}
-	printf("%s: queue implementation type: %s\n", argv[0], my_queue_impl_type());
-	printf("%s: queue size: %d entries\n", argv[0], size);
-	printf("%s: running for %d seconds\n", argv[0], seconds);
+#ifdef MY_HAVE_MEMORY_BARRIERS
+	queue_ops = &my_queue_mb_ops;
+	res = run_test();
+	if (res != EXIT_SUCCESS)
+		return res;
+#endif
 
-	pthread_t thr_p;
-	pthread_t thr_c;
+	shut_down = false;
 
-	my_gettime(CLOCK_MONOTONIC, &ts_a);
+	queue_ops = &my_queue_mutex_ops;
+	res = run_test();
+	if (res != EXIT_SUCCESS)
+		return res;
 
-	pthread_create(&thr_p, NULL, thr_producer, NULL);
-	pthread_create(&thr_c, NULL, thr_consumer, NULL);
-
-	my_nanosleep(&ts);
-	shut_down = true;
-
-	pthread_join(thr_p, (void **) &ps);
-	send_shutdown_message(q);
-	pthread_join(thr_c, (void **) &cs);
-
-	my_gettime(CLOCK_MONOTONIC, &ts_b);
-
-	check_stats(ps, cs);
-	print_stats(&ts_a, &ts_b, ps, cs);
-
-	free(ps);
-	free(cs);
-
-	my_queue_destroy(&q);
-
-	return 0;
+	return EXIT_SUCCESS;
 }
