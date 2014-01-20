@@ -78,6 +78,8 @@ struct fstrm_io_options {
 
 	struct fstrm_writer			*writer;
 	const void				*writer_options;
+
+	fstrm_queue_model			queue_model;
 };
 
 void fs_io_options_dup(struct fstrm_io_options *, const struct fstrm_io_options *);

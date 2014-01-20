@@ -53,6 +53,15 @@ typedef enum {
 	FSTRM_RES_INVALID,
 } fstrm_res;
 
+/* fstrm_queue_model */
+
+typedef enum {
+	FSTRM_QUEUE_MODEL_SPSC, /* Single Producer, Single Consumer */
+	FSTRM_QUEUE_MODEL_MPSC,	/* Multiple Producer, Single Consumer */
+} fstrm_queue_model;
+
+#define FSTRM_DEFAULT_IO_QUEUE_MODEL	FSTRM_QUEUE_MODEL_SPSC
+
 /* fstrm_io */
 
 struct fstrm_io *
@@ -110,6 +119,11 @@ void
 fstrm_io_options_set_queue_length(
 	struct fstrm_io_options *,
 	unsigned queue_length);
+
+void
+fstrm_io_options_set_queue_model(
+	struct fstrm_io_options *,
+	fstrm_queue_model);
 
 void
 fstrm_io_options_set_queue_notify_threshold(

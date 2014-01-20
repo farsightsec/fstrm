@@ -23,6 +23,7 @@ struct fstrm_io_options default_fstrm_io_options = {
 	.flush_timeout =		FSTRM_DEFAULT_IO_FLUSH_TIMEOUT,
 	.iovec_size =			FSTRM_DEFAULT_IO_IOVEC_SIZE,
 	.num_queues =			FSTRM_DEFAULT_IO_NUM_QUEUES,
+	.queue_model =			FSTRM_DEFAULT_IO_QUEUE_MODEL,
 	.queue_length =			FSTRM_DEFAULT_IO_QUEUE_LENGTH,
 	.queue_notify_threshold =	FSTRM_DEFAULT_IO_QUEUE_NOTIFY_THRESHOLD,
 	.reconnect_interval =		FSTRM_DEFAULT_IO_RECONNECT_INTERVAL,
@@ -114,6 +115,14 @@ fstrm_io_options_set_queue_length(struct fstrm_io_options *opt,
 }
 
 void
+fstrm_io_options_set_queue_model(struct fstrm_io_options *opt,
+				 fstrm_queue_model queue_model)
+{
+	assert(opt != NULL);
+	opt->queue_model = queue_model;
+}
+
+void
 fstrm_io_options_set_reconnect_interval(struct fstrm_io_options *opt,
 					unsigned reconnect_interval)
 {
@@ -141,6 +150,13 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 
 	if (opt == NULL) {
 		err = "non-NULL options parameter required";
+		goto out;
+	}
+
+	if (opt->queue_model != FSTRM_QUEUE_MODEL_SPSC &&
+	    opt->queue_model != FSTRM_QUEUE_MODEL_MPSC)
+	{
+		err = "invalid queue_model";
 		goto out;
 	}
 
