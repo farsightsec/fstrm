@@ -98,7 +98,6 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	struct fstrm_io *io = NULL;
 
 	int res;
-	size_t i;
 	pthread_condattr_t ca;
 
 	/* Initialize fstrm_io and copy options. */
@@ -147,7 +146,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 
 	/* Initialize the queues. */
 	io->queues = my_calloc(io->opt.num_queues, sizeof(struct fstrm_queue));
-	for (i = 0; i < io->opt.num_queues; i++) {
+	for (size_t i = 0; i < io->opt.num_queues; i++) {
 		io->queues[i].q = io->queue_ops->init(io->opt.queue_length,
 						      sizeof(struct fs_queue_entry));
 		if (io->queues[i].q == NULL) {
