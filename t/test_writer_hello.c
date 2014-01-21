@@ -55,28 +55,28 @@ fs_test_writer_create(struct fstrm_io *io,
 		      const struct fstrm_writer_options *opt,
 		      void **data)
 {
-	fprintf(stderr, "%s: called\n", __func__);
+	//fprintf(stderr, "%s: called\n", __func__);
 	return FSTRM_RES_SUCCESS;
 }
 
 static fstrm_res
 fs_test_writer_destroy(void *data)
 {
-	fprintf(stderr, "%s: called\n", __func__);
+	//fprintf(stderr, "%s: called\n", __func__);
 	return FSTRM_RES_SUCCESS;
 }
 
 static fstrm_res
 fs_test_writer_open(void *data)
 {
-	fprintf(stderr, "%s: called\n", __func__);
+	//fprintf(stderr, "%s: called\n", __func__);
 	return FSTRM_RES_SUCCESS;
 }
 
 static fstrm_res
 fs_test_writer_close(void *data)
 {
-	fprintf(stderr, "%s: called\n", __func__);
+	//fprintf(stderr, "%s: called\n", __func__);
 	return FSTRM_RES_SUCCESS;
 }
 
@@ -85,13 +85,15 @@ fs_test_writer_write_control(void *data,
 			     struct iovec *iov, int iovcnt,
 			     unsigned nbytes)
 {
-	fprintf(stderr, "%s: called\n", __func__);
+	//fprintf(stderr, "%s: called\n", __func__);
 	num_control_frames++;
 
 	for (int i = 0; i < iovcnt; i++) {
+		/*
 		fprintf(stderr, "print_string: (%zd) ", iov[i].iov_len);
 		print_string(iov[i].iov_base, iov[i].iov_len, stderr);
 		fputc('\n', stderr);
+		*/
 	}
 	return FSTRM_RES_SUCCESS;
 }
@@ -101,13 +103,17 @@ fs_test_writer_write_data(void *data,
 			  struct iovec *iov, int iovcnt,
 			  unsigned nbytes)
 {
+	/*
 	fprintf(stderr, "%s: called with iovcnt= %d, nbytes= %u\n",
 		__func__, iovcnt, nbytes);
+	*/
 
 	for (int i = 0; i < iovcnt; i++) {
+		/*
 		fprintf(stderr, "write_data: [%d] (%zd) ", i, iov[i].iov_len);
 		print_string(iov[i].iov_base, iov[i].iov_len, stderr);
 		fputc('\n', stderr);
+		*/
 		t_cur->next = my_calloc(1, sizeof(struct test_buf));
 		t_cur = t_cur->next;
 		t_cur->len = iov[i].iov_len;
@@ -150,6 +156,7 @@ do_checks(void)
 		assert(h != NULL);
 		assert(t != NULL);
 
+		/*
 		fprintf(stderr, "%s: h->data = (%zd) ", __func__, h->len);
 		print_string(h->data, h->len, stderr);
 		fputc('\n', stderr);
@@ -157,6 +164,7 @@ do_checks(void)
 		fprintf(stderr, "%s: t->data = (%zd) ", __func__, t->len);
 		print_string(t->data, t->len, stderr);
 		fputc('\n', stderr);
+		*/
 
 		uint32_t len_wire, len;
 
@@ -166,9 +174,11 @@ do_checks(void)
 
 		assert(t->next != NULL);
 		t = t->next;
+		/*
 		fprintf(stderr, "%s: t->data = (%zd) ", __func__, t->len);
 		print_string(t->data, t->len, stderr);
 		fputc('\n', stderr);
+		*/
 
 		assert(len == t->len);
 		assert(memcmp(h->data, t->data, len) == 0);
