@@ -4,7 +4,7 @@ TNAME="test_fstrm_io_unix"
 SOCKNAME="./test.sock"
 
 if [ -z "$DIRNAME" ]; then
-    DIRNAME="."
+    DIRNAME="$(dirname $(readlink -f $0))"
 fi
 
 for QUEUE_MODEL in SPSC MPSC; do

@@ -3,7 +3,7 @@
 TNAME="test_queue"
 
 if [ -z "$DIRNAME" ]; then
-    DIRNAME="."
+    DIRNAME="$(dirname $(readlink -f $0))"
 fi
 
 if [ -z "$QSIZE" ]; then
