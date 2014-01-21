@@ -66,6 +66,7 @@ t_test_queue_SOURCES = \
     libmy/my_queue_mutex.c \
     libmy/my_time.h
 TESTS += t/run_test_queue.sh
+t/run_test_queue.sh: t/test_queue
 
 check_PROGRAMS += t/test_fstrm_io_file
 t_test_fstrm_io_file_SOURCES = \
@@ -77,6 +78,7 @@ t_test_fstrm_io_file_SOURCES = \
 t_test_fstrm_io_file_LDADD = \
     fstrm/libfstrm.la
 TESTS += t/run_test_fstrm_io_file.sh
+t/run_test_fstrm_io_file.sh: t/test_fstrm_io_file
 
 check_PROGRAMS += t/test_fstrm_io_unix
 t_test_fstrm_io_unix_SOURCES = \
@@ -88,6 +90,7 @@ t_test_fstrm_io_unix_SOURCES = \
 t_test_fstrm_io_unix_LDADD = \
     fstrm/libfstrm.la
 TESTS += t/run_test_fstrm_io_unix.sh
+t/run_test_fstrm_io_unix.sh: t/test_fstrm_io_unix
 
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \
