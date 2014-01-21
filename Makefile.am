@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = parallel-tests
+
 bin_PROGRAMS =
 check_PROGRAMS =
 TESTS =
