@@ -105,3 +105,18 @@ t_test_writer_hello_LDADD = \
 TESTS += t/test_writer_hello
 
 EXTRA_DIST += $(TESTS)
+
+#
+##
+### programs
+##
+#
+
+bin_PROGRAMS += src/fstrm_dump
+src_fstrm_dump_SOURCES = \
+    src/fstrm_dump.c \
+    libmy/print_string.h \
+    libmy/ubuf.h \
+    libmy/vector.h
+src_fstrm_dump_LDADD = \
+    fstrm/libfstrm.la
