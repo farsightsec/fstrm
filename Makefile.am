@@ -58,6 +58,7 @@ CLEANFILES += fstrm/libfstrm.pc
 #
 
 AM_TESTS_ENVIRONMENT = DIRNAME=$(top_builddir)/t; export DIRNAME;
+TESTS_ENVIRONMENT = $(AM_TESTS_ENVIRONMENT)
 LOG_COMPILER = $(VALGRIND)
 
 check_PROGRAMS += t/test_queue
