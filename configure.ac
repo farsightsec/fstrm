@@ -42,6 +42,8 @@ AX_PTHREAD([
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([socket], [socket])
 
+AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked])
+
 gl_VALGRIND_TESTS
 
 AC_OUTPUT
