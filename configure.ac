@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([fstrm], [0.0.1])
+AC_INIT([fstrm], [0.1.0])
 AC_CONFIG_SRCDIR([fstrm/fstrm.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign 1.11 -Wall -Wno-portability silent-rules subdir-objects])
