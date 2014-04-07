@@ -231,7 +231,7 @@ fs_io_free_queues(struct fstrm_io *io)
 			fs_entry_free_bytes(&entry);
 		io->queue_ops->destroy(&queue);
 	}
-	free(io->queues);
+	my_free(io->queues);
 }
 
 void
@@ -252,12 +252,11 @@ fstrm_io_destroy(struct fstrm_io **io)
 
 		/* Cleanup our allocations. */
 		fs_io_free_queues(*io);
-		free((*io)->opt.content_type);
-		free((*io)->opt.writer);
-		free((*io)->iov_array);
-		free((*io)->qe_array);
-		free(*io);
-		*io = NULL;
+		my_free((*io)->opt.content_type);
+		my_free((*io)->opt.writer);
+		my_free((*io)->iov_array);
+		my_free((*io)->qe_array);
+		my_free(*io);
 	}
 }
 
@@ -280,7 +279,7 @@ void
 fstrm_free_wrapper(void *ptr,
 		   void *data __attribute__((__unused__)))
 {
-	free(ptr);
+	my_free(ptr);
 }
 
 fstrm_res

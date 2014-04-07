@@ -54,10 +54,9 @@ void
 fstrm_io_options_destroy(struct fstrm_io_options **opt)
 {
 	if (*opt != NULL) {
-		free((*opt)->content_type);
+		my_free((*opt)->content_type);
 		memset(*opt, 0, sizeof(**opt));
-		free(*opt);
-		*opt = NULL;
+		my_free(*opt);
 	}
 }
 
@@ -76,7 +75,7 @@ fstrm_io_options_set_content_type(struct fstrm_io_options *opt,
 {
 	assert(opt != NULL);
 	if (opt->content_type != NULL)
-		free(opt->content_type);
+		my_free(opt->content_type);
 	opt->content_type = my_calloc(1, len_content_type);
 	opt->len_content_type = len_content_type;
 	memmove(opt->content_type, content_type, len_content_type);
@@ -137,7 +136,7 @@ fstrm_io_options_set_writer(struct fstrm_io_options *opt,
 {
 	assert(opt != NULL);
 	if (opt->writer != NULL)
-		free(opt->writer);
+		my_free(opt->writer);
 	opt->writer = my_calloc(1, sizeof(struct fstrm_writer));
 	memmove(opt->writer, writer, sizeof(struct fstrm_writer));
 	opt->writer_options = writer_options;

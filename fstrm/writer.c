@@ -27,10 +27,8 @@ fstrm_writer_init(void)
 void
 fstrm_writer_destroy(struct fstrm_writer **w)
 {
-	if (*w != NULL) {
-		free(*w);
-		*w = NULL;
-	}
+	if (*w != NULL)
+		my_free(*w);
 }
 
 void

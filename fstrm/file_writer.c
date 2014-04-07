@@ -150,8 +150,8 @@ fs_file_writer_destroy(void *data)
 {
 	struct fs_file_writer *w = data;
 	(void) fs_file_writer_close(w);
-	free(w->file_path);
-	free(w);
+	my_free(w->file_path);
+	my_free(w);
 	return FSTRM_RES_SUCCESS;
 }
 
@@ -168,9 +168,8 @@ void
 fstrm_file_writer_options_destroy(struct fstrm_file_writer_options **wopt)
 {
 	if (*wopt != NULL) {
-		free((*wopt)->file_path);
-		free(*wopt);
-		*wopt = NULL;
+		my_free((*wopt)->file_path);
+		my_free(*wopt);
 	}
 }
 
@@ -181,7 +180,7 @@ fstrm_file_writer_options_set_file_path(
 {
 	if (file_path != NULL) {
 		if (wopt->file_path != NULL)
-			free(wopt->file_path);
+			my_free(wopt->file_path);
 		wopt->file_path = my_strdup(file_path);
 	}
 }

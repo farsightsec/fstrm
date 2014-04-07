@@ -180,7 +180,7 @@ fs_unix_writer_destroy(void *data)
 {
 	struct fs_unix_writer *w = data;
 	(void) fs_unix_writer_close(w);
-	free(w);
+	my_free(w);
 	return FSTRM_RES_SUCCESS;
 }
 
@@ -197,9 +197,8 @@ void
 fstrm_unix_writer_options_destroy(struct fstrm_unix_writer_options **wopt)
 {
 	if (*wopt != NULL) {
-		free((*wopt)->socket_path);
-		free(*wopt);
-		*wopt = NULL;
+		my_free((*wopt)->socket_path);
+		my_free(*wopt);
 	}
 }
 
@@ -210,7 +209,7 @@ fstrm_unix_writer_options_set_socket_path(
 {
 	if (socket_path != NULL) {
 		if (wopt->socket_path != NULL)
-			free(wopt->socket_path);
+			my_free(wopt->socket_path);
 		wopt->socket_path = my_strdup(socket_path);
 	}
 }
