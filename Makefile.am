@@ -7,6 +7,10 @@ EXTRA_DIST =
 CLEANFILES =
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
+EXTRA_DIST += COPYRIGHT
+EXTRA_DIST += LICENSE
+EXTRA_DIST += README.md
+
 AM_CPPFLAGS = \
 	-include $(top_builddir)/config.h \
 	-I${top_srcdir}/fstrm
