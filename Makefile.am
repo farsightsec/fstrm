@@ -48,8 +48,16 @@ EXTRA_DIST += \
 
 fstrm_libfstrm_la_CFLAGS = $(AM_CFLAGS)
 fstrm_libfstrm_la_LDFLAGS = $(AM_LDFLAGS) \
-	-version-info $(LIBFSTRM_VERSION_INFO) \
+	-version-info $(LIBFSTRM_VERSION_INFO)
+
+if HAVE_LD_VERSION_SCRIPT
+fstrm_libfstrm_la_LDFLAGS += \
+	-Wl,--version-script=$(top_srcdir)/fstrm/libfstrm.sym
+else
+fstrm_libfstrm_la_LDFLAGS += \
 	-export-symbols-regex "^(fstrm_.*)"
+endif
+EXTRA_DIST += fstrm/libfstrm.sym
 
 pkgconfig_DATA = fstrm/libfstrm.pc
 EXTRA_DIST += fstrm/libfstrm.pc.in

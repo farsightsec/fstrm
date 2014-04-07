@@ -1,0 +1,37 @@
+LIBFSTRM_0.2.0 {
+global:
+        fstrm_file_writer;
+        fstrm_file_writer_options_destroy;
+        fstrm_file_writer_options_init;
+        fstrm_file_writer_options_set_file_path;
+        fstrm_free_wrapper;
+        fstrm_io_destroy;
+        fstrm_io_get_queue;
+        fstrm_io_init;
+        fstrm_io_options_destroy;
+        fstrm_io_options_init;
+        fstrm_io_options_set_buffer_hint;
+        fstrm_io_options_set_content_type;
+        fstrm_io_options_set_flush_timeout;
+        fstrm_io_options_set_iovec_size;
+        fstrm_io_options_set_num_queues;
+        fstrm_io_options_set_queue_length;
+        fstrm_io_options_set_queue_model;
+        fstrm_io_options_set_reconnect_interval;
+        fstrm_io_options_set_writer;
+        fstrm_io_submit;
+        fstrm_unix_writer;
+        fstrm_unix_writer_options_destroy;
+        fstrm_unix_writer_options_init;
+        fstrm_unix_writer_options_set_socket_path;
+        fstrm_writer_destroy;
+        fstrm_writer_init;
+        fstrm_writer_set_close;
+        fstrm_writer_set_create;
+        fstrm_writer_set_destroy;
+        fstrm_writer_set_open;
+        fstrm_writer_set_write_control;
+        fstrm_writer_set_write_data;
+local:
+        *;
+};

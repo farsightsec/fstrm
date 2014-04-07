@@ -44,6 +44,8 @@ AC_SEARCH_LIBS([socket], [socket])
 
 AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked])
 
+gl_LD_VERSION_SCRIPT
+
 gl_VALGRIND_TESTS
 
 AC_OUTPUT
