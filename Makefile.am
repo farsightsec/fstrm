@@ -72,8 +72,9 @@ t_test_queue_SOURCES = \
     libmy/my_queue_mb.c \
     libmy/my_queue_mutex.c \
     libmy/my_time.h
-TESTS += t/run_test_queue.sh
 t/run_test_queue.sh: t/test_queue
+TESTS += t/run_test_queue.sh
+EXTRA_DIST += t/run_test_queue.sh
 
 check_PROGRAMS += t/test_fstrm_io_file
 t_test_fstrm_io_file_SOURCES = \
@@ -84,8 +85,9 @@ t_test_fstrm_io_file_SOURCES = \
     libmy/vector.h
 t_test_fstrm_io_file_LDADD = \
     fstrm/libfstrm.la
-TESTS += t/run_test_fstrm_io_file.sh
 t/run_test_fstrm_io_file.sh: t/test_fstrm_io_file
+TESTS += t/run_test_fstrm_io_file.sh
+EXTRA_DIST += t/run_test_fstrm_io_file.sh
 
 check_PROGRAMS += t/test_fstrm_io_unix
 t_test_fstrm_io_unix_SOURCES = \
@@ -96,8 +98,9 @@ t_test_fstrm_io_unix_SOURCES = \
     libmy/vector.h
 t_test_fstrm_io_unix_LDADD = \
     fstrm/libfstrm.la
-TESTS += t/run_test_fstrm_io_unix.sh
 t/run_test_fstrm_io_unix.sh: t/test_fstrm_io_unix
+TESTS += t/run_test_fstrm_io_unix.sh
+EXTRA_DIST += t/run_test_fstrm_io_unix.sh
 
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \
@@ -107,8 +110,6 @@ t_test_writer_hello_SOURCES = \
 t_test_writer_hello_LDADD = \
     fstrm/libfstrm.la
 TESTS += t/test_writer_hello
-
-EXTRA_DIST += $(TESTS)
 
 #
 ##
