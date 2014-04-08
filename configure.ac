@@ -1,5 +1,13 @@
-AC_PREREQ(2.60)
-AC_INIT([fstrm], [0.2.0-pre])
+AC_PREREQ(2.64)
+
+AC_INIT([fstrm],
+        [0.2.0-pre],
+        [software@farsightsecurity.com],
+        [fstrm],
+        [https://github.com/farsightsec/fstrm])
+PACKAGE_DESCRIPTION="Frame Streams implementation in C"
+AC_SUBST(PACKAGE_DESCRIPTION)
+
 AC_CONFIG_SRCDIR([fstrm/fstrm.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign 1.11 -Wall -Wno-portability silent-rules subdir-objects])
