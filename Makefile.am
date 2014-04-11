@@ -149,3 +149,6 @@ html-local: stamp-html
 clean-local:
 	rm -rf $(top_builddir)/html $(top_builddir)/stamp-html
 endif
+
+EXTRA_DIST += Doxyfile.in
+EXTRA_DIST += DoxygenLayout.xml
