@@ -46,6 +46,12 @@ If using autotools to build your C project, the `PKG_CHECK_MODULES` macro can be
 
 This will place compiler flags in the `libfstrm_CFLAGS` variable and linker flags in the `libfstrm_LIBS` variable. Read [more information here](https://www.flameeyes.eu/autotools-mythbuster/pkgconfig/pkg_check_modules.html) about the `PKG_CHECK_MODULES` macro.
 
+## Documentation
+
+See the [online Doxygen documentation here](http://farsightsec.github.io/fstrm/) for a detailed reference. This documentation can be built from the source tree by running:
+
+    make html
+
 ## Versioning
 
 `fstrm` follows the [Semantic Versioning Specification](http://semver.org/).
