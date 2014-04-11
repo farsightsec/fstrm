@@ -14,8 +14,10 @@
 /build-aux
 /config.*
 /configure
+/html
 /libtool
 /stamp-h1
+/stamp-html
 Makefile
 Makefile.in
 TAGS

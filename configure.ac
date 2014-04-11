@@ -27,10 +27,16 @@ my_CFLAGS="-Wall \
 AC_SUBST([my_CFLAGS])
 
 AC_CONFIG_HEADERS(config.h)
-AC_CONFIG_FILES([Makefile fstrm/libfstrm.pc doxygen/Doxyfile])
+AC_CONFIG_FILES([Makefile fstrm/libfstrm.pc])
 
-DOXYGEN_INPUT_FILES="fstrm/fstrm.h"
-AC_SUBST(DOXYGEN_INPUT_FILES)
+AC_CHECK_PROGS([DOXYGEN], [doxygen])
+AM_CONDITIONAL([HAVE_DOXYGEN],
+               [test -n "$DOXYGEN"])
+AM_COND_IF([HAVE_DOXYGEN],
+           [AC_CONFIG_FILES([Doxyfile])
+            DOXYGEN_INPUT_FILES="${srcdir}/fstrm/fstrm.h"
+            AC_SUBST(DOXYGEN_INPUT_FILES)
+           ])
 
 PKG_PROG_PKG_CONFIG
 if test -n "$PKG_CONFIG"; then

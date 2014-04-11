@@ -133,3 +133,19 @@ src_fstrm_dump_SOURCES = \
     libmy/vector.h
 src_fstrm_dump_LDADD = \
     fstrm/libfstrm.la
+
+#
+##
+### documentation
+##
+#
+
+if HAVE_DOXYGEN
+stamp-html: $(DOXYGEN_INPUT_FILES) $(top_builddir)/Doxyfile $(top_srcdir)/DoxygenLayout.xml
+	$(AM_V_GEN) $(DOXYGEN)
+	@touch $@
+html-local: stamp-html
+
+clean-local:
+	rm -rf $(top_builddir)/html $(top_builddir)/stamp-html
+endif
