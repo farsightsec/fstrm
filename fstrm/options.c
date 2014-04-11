@@ -186,7 +186,7 @@ fs_io_options_validate(const struct fstrm_io_options *opt, char **errstr_out)
 	}
 
 	if (opt->iovec_size & 1) {
-		err = "iovec_size must be a multiple of 2";
+		err = "iovec_size must be a power of 2";
 		goto out;
 	}
 
