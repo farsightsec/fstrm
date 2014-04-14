@@ -22,6 +22,8 @@ Frame Streams is a light weight, binary clean protocol that allows for the trans
 
     ./configure && make && make check && make install
 
+On platforms where the `pkg-config` utility is unavailable, .pc file installation can be disabled by passing `--without-pkgconfigdir` to `configure`.
+
 If building from a git checkout, the `autotools` (`autoconf`, `automake`, `libtool`) must also be installed, and the build system must be bootstrapped by running the `autogen.sh` script:
 
     ./autogen.sh && ./configure && make && make check && make install
