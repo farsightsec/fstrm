@@ -38,17 +38,7 @@ AM_COND_IF([HAVE_DOXYGEN],
             AC_SUBST(DOXYGEN_INPUT_FILES)
            ])
 
-PKG_PROG_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-    # Horrible hack for systems where the pkg-config install directory is simply wrong!
-    if $PKG_CONFIG --variable=pc_path pkg-config 2>/dev/null | grep -q /libdata/; then
-        PKG_INSTALLDIR(['${prefix}/libdata/pkgconfig'])
-    else
-        PKG_INSTALLDIR
-    fi
-else
-    AC_MSG_ERROR([pkg-config is required!])
-fi
+my_PKG_CONFIG_FILES([LIBFSTRM_PC], [fstrm/libfstrm.pc])
 
 AX_PTHREAD([
     LIBS="$PTHREAD_LIBS $LIBS"

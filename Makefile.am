@@ -59,9 +59,9 @@ fstrm_libfstrm_la_LDFLAGS += \
 endif
 EXTRA_DIST += fstrm/libfstrm.sym
 
-pkgconfig_DATA = fstrm/libfstrm.pc
+pkgconfig_DATA = ${LIBFSTRM_PC}
+CLEANFILES += ${LIBFSTRM_PC}
 EXTRA_DIST += fstrm/libfstrm.pc.in
-CLEANFILES += fstrm/libfstrm.pc
 
 #
 ##
