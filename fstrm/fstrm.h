@@ -329,6 +329,12 @@ typedef enum {
 /** Field type value for the "content type" control frame option. */
 #define FSTRM_CONTROL_FIELD_CONTENT_TYPE	0x01
 
+/**
+ * The maximum length in bytes of an "Accept", "Start", or "Stop" control frame,
+ * excluding the escape sequence and the control frame length.
+ */
+#define FSTRM_MAX_CONTROL_FRAME_LENGTH		512
+
 /**@}*/
 
 /*!
