@@ -35,7 +35,6 @@
 # define fwrite fwrite_unlocked
 #endif
 
-#define MAX_CONTROL_FRAME_SIZE		512	/* bytes */
 #define MAX_DATA_FRAME_SIZE		1048576	/* bytes */
 
 static size_t	count_read;
@@ -143,7 +142,7 @@ static bool
 read_control_start(FILE *fp)
 {
 	uint32_t len;
-	uint8_t control_frame[MAX_CONTROL_FRAME_SIZE];
+	uint8_t control_frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
 	uint32_t control_frame_len = sizeof(control_frame);
 	uint32_t control_frame_type = 0;
 
@@ -183,7 +182,7 @@ static bool
 dump_file(FILE *fp)
 {
 	uint32_t len;
-	uint8_t control_frame[MAX_CONTROL_FRAME_SIZE];
+	uint8_t control_frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
 	uint32_t control_frame_len = sizeof(control_frame);
 	uint32_t control_frame_type = 0;
 
