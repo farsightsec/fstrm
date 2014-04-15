@@ -269,6 +269,35 @@ typedef enum {
 } fstrm_queue_model;
 
 /**
+ * Control frame types.
+ * \see \ref fstrm_control
+ */
+typedef enum {
+	/** Control frame type value for "Accept" control frames. */
+	FSTRM_CONTROL_ACCEPT	= 0x01,
+
+	/** Control frame type value for "Start" control frames. */
+	FSTRM_CONTROL_START	= 0x02,
+
+	/** Control frame type value for "Stop" control frames. */
+	FSTRM_CONTROL_STOP	= 0x03,
+} fstrm_control_type;
+
+/**
+ * Control frame field types. These are optional fields that can appear in
+ * control frames.
+ *
+ * \see \ref fstrm_control
+ */
+typedef enum {
+	/**
+	 * Control frame field type value for the "Content Type" control frame
+	 * option.
+	 */
+	FSTRM_CONTROL_FIELD_CONTENT_TYPE	= 0x01,
+} fstrm_control_field;
+
+/**
  * Default queue model.
  * \see fstrm_io_options_set_queue_model()
  */
@@ -316,18 +345,6 @@ typedef enum {
  * \see fstrm_io_options_set_reconnect_interval()
  */
 #define FSTRM_DEFAULT_IO_RECONNECT_INTERVAL	5
-
-/** Control type value for "Accept" control frames. */
-#define FSTRM_CONTROL_ACCEPT			0x01
-
-/** Control type value for "Start" control frames. */
-#define FSTRM_CONTROL_START			0x02
-
-/** Control type value for "Stop" control frames. */
-#define FSTRM_CONTROL_STOP			0x03
-
-/** Field type value for the "content type" control frame option. */
-#define FSTRM_CONTROL_FIELD_CONTENT_TYPE	0x01
 
 /**
  * The maximum length in bytes of an "Accept", "Start", or "Stop" control frame,
