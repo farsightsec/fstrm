@@ -115,15 +115,15 @@ read_input(int fd, struct consumer_stats *cstat)
 	}
 
 	for (;;) {
-		size_t nbytes;
+		size_t n;
 		uint32_t len, wire_len;
 		uint8_t message[MAX_MESSAGE_SIZE];
 
-		nbytes = fread(&wire_len, sizeof(wire_len), 1, f);
+		n = fread(&wire_len, sizeof(wire_len), 1, f);
 		if (ferror(f)) {
 			printf("%s: fread() errored\n", __func__);
 			break;
-		} if (nbytes == 0 && feof(f)) {
+		} if (n == 0 && feof(f)) {
 			printf("%s: got EOF\n", __func__);
 			break;
 		}
@@ -132,23 +132,23 @@ read_input(int fd, struct consumer_stats *cstat)
 		if (len == 0) {
 			/* Skip the control frame. */
 			printf("%s: got a control frame\n", __func__);
-			nbytes = fread(&wire_len, sizeof(wire_len), 1, f);
-			assert(!ferror(f) && !feof(f));
+			n = fread(&wire_len, sizeof(wire_len), 1, f);
+			assert(!ferror(f) && !feof(f) && n == 1);
 			len = ntohl(wire_len);
 			printf("%s: control frame is %u bytes long\n", __func__, len);
 			if (len > 0) {
-				nbytes = fread(message, len, 1, f);
-				assert(!ferror(f) && !feof(f));
+				n = fread(message, len, 1, f);
+				assert(!ferror(f) && !feof(f) && n == 1);
 				printf("%s: read a %u byte control frame\n", __func__, len);
 			}
 			continue;
 		}
 
 		assert(len < MAX_MESSAGE_SIZE);
-		nbytes = fread(message, len, 1, f);
+		n = fread(message, len, 1, f);
 		if (ferror(f))
 			break;
-		if (nbytes == 0 && feof(f)) {
+		if (n == 0 && feof(f)) {
 			printf("%s(): EOF while reading message\n", __func__);
 			abort();
 		}
