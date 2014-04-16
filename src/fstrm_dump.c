@@ -166,11 +166,11 @@ dump_file(FILE *fp, struct fstrm_control *c)
 
 	/* Read the start frame. */
 	if (!read_be32(fp, &len)) {
-		fprintf(stderr, "%s: error reading start of stream", __func__);
+		fprintf(stderr, "%s: error reading start of stream\n", __func__);
 		return false;
 	}
 	if (len != 0) {
-		fprintf(stderr, "%s: error reading escape sequence", __func__);
+		fprintf(stderr, "%s: error reading escape sequence\n", __func__);
 	}
 	if (!dump_control_frame(fp, c))
 		return false;
