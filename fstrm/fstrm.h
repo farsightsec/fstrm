@@ -404,11 +404,11 @@ fstrm_io_get_queue(struct fstrm_io *fio);
  * \param free_data
  *      Parameter to pass to `free_func`.
  *
- * \return fstrm_res_success
+ * \return #fstrm_res_success
  *      The data frame was successfully queued.
- * \return fstrm_res_again
+ * \return #fstrm_res_again
  *      The queue is full.
- * \return fstrm_res_failure
+ * \return #fstrm_res_failure
  *      Permanent failure.
  */
 fstrm_res
@@ -1431,8 +1431,8 @@ fstrm_control_reset(struct fstrm_control *c);
  * \param[out] type
  *	Type of the control frame.
  *
- * \return fstrm_res_success
- * \return fstrm_res_failure
+ * \return #fstrm_res_success
+ * \return #fstrm_res_failure
  */
 fstrm_res
 fstrm_control_get_type(
@@ -1447,8 +1447,8 @@ fstrm_control_get_type(
  * \param[in] type
  *	Type of the control frame.
  *
- * \return fstrm_res_success
- * \return fstrm_res_failure
+ * \return #fstrm_res_success
+ * \return #fstrm_res_failure
  */
 fstrm_res
 fstrm_control_set_type(
@@ -1468,9 +1468,9 @@ fstrm_control_set_type(
  * \param[out] len_content_type
  *	The number of bytes in `content_type`.
  *
- * \return fstrm_res_success
+ * \return #fstrm_res_success
  *	The control frame has a "Content Type" field.
- * \return fstrm_res_failure
+ * \return #fstrm_res_failure
  *	The control frame does not have a "Content Type" field.
  */
 fstrm_res
@@ -1492,9 +1492,9 @@ fstrm_control_get_field_content_type(
  * \param[in] len_content_type
  *	The number of bytes in `content_type`.
  *
- * \return fstrm_res_success
+ * \return #fstrm_res_success
  *	The "Content Type" field was successfully set.
- * \return fstrm_res_failure
+ * \return #fstrm_res_failure
  *	The "Content Type" string is too long.
  */
 fstrm_res
@@ -1561,8 +1561,8 @@ decode_control_frame(const void *control_frame, size_t len_control_frame)
  * \param flags
  *	Flags controlling the decoding process. See #fstrm_control_flag.
  *
- * \return fstrm_res_success
- * \return fstrm_res_failure
+ * \return #fstrm_res_success
+ * \return #fstrm_res_failure
  */
 fstrm_res
 fstrm_control_decode(
@@ -1604,8 +1604,8 @@ typedef enum {
  * \param flags
  *	Flags controlling the encoding process. See #fstrm_control_flag.
  *
- * \return fstrm_res_success
- * \return fstrm_res_failure
+ * \return #fstrm_res_success
+ * \return #fstrm_res_failure
  */
 fstrm_res
 fstrm_control_encoded_size(
@@ -1697,8 +1697,8 @@ fstrm_control_encoded_size(
  * \param flags
  *	Flags controlling the encoding process. See #fstrm_control_flag.
  *
- * \return fstrm_res_success
- * \return fstrm_res_failure
+ * \return #fstrm_res_success
+ * \return #fstrm_res_failure
  */
 fstrm_res
 fstrm_control_encode(
