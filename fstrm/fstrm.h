@@ -237,7 +237,7 @@ struct fstrm_writer;
 struct fstrm_writer_options;
 
 /**
- * \defgroup constants Macros and constants
+ * \defgroup fstrm_res fstrm_res
  * @{
  */
 
@@ -257,67 +257,6 @@ typedef enum {
 	/** Parameters were invalid. */
 	FSTRM_RES_INVALID,
 } fstrm_res;
-
-/**
- * Queue models.
- * \see fstrm_io_options_set_queue_model()
- */
-typedef enum {
-	/** Single Producer, Single Consumer. */
-	FSTRM_QUEUE_MODEL_SPSC,
-
-	/** Multiple Producer, Single Consumer. */
-	FSTRM_QUEUE_MODEL_MPSC,
-} fstrm_queue_model;
-
-/**
- * Default queue model.
- * \see fstrm_io_options_set_queue_model()
- */
-#define FSTRM_DEFAULT_IO_QUEUE_MODEL		FSTRM_QUEUE_MODEL_SPSC
-
-/**
- * Default number of I/O queues.
- * \see fstrm_io_options_set_num_queues()
- */
-#define FSTRM_DEFAULT_IO_NUM_QUEUES		1
-
-/**
- * Default I/O buffer hint size in bytes.
- * \see fstrm_io_options_set_buffer_hint()
- */
-#define FSTRM_DEFAULT_IO_BUFFER_HINT		8192
-
-/**
- * Default I/O flush timeout in seconds.
- * \see fstrm_io_options_set_flush_timeout()
- */
-#define FSTRM_DEFAULT_IO_FLUSH_TIMEOUT		1
-
-/**
- * Default size of `iovec` array.
- * \see fstrm_io_options_set_iovec_size()
- */
-#define FSTRM_DEFAULT_IO_IOVEC_SIZE		64
-
-/**
- * Default number of outstanding queue entries before waking up the I/O thread.
- * \see fstrm_io_options_set_queue_notify_threshold()
- *
- */
-#define FSTRM_DEFAULT_IO_QUEUE_NOTIFY_THRESHOLD	32
-
-/**
- * Default length of the I/O queue.
- * \see fstrm_io_options_set_queue_length()
- */
-#define FSTRM_DEFAULT_IO_QUEUE_LENGTH		512
-
-/**
- * Default interval between I/O reconnection attempts in seconds.
- * \see fstrm_io_options_set_reconnect_interval()
- */
-#define FSTRM_DEFAULT_IO_RECONNECT_INTERVAL	5
 
 /**@}*/
 
@@ -623,6 +562,18 @@ fstrm_io_options_set_queue_length(
 	unsigned queue_length);
 
 /**
+ * Queue models.
+ * \see fstrm_io_options_set_queue_model()
+ */
+typedef enum {
+	/** Single Producer, Single Consumer. */
+	FSTRM_QUEUE_MODEL_SPSC,
+
+	/** Multiple Producer, Single Consumer. */
+	FSTRM_QUEUE_MODEL_MPSC,
+} fstrm_queue_model;
+
+/**
  * Set the `queue_model` option. This controls what queueing semantics to use
  * for `fstrm_queue` objects. Single Producer queues (#FSTRM_QUEUE_MODEL_SPSC)
  * may only have a single thread at a time calling fstrm_io_submit() on a given
@@ -708,6 +659,55 @@ fstrm_io_options_set_writer(
 	struct fstrm_io_options *fopt,
 	const struct fstrm_writer *writer,
 	const void *writer_options);
+
+/**
+ * Default queue model.
+ * \see fstrm_io_options_set_queue_model()
+ */
+#define FSTRM_DEFAULT_IO_QUEUE_MODEL		FSTRM_QUEUE_MODEL_SPSC
+
+/**
+ * Default number of I/O queues.
+ * \see fstrm_io_options_set_num_queues()
+ */
+#define FSTRM_DEFAULT_IO_NUM_QUEUES		1
+
+/**
+ * Default I/O buffer hint size in bytes.
+ * \see fstrm_io_options_set_buffer_hint()
+ */
+#define FSTRM_DEFAULT_IO_BUFFER_HINT		8192
+
+/**
+ * Default I/O flush timeout in seconds.
+ * \see fstrm_io_options_set_flush_timeout()
+ */
+#define FSTRM_DEFAULT_IO_FLUSH_TIMEOUT		1
+
+/**
+ * Default size of `iovec` array.
+ * \see fstrm_io_options_set_iovec_size()
+ */
+#define FSTRM_DEFAULT_IO_IOVEC_SIZE		64
+
+/**
+ * Default number of outstanding queue entries before waking up the I/O thread.
+ * \see fstrm_io_options_set_queue_notify_threshold()
+ *
+ */
+#define FSTRM_DEFAULT_IO_QUEUE_NOTIFY_THRESHOLD	32
+
+/**
+ * Default length of the I/O queue.
+ * \see fstrm_io_options_set_queue_length()
+ */
+#define FSTRM_DEFAULT_IO_QUEUE_LENGTH		512
+
+/**
+ * Default interval between I/O reconnection attempts in seconds.
+ * \see fstrm_io_options_set_reconnect_interval()
+ */
+#define FSTRM_DEFAULT_IO_RECONNECT_INTERVAL	5
 
 /**@}*/
 
