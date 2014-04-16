@@ -35,10 +35,9 @@
 # define fwrite fwrite_unlocked
 #endif
 
-#define MAX_DATA_FRAME_SIZE		1048576	/* bytes */
+/* The maximum data frame size in bytes we're willing to process. */
+#define MAX_DATA_FRAME_SIZE		1048576
 
-static size_t	count_read;
-static size_t	bytes_read;
 static ubuf	*data_buf;
 
 static bool
@@ -67,14 +66,6 @@ read_data(FILE *fp, void *buf, size_t len)
 	return true;
 }
 
-static inline uint32_t
-unpack_be32(const void *buf)
-{
-	uint32_t buf_value;
-	memcpy(&buf_value, buf, sizeof(buf_value));
-	return ntohl(buf_value);
-}
-
 static bool
 read_be32(FILE *fp, uint32_t *out)
 {
@@ -100,21 +91,19 @@ dump_data_frame(FILE *fp, uint32_t len)
 	ubuf_reserve(data_buf, len);
 	if (!read_data(fp, ubuf_ptr(data_buf), len))
 		return false;
-	bytes_read += len;
-	count_read += 1;
-	printf("Data frame (%u bytes): ", len);
+	fprintf(stderr, "Data frame (%u bytes):\n", len);
+	putchar(' ');
 	print_string(ubuf_data(data_buf), len, stdout);
 	putchar('\n');
 	return true;
 }
 
 static bool
-read_control_frame(FILE *fp,
-		   uint8_t *control_frame,
-		   uint32_t *control_frame_len,
-		   uint32_t *control_frame_type)
+dump_control_frame(FILE *fp, struct fstrm_control *c)
 {
+	fstrm_res res;
 	uint32_t len;
+	uint8_t control_frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
 
 	/* Read the control frame length. */
 	if (!read_be32(fp, &len)) {
@@ -123,72 +112,76 @@ read_control_frame(FILE *fp,
 	}
 
 	/* Read the control frame. */
-	if (len > *control_frame_len) {
-		fprintf(stderr, "%s: control frame too large (%u > %u)\n", __func__,
-			len, *control_frame_len);
+	if (len > sizeof(control_frame)) {
+		fprintf(stderr, "%s: control frame too large (%u > %zd)\n", __func__,
+			len, sizeof(control_frame));
 		return false;
 	}
 	if (!read_data(fp, control_frame, len)) {
 		fprintf(stderr, "%s: encoding error reading control frame\n", __func__);
 		return false;
 	}
-	*control_frame_len = len;
-	*control_frame_type = unpack_be32(control_frame);
 
-	return true;
-}
-
-static bool
-read_control_start(FILE *fp)
-{
-	uint32_t len;
-	uint8_t control_frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
-	uint32_t control_frame_len = sizeof(control_frame);
-	uint32_t control_frame_type = 0;
-
-	/* Read the outer frame length. */
-	if (!read_be32(fp, &len))
+	/* Decode the control frame. */
+	fstrm_control_type type;
+	res = fstrm_control_decode(c, control_frame, len, 0);
+	if (res != FSTRM_RES_SUCCESS)
 		return false;
 
-	/* The outer frame length must be zero, since this is a control frame. */
-	if (len != 0) {
-		fprintf(stderr, "%s: encoding error reading frame length\n", __func__);
+	/* Print the control frame. */
+	res = fstrm_control_get_type(c, &type);
+	if (res != FSTRM_RES_SUCCESS)
 		return false;
-	}
+	fprintf(stderr, "%s [0x%08x] (%u bytes):\n ",
+		fstrm_control_type_to_str(type), type, len);
+	print_string(control_frame, len, stderr);
+	fputc('\n', stderr);
 
-	/* Read a control frame. */
-	if (!read_control_frame(fp,
-				control_frame,
-				&control_frame_len,
-				&control_frame_type))
-	{
-		return false;
-	}
-
-	/* Check if the control frame is a start frame. */
-	if (control_frame_type == FSTRM_CONTROL_START) {
-		fprintf(stderr, "Control frame [START] (%u bytes): ", control_frame_len);
-		print_string(control_frame, control_frame_len, stderr);
+	/* Print the "Content Type". */
+	const uint8_t *content_type;
+	size_t len_content_type;
+	res = fstrm_control_get_field_content_type(c,
+		&content_type, &len_content_type);
+	if (res == FSTRM_RES_SUCCESS) {
+		fprintf(stderr, "%s [0x%08x] (%zd bytes):\n ",
+			fstrm_control_field_type_to_str(FSTRM_CONTROL_FIELD_CONTENT_TYPE),
+			FSTRM_CONTROL_FIELD_CONTENT_TYPE,
+			len_content_type);
+		print_string(content_type, len_content_type, stderr);
 		fputc('\n', stderr);
-	} else {
-		fprintf(stderr, "%s: encoding error parsing start control frame\n", __func__);
-		return false;
 	}
 
 	return true;
+
 }
 
 static bool
-dump_file(FILE *fp)
+dump_file(FILE *fp, struct fstrm_control *c)
 {
+	fstrm_control_type type;
 	uint32_t len;
 	uint8_t control_frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
-	uint32_t control_frame_len = sizeof(control_frame);
-	uint32_t control_frame_type = 0;
+	uint32_t len_control_frame;
+	fstrm_res res;
 
 	/* Read the start frame. */
-	if (!read_control_start(fp))
+	if (!read_be32(fp, &len)) {
+		fprintf(stderr, "%s: error reading start of stream", __func__);
 		return false;
+	}
+	if (len != 0) {
+		fprintf(stderr, "%s: error reading escape sequence", __func__);
+	}
+	if (!dump_control_frame(fp, c))
+		return false;
+	res = fstrm_control_get_type(c, &type);
+	if (res != FSTRM_RES_SUCCESS)
+		return false;
+	if (type != FSTRM_CONTROL_START) {
+		fprintf(stderr, "%s: unexpected control frame type at beginning of stream\n",
+			__func__);
+		return false;
+	}
 
 	for (;;) {
 		/* Read the frame length. */
@@ -197,22 +190,36 @@ dump_file(FILE *fp)
 
 		if (len == 0) {
 			/* This is a control frame. */
-			control_frame_len = sizeof(control_frame);
-			control_frame_type = 0;
-			if (!read_control_frame(fp,
-						control_frame,
-						&control_frame_len,
-						&control_frame_type))
-			{
+
+			/* Read the control frame length. */
+			if (!read_be32(fp, &len_control_frame))
 				return false;
-			}
-			if (control_frame_type == FSTRM_CONTROL_STOP) {
-				fprintf(stderr, "Control frame [STOP] (%u bytes): ",
-					control_frame_len);
-				print_string(control_frame, control_frame_len, stderr);
-				fputc('\n', stderr);
+			if (len_control_frame > FSTRM_MAX_CONTROL_FRAME_LENGTH)
+				return false;
+
+			/* Read the control frame payload. */
+			if (!read_data(fp, control_frame, len_control_frame))
+				return false;
+
+			/* Decode the control frame. */
+			res = fstrm_control_decode(c,
+				control_frame, len_control_frame, 0);
+			if (res != FSTRM_RES_SUCCESS)
+				return false;
+
+			/* Print the control frame. */
+			res = fstrm_control_get_type(c, &type);
+			if (res != FSTRM_RES_SUCCESS)
+				return false;
+			fprintf(stderr, "%s [0x%08x] (%u bytes):\n ",
+			       fstrm_control_type_to_str(type), type,
+			       len_control_frame);
+			print_string(control_frame, len_control_frame, stderr);
+			fputc('\n', stderr);
+
+			/* Break if this is the end of the stream. */
+			if (type == FSTRM_CONTROL_STOP)
 				break;
-			}
 		} else {
 			/* This is a data frame. */
 			if (!dump_data_frame(fp, len))
@@ -225,12 +232,13 @@ dump_file(FILE *fp)
 int
 main(int argc, char **argv)
 {
+	struct fstrm_control *c;
 	FILE *fp;
 	bool res;
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <INPUT FILE>\n", argv[0]);
-		fprintf(stderr, "Dumps a FrameStreams formatted input file.\n\n");
+		fprintf(stderr, "Dumps a Frame Streams formatted input file.\n\n");
 		return EXIT_FAILURE;
 	}
 
@@ -240,15 +248,17 @@ main(int argc, char **argv)
 			argv[0], argv[1], strerror(errno));
 		return EXIT_FAILURE;
 	}
-
+	c = fstrm_control_init();
 	data_buf = ubuf_init(512);
-	res = dump_file(fp);
+	res = dump_file(fp, c);
 	ubuf_destroy(&data_buf);
+	fstrm_control_destroy(&c);
 	fclose(fp);
-	fprintf(stderr, "%s: bytes_read= %zd count_read= %zd\n", argv[0],
-		bytes_read, count_read);
-	if (res)
+
+	if (res) {
 		return EXIT_SUCCESS;
-	fprintf(stderr, "%s: error decoding input\n", argv[0]);
-	return EXIT_FAILURE;
+	} else {
+		fprintf(stderr, "%s: error decoding input\n", argv[0]);
+		return EXIT_FAILURE;
+	}
 }
