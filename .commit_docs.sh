@@ -63,9 +63,7 @@ cd _build
 ../configure
 make html
 
-if git show-ref --verify --quiet refs/heads/${DOC_BRANCH}; then
-    git checkout "${DOC_BRANCH}"
-else
+if ! git checkout "${DOC_BRANCH}"; then
     git checkout --orphan "${DOC_BRANCH}"
 fi
 
