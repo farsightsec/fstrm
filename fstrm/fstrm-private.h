@@ -37,11 +37,13 @@
 #include "libmy/my_queue.h"
 
 #if defined(__GNUC__)
-# define likely(x)      __builtin_expect(!!(x), 1)
-# define unlikely(x)    __builtin_expect(!!(x), 0)
+# define likely(x)		__builtin_expect(!!(x), 1)
+# define unlikely(x)		__builtin_expect(!!(x), 0)
+# define warn_unused_result	__attribute__ ((warn_unused_result))
 #else
 # define likely(x)
 # define unlikely(x)
+# define warn_unused_result
 #endif
 
 #ifndef MSG_NOSIGNAL
@@ -51,6 +53,64 @@
 #ifndef IOV_MAX
 # define IOV_MAX 1024
 #endif
+
+/* buffer helpers */
+
+warn_unused_result
+static inline bool
+fs_load_be32(const uint8_t **buf, size_t *len, uint32_t *val)
+{
+	uint32_t be32_val;
+
+	if (*len < sizeof(be32_val))
+		return false;
+	memmove(&be32_val, *buf, sizeof(be32_val));
+	*val = ntohl(be32_val);
+	*len -= sizeof(be32_val);
+	*buf += sizeof(be32_val);
+	return true;
+}
+
+warn_unused_result
+static inline bool
+fs_store_be32(uint8_t **buf, size_t *len, const uint32_t val)
+{
+	uint32_t be32_val;
+
+	be32_val = ntohl(val);
+	if (*len < sizeof(be32_val))
+		return false;
+	memmove(*buf, &be32_val, sizeof(be32_val));
+	*len -= sizeof(be32_val);
+	*buf += sizeof(be32_val);
+	return true;
+}
+
+warn_unused_result
+static inline bool
+fs_load_bytes(uint8_t *bytes, size_t len_bytes,
+	      const uint8_t **buf, size_t *len)
+{
+	if (*len < len_bytes)
+		return false;
+	memmove(bytes, *buf, len_bytes);
+	*len -= len_bytes;
+	*buf += len_bytes;
+	return true;
+}
+
+warn_unused_result
+static inline bool
+fs_store_bytes(uint8_t **buf, size_t *len,
+	       const uint8_t *bytes, size_t len_bytes)
+{
+	if (*len < len_bytes)
+		return false;
+	memmove(*buf, bytes, len_bytes);
+	*len -= len_bytes;
+	*buf += len_bytes;
+	return true;
+}
 
 /* writer */
 

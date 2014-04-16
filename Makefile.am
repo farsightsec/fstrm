@@ -30,6 +30,7 @@ lib_LTLIBRARIES = fstrm/libfstrm.la
 
 fstrm_libfstrm_la_SOURCES = \
 	fstrm/fstrm-private.h \
+	fstrm/control.c \
 	fstrm/fstrm.c fstrm/fstrm.h \
 	fstrm/file_writer.c \
 	fstrm/options.c \
