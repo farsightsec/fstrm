@@ -87,7 +87,7 @@ thr_producer(void *arg)
 		ubuf_destroy(&u);
 
 		res = fstrm_io_submit(fio, p->fq, message, len, fstrm_free_wrapper, NULL);
-		if (res == FSTRM_RES_SUCCESS) {
+		if (res == fstrm_res_success) {
 			p->pstat.count_submitted++;
 			p->pstat.bytes_submitted += len;
 		} else {

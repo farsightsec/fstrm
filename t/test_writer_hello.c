@@ -56,28 +56,28 @@ fs_test_writer_create(struct fstrm_io *io,
 		      void **data)
 {
 	//fprintf(stderr, "%s: called\n", __func__);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
 fs_test_writer_destroy(void *data)
 {
 	//fprintf(stderr, "%s: called\n", __func__);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
 fs_test_writer_open(void *data)
 {
 	//fprintf(stderr, "%s: called\n", __func__);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
 fs_test_writer_close(void *data)
 {
 	//fprintf(stderr, "%s: called\n", __func__);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -95,7 +95,7 @@ fs_test_writer_write_control(void *data,
 		fputc('\n', stderr);
 		*/
 	}
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -121,7 +121,7 @@ fs_test_writer_write_data(void *data,
 		memmove(t_cur->data, iov[i].iov_base, iov[i].iov_len);
 	}
 	num_iovecs += iovcnt;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static int
@@ -269,9 +269,9 @@ main(void)
 
 			res = fstrm_io_submit(io, fq, bytes, strlen(bytes),
 					      fstrm_free_wrapper, NULL);
-			if (res == FSTRM_RES_SUCCESS) {
+			if (res == fstrm_res_success) {
 				break;
-			} else if (res == FSTRM_RES_AGAIN) {
+			} else if (res == fstrm_res_again) {
 				poll(NULL, 0, 1); /* sleep for a millisecond */
 				continue;
 			} else {

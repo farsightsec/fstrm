@@ -125,12 +125,12 @@ dump_control_frame(FILE *fp, struct fstrm_control *c)
 	/* Decode the control frame. */
 	fstrm_control_type type;
 	res = fstrm_control_decode(c, control_frame, len, 0);
-	if (res != FSTRM_RES_SUCCESS)
+	if (res != fstrm_res_success)
 		return false;
 
 	/* Print the control frame. */
 	res = fstrm_control_get_type(c, &type);
-	if (res != FSTRM_RES_SUCCESS)
+	if (res != fstrm_res_success)
 		return false;
 	fprintf(stderr, "%s [0x%08x] (%u bytes):\n ",
 		fstrm_control_type_to_str(type), type, len);
@@ -142,7 +142,7 @@ dump_control_frame(FILE *fp, struct fstrm_control *c)
 	size_t len_content_type;
 	res = fstrm_control_get_field_content_type(c,
 		&content_type, &len_content_type);
-	if (res == FSTRM_RES_SUCCESS) {
+	if (res == fstrm_res_success) {
 		fprintf(stderr, "%s [0x%08x] (%zd bytes):\n ",
 			fstrm_control_field_type_to_str(FSTRM_CONTROL_FIELD_CONTENT_TYPE),
 			FSTRM_CONTROL_FIELD_CONTENT_TYPE,
@@ -175,7 +175,7 @@ dump_file(FILE *fp, struct fstrm_control *c)
 	if (!dump_control_frame(fp, c))
 		return false;
 	res = fstrm_control_get_type(c, &type);
-	if (res != FSTRM_RES_SUCCESS)
+	if (res != fstrm_res_success)
 		return false;
 	if (type != FSTRM_CONTROL_START) {
 		fprintf(stderr, "%s: unexpected control frame type at beginning of stream\n",
@@ -204,12 +204,12 @@ dump_file(FILE *fp, struct fstrm_control *c)
 			/* Decode the control frame. */
 			res = fstrm_control_decode(c,
 				control_frame, len_control_frame, 0);
-			if (res != FSTRM_RES_SUCCESS)
+			if (res != fstrm_res_success)
 				return false;
 
 			/* Print the control frame. */
 			res = fstrm_control_get_type(c, &type);
-			if (res != FSTRM_RES_SUCCESS)
+			if (res != fstrm_res_success)
 				return false;
 			fprintf(stderr, "%s [0x%08x] (%u bytes):\n ",
 			       fstrm_control_type_to_str(type), type,

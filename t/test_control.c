@@ -284,7 +284,7 @@ decode_control_frame(struct fstrm_control *c,
 	fstrm_control_type type;
 
 	res = fstrm_control_decode(c, control_frame, len_control_frame, flags);
-	if (res == FSTRM_RES_SUCCESS) {
+	if (res == fstrm_res_success) {
 		printf("Successfully decoded frame (%zd bytes):\n  ",
 		       len_control_frame);
 		print_string(control_frame, len_control_frame, stdout);
@@ -298,7 +298,7 @@ decode_control_frame(struct fstrm_control *c,
 	}
 
 	res = fstrm_control_get_type(c, &type);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		puts("  fstrm_control_get_type() failed.");
 		return res;
 	}
@@ -309,19 +309,19 @@ decode_control_frame(struct fstrm_control *c,
 	size_t len_content_type;
 	res = fstrm_control_get_field_content_type(c,
 		&content_type, &len_content_type);
-	if (res == FSTRM_RES_SUCCESS) {
+	if (res == fstrm_res_success) {
 		printf("  The control frame has a CONTENT_TYPE field (%zd bytes): ",
 		       len_content_type);
 		print_string(content_type, len_content_type, stdout);
 		putchar('\n');
-	} else if (res == FSTRM_RES_FAILURE) {
+	} else if (res == fstrm_res_failure) {
 		puts("  The control frame does not have a CONTENT_TYPE field.");
 	} else {
 		/* Not reached. */
 		assert(0);
 	}
 
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static void
@@ -337,14 +337,14 @@ test_reencode_frame(struct fstrm_control *c,
 	size_t len_new_frame = 0, len_new_frame_2 = 0;
 
 	res = fstrm_control_encoded_size(c, &len_new_frame, flags);
-	assert(res == FSTRM_RES_SUCCESS);
+	assert(res == fstrm_res_success);
 	printf("Need %zd bytes for new frame.\n", len_new_frame);
 	assert(len_new_frame <= FSTRM_MAX_CONTROL_FRAME_LENGTH);
 	uint8_t new_frame[len_new_frame];
 
 	len_new_frame_2 = len_new_frame;
 	res = fstrm_control_encode(c, new_frame, &len_new_frame_2, flags);
-	assert(res == FSTRM_RES_SUCCESS);
+	assert(res == fstrm_res_success);
 	printf("Successfully encoded a new frame (%zd bytes):\n  ",
 	       len_new_frame_2);
 	print_string(new_frame, len_new_frame_2, stdout);
@@ -371,7 +371,7 @@ test_reencode_frame_static(struct fstrm_control *c,
 	size_t len_new_frame = sizeof(new_frame);
 
 	res = fstrm_control_encode(c, new_frame, &len_new_frame, flags);
-	assert(res == FSTRM_RES_SUCCESS);
+	assert(res == fstrm_res_success);
 	assert(len_new_frame <= FSTRM_MAX_CONTROL_FRAME_LENGTH);
 	printf("Successfully encoded a new frame (%zd bytes):\n  ", len_new_frame);
 	print_string(new_frame, len_new_frame, stdout);
@@ -395,9 +395,9 @@ test_control_test(struct fstrm_control *c, const struct control_test *test)
 	fstrm_control_type type;
 
 	res = decode_control_frame(c, test->frame, test->len_frame, test->flags);
-	assert(res == FSTRM_RES_SUCCESS);
+	assert(res == fstrm_res_success);
 	res = fstrm_control_get_type(c, &type);
-	assert(res == FSTRM_RES_SUCCESS);
+	assert(res == fstrm_res_success);
 	assert(type == test->type);
 
 	const uint8_t *content_type;
@@ -407,12 +407,12 @@ test_control_test(struct fstrm_control *c, const struct control_test *test)
 	if (test->content_type != NULL) {
 		int cmp;
 
-		assert(res == FSTRM_RES_SUCCESS);
+		assert(res == fstrm_res_success);
 		assert(len_content_type == test->len_content_type);
 		cmp = memcmp(content_type, test->content_type, len_content_type);
 		assert(cmp == 0);
 	} else {
-		assert(res == FSTRM_RES_FAILURE);
+		assert(res == fstrm_res_failure);
 	}
 
 	test_reencode_frame(c, test->frame, test->len_frame, test->flags);
@@ -444,7 +444,7 @@ test_invalid(struct fstrm_control *c)
 	{
 		fstrm_res res;
 		res = decode_control_frame(c, test->bytes, test->len, 0);
-		assert(res != FSTRM_RES_SUCCESS);
+		assert(res != fstrm_res_success);
 	}
 }
 

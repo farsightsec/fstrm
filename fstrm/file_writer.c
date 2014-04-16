@@ -41,7 +41,7 @@ fs_file_writer_open(void *data)
 
 	/* Nothing to do if the file descriptor is already opened. */
 	if (w->opened)
-		return FSTRM_RES_SUCCESS;
+		return fstrm_res_success;
 
 	/* Open the file descriptor. Request close-on-exec if available. */
 	int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
@@ -51,7 +51,7 @@ fs_file_writer_open(void *data)
 	w->fd = open(w->file_path, open_flags,
 		     S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (w->fd < 0)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	/*
 	 * Request close-on-exec if available. There is nothing that can be done
@@ -70,7 +70,7 @@ fs_file_writer_open(void *data)
 #endif
 
 	w->opened = true;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -82,7 +82,7 @@ fs_file_writer_close(void *data)
 		close(w->fd);
 	w->opened = false;
 
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -100,25 +100,25 @@ fs_file_writer_write(void *data,
 				written = writev(w->fd, iov, iovcnt);
 			} while (written == -1 && errno == EINTR);
 			if (written == -1)
-				return FSTRM_RES_FAILURE;
+				return fstrm_res_failure;
 			if (cur == 0 && written == (ssize_t) nbytes)
-				return FSTRM_RES_SUCCESS;
+				return fstrm_res_success;
 
 			while (written >= (ssize_t) iov[cur].iov_len)
 			       written -= iov[cur++].iov_len;
 
 			if (cur == iovcnt)
-				return FSTRM_RES_SUCCESS;
+				return fstrm_res_success;
 
 			iov[cur].iov_base = (void *)
 				((char *) iov[cur].iov_base + written);
 			iov[cur].iov_len -= written;
 		}
 	} else {
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -131,10 +131,10 @@ fs_file_writer_create(struct fstrm_io *io __attribute__((__unused__)),
 		(const struct fstrm_file_writer_options *) opt;
 
 	if (wopt->magic != FS_FILE_WRITER_OPTIONS_MAGIC)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	if (wopt->file_path == NULL)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	w = my_calloc(1, sizeof(*w));
 	w->file_path = my_strdup(wopt->file_path);
@@ -142,7 +142,7 @@ fs_file_writer_create(struct fstrm_io *io __attribute__((__unused__)),
 	(void) fs_file_writer_open(w);
 
 	*data = w;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -152,7 +152,7 @@ fs_file_writer_destroy(void *data)
 	(void) fs_file_writer_close(w);
 	my_free(w->file_path);
 	my_free(w);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 struct fstrm_file_writer_options *

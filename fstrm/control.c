@@ -80,9 +80,9 @@ fstrm_control_get_type(struct fstrm_control *c, fstrm_control_type *type)
 	case FSTRM_CONTROL_START:	/* FALLTHROUGH */
 	case FSTRM_CONTROL_STOP:
 		*type = c->type;
-		return FSTRM_RES_SUCCESS;
+		return fstrm_res_success;
 	default:
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 }
 
@@ -94,9 +94,9 @@ fstrm_control_set_type(struct fstrm_control *c, fstrm_control_type type)
 	case FSTRM_CONTROL_START:	/* FALLTHROUGH */
 	case FSTRM_CONTROL_STOP:
 		c->type = type;
-		return FSTRM_RES_SUCCESS;
+		return fstrm_res_success;
 	default:
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 }
 
@@ -108,9 +108,9 @@ fstrm_control_get_field_content_type(struct fstrm_control *c,
 	if (c->content_type != NULL) {
 		*content_type = c->content_type;
 		*len_content_type = c->len_content_type;
-		return FSTRM_RES_SUCCESS;
+		return fstrm_res_success;
 	} else {
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 }
 
@@ -120,13 +120,13 @@ fstrm_control_set_field_content_type(struct fstrm_control *c,
 				     size_t len_content_type)
 {
 	if (len_content_type > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	if (c->content_type != NULL)
 		my_free(c->content_type);
 	c->len_content_type = len_content_type;
 	c->content_type = my_malloc(len_content_type);
 	memmove(c->content_type, content_type, len_content_type);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 fstrm_res
@@ -144,35 +144,35 @@ fstrm_control_decode(struct fstrm_control *c,
 	if (flags & FSTRM_CONTROL_FLAG_WITH_HEADER) {
 		/* Read the outer frame length. */
 		if (!fs_load_be32(&buf, &len, &val))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/* The outer frame length must be zero, since this is a control frame. */
 		if (val != 0)
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 		
 		/* Read the control frame length. */
 		if (!fs_load_be32(&buf, &len, &val))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/* Enforce maximum control frame size. */
 		if (val > FSTRM_MAX_CONTROL_FRAME_LENGTH)
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/*
 		 * Require that the control frame length matches the number of
 		 * bytes remaining in 'buf'.
 		 */
 		if (val != len)
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 	} else {
 		/* Enforce maximum control frame size. */
 		if (len_control_frame > FSTRM_MAX_CONTROL_FRAME_LENGTH)
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 	}
 
 	/* Read the control frame type. */
 	if (!fs_load_be32(&buf, &len, &val))
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	switch (val) {
 	case FSTRM_CONTROL_ACCEPT:	/* FALLTHROUGH */
 	case FSTRM_CONTROL_START:	/* FALLTHROUGH */
@@ -180,20 +180,20 @@ fstrm_control_decode(struct fstrm_control *c,
 		c->type = (fstrm_control_type) val;
 		break;
 	default:
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 
 	/* Read any control frame fields. */
 	while (len > 0) {
 		/* Read the control frame field type. */
 		if (!fs_load_be32(&buf, &len, &val))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		switch (val) {
 		case FSTRM_CONTROL_FIELD_CONTENT_TYPE: {
 			/* Read the length of the "Content Type" payload. */
 			if (!fs_load_be32(&buf, &len, &val))
-				return FSTRM_RES_FAILURE;
+				return fstrm_res_failure;
 			c->len_content_type = val;
 
 			/*
@@ -201,27 +201,27 @@ fstrm_control_decode(struct fstrm_control *c,
 			 * than 'len', the number of bytes remaining in 'buf'.
 			 */
 			if (c->len_content_type > len)
-				return FSTRM_RES_FAILURE;
+				return fstrm_res_failure;
 
 			/* Enforce limit on "Content Type" payload length. */
 			if (c->len_content_type > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
-				return FSTRM_RES_FAILURE;
+				return fstrm_res_failure;
 
 			/* Read the "Content Type" payload. */
 			c->content_type = my_malloc(c->len_content_type);
 			if (!fs_load_bytes(c->content_type, c->len_content_type, &buf, &len))
 			{
-				return FSTRM_RES_FAILURE;
+				return fstrm_res_failure;
 			}
 
 			break;
 		}
 		default:
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 		}
 	}
 
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 fstrm_res
@@ -251,7 +251,7 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 
 		/* Enforce limit on "Content Type" payload length. */
 		if (c->len_content_type > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/* The "Content Type" payload. */
 		len += c->len_content_type;
@@ -259,10 +259,10 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 
 	/* Sanity check. */
 	if (len > FSTRM_MAX_CONTROL_FRAME_LENGTH)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	*len_control_frame = len;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 fstrm_res
@@ -276,7 +276,7 @@ fstrm_control_encode(struct fstrm_control *c,
 
 	/* Calculate the size of the control frame. */
 	res = fstrm_control_encoded_size(c, &encoded_size, flags);
-	if (res != FSTRM_RES_SUCCESS)
+	if (res != fstrm_res_success)
 		return res;
 
 	/*
@@ -284,7 +284,7 @@ fstrm_control_encode(struct fstrm_control *c,
 	 * control frame.
 	 */
 	if (*len_control_frame < encoded_size)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	/*
 	 * Now actually serialize the control frame.
@@ -295,7 +295,7 @@ fstrm_control_encode(struct fstrm_control *c,
 	if (flags & FSTRM_CONTROL_FLAG_WITH_HEADER) {
 		/* Escape: 32-bit BE integer. Zero. */
 		if (!fs_store_be32(&buf, &len, 0))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/*
 		 * Frame length: 32-bit BE integer.
@@ -305,27 +305,27 @@ fstrm_control_encode(struct fstrm_control *c,
 		 * total length.
 		 */
 		if (!fs_store_be32(&buf, &len, encoded_size - 2 * sizeof(uint32_t)))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 	}
 
 	/* Control type: 32-bit BE integer. */
 	if (!fs_store_be32(&buf, &len, c->type))
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	if (c->content_type != NULL) {
 		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
 		if (!fs_store_be32(&buf, &len, FSTRM_CONTROL_FIELD_CONTENT_TYPE))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/* Length of the "Content Type" payload: 32-bit BE integer. */
 		if (!fs_store_be32(&buf, &len, c->len_content_type))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 
 		/* The "Content Type" string itself. */
 		if (!fs_store_bytes(&buf, &len, c->content_type, c->len_content_type))
-			return FSTRM_RES_FAILURE;
+			return fstrm_res_failure;
 	}
 
 	*len_control_frame = encoded_size;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }

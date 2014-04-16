@@ -187,7 +187,7 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	 * method will be called in fstrm_io_destroy().
 	 */
 	res = io->opt.writer->create(io, io->opt.writer_options, &io->writer_data);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		if (err != NULL)
 			*err = my_strdup("writer 'create' method failed");
 		goto err_out;
@@ -291,10 +291,10 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	struct fs_queue_entry entry;
 
 	if (unlikely(io->shutting_down))
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	if (unlikely(len < 1 || len >= UINT32_MAX || buf == NULL))
-		return FSTRM_RES_INVALID;
+		return fstrm_res_invalid;
 
 	entry.bytes = buf;
 	entry.be32_len = htonl((uint32_t) len);
@@ -304,9 +304,9 @@ fstrm_io_submit(struct fstrm_io *io, struct fstrm_queue *q,
 	if (likely(len > 0) && io->queue_ops->insert(q->q, &entry, &space)) {
 		if (space == io->opt.queue_notify_threshold)
 			pthread_cond_signal(&io->cv);
-		return FSTRM_RES_SUCCESS;
+		return fstrm_res_success;
 	} else {
-		return FSTRM_RES_AGAIN;
+		return fstrm_res_again;
 	}
 }
 
@@ -327,7 +327,7 @@ fs_io_open(struct fstrm_io *io)
 {
 	fstrm_res res;
 	res = io->opt.writer->open(io->writer_data);
-	if (res == FSTRM_RES_SUCCESS)
+	if (res == fstrm_res_success)
 		io->writable = true;
 	else
 		io->writable = false;
@@ -356,7 +356,7 @@ fs_io_write_data(struct fstrm_io *io,
 	res = io->opt.writer->write_data(io->writer_data,
 					 iov, iovcnt,
 					 total_length);
-	if (res != FSTRM_RES_SUCCESS)
+	if (res != fstrm_res_success)
 		(void)fs_io_close(io);
 	return res;
 }
@@ -376,7 +376,7 @@ fs_io_write_control(struct fstrm_io *io,
 	res = io->opt.writer->write_control(io->writer_data,
 					    iov, iovcnt,
 					    total_length);
-	if (res != FSTRM_RES_SUCCESS)
+	if (res != fstrm_res_success)
 		(void)fs_io_close(io);
 	return res;
 }
@@ -500,12 +500,12 @@ fs_io_maybe_connect(struct fstrm_io *io)
 		if (since >= (time_t) io->opt.reconnect_interval) {
 			/* The reconnect interval expired. */
 
-			if (fs_io_open(io) == FSTRM_RES_SUCCESS) {
+			if (fs_io_open(io) == fstrm_res_success) {
 				/*
 				 * The transport has been reopened, so send the
 				 * start frame.
 				 */
-				if (fs_io_write_control_start(io) != FSTRM_RES_SUCCESS) {
+				if (fs_io_write_control_start(io) != fstrm_res_success) {
 					/*
 					 * Writing the control frame failed, so
 					 * close the transport.

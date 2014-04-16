@@ -42,7 +42,7 @@ fs_unix_writer_open(void *data)
 
 	/* Nothing to do if the socket is already connected. */
 	if (w->connected)
-		return FSTRM_RES_SUCCESS;
+		return fstrm_res_success;
 
 	/* Open an AF_UNIX socket. Request socket close-on-exec if available. */
 #if defined(SOCK_CLOEXEC)
@@ -53,7 +53,7 @@ fs_unix_writer_open(void *data)
 	w->fd = socket(AF_UNIX, SOCK_STREAM, 0);
 #endif
 	if (w->fd < 0)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	/*
 	 * Request close-on-exec if available. There is nothing that can be done
@@ -81,18 +81,18 @@ fs_unix_writer_open(void *data)
 	static const int on = 1;
 	if (setsockopt(w->fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on)) != 0) {
 		close(w->fd);
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 #endif
 
 	/* Connect the AF_UNIX socket. */
 	if (connect(w->fd, (struct sockaddr *) &w->sa, sizeof(w->sa)) < 0) {
 		close(w->fd);
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 
 	w->connected = true;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -104,7 +104,7 @@ fs_unix_writer_close(void *data)
 		close(w->fd);
 	w->connected = false;
 
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -126,25 +126,25 @@ fs_unix_writer_write(void *data,
 				written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
 			} while (written == -1 && errno == EINTR);
 			if (written == -1)
-				return FSTRM_RES_FAILURE;
+				return fstrm_res_failure;
 			if (cur == 0 && written == (ssize_t) nbytes)
-				return FSTRM_RES_SUCCESS;
+				return fstrm_res_success;
 
 			while (written >= (ssize_t) msg.msg_iov[cur].iov_len)
 			       written -= msg.msg_iov[cur++].iov_len;
 
 			if (cur == iovcnt)
-				return FSTRM_RES_SUCCESS;
+				return fstrm_res_success;
 
 			msg.msg_iov[cur].iov_base = (void *)
 				((char *) msg.msg_iov[cur].iov_base + written);
 			msg.msg_iov[cur].iov_len -= written;
 		}
 	} else {
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 	}
 
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -157,13 +157,13 @@ fs_unix_writer_create(struct fstrm_io *io __attribute__((__unused__)),
 		(const struct fstrm_unix_writer_options *) opt;
 
 	if (wopt->magic != FS_UNIX_WRITER_OPTIONS_MAGIC)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	if (wopt->socket_path == NULL)
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	if (strlen(wopt->socket_path) + 1 > sizeof(w->sa.sun_path))
-		return FSTRM_RES_FAILURE;
+		return fstrm_res_failure;
 
 	w = my_calloc(1, sizeof(*w));
 	w->sa.sun_family = AF_UNIX;
@@ -172,7 +172,7 @@ fs_unix_writer_create(struct fstrm_io *io __attribute__((__unused__)),
 	(void) fs_unix_writer_open(w);
 
 	*data = w;
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 static fstrm_res
@@ -181,7 +181,7 @@ fs_unix_writer_destroy(void *data)
 	struct fs_unix_writer *w = data;
 	(void) fs_unix_writer_close(w);
 	my_free(w);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 
 struct fstrm_unix_writer_options *

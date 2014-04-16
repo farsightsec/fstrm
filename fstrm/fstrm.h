@@ -144,19 +144,19 @@
  * does this.
  *
  * If space is available in the queue, fstrm_io_submit() will return
- * #FSTRM_RES_SUCCESS, indicating that ownership of the memory allocation for the
+ * #fstrm_res_success, indicating that ownership of the memory allocation for the
  * data frame has passed from the caller to the library. The caller must not
  * reuse or deallocate the memory for the data frame after a successful call to
  * fstrm_io_submit().
  *
  * Callers must check the return value of fstrm_io_submit(). If this function
- * fails, that is, it returns any result code other than #FSTRM_RES_SUCCESS, the
+ * fails, that is, it returns any result code other than #fstrm_res_success, the
  * caller must deallocate or otherwise dispose of memory allocated for the data
  * frame, in order to avoid leaking memory. fstrm_io_submit() can fail with
- * #FSTRM_RES_AGAIN if there is currently no space in the circular queue for an
+ * #fstrm_res_again if there is currently no space in the circular queue for an
  * additional frame, in which case a later call to fstrm_io_submit() with the
  * same parameters may succeed. However, if fstrm_io_submit() fails with
- * #FSTRM_RES_INVALID, then there is a problem with the parameters and a later
+ * #fstrm_res_invalid, then there is a problem with the parameters and a later
  * call will not succeed.
  *
  * The following code example shows data frames containing a short sequence of
@@ -190,10 +190,10 @@
 			res = fstrm_io_submit(fio, fq, frame,
 					      sizeof(frame_template),
 					      fstrm_free_wrapper, NULL);
-			if (res == FSTRM_RES_SUCCESS) {
+			if (res == fstrm_res_success) {
 				// Frame successfully queued.
 				break;
-			} else if (res == FSTRM_RES_AGAIN) {
+			} else if (res == fstrm_res_again) {
 				// Queue is full. Try again in a busy loop.
 				continue;
 			} else {
@@ -246,16 +246,16 @@ struct fstrm_writer_options;
  */
 typedef enum {
 	/** Success. */
-	FSTRM_RES_SUCCESS,
+	fstrm_res_success,
 
 	/** Failure. */
-	FSTRM_RES_FAILURE,
+	fstrm_res_failure,
 
 	/** Resource temporarily unavailable. */
-	FSTRM_RES_AGAIN,
+	fstrm_res_again,
 
 	/** Parameters were invalid. */
-	FSTRM_RES_INVALID,
+	fstrm_res_invalid,
 } fstrm_res;
 
 /**@}*/
@@ -372,7 +372,7 @@ fstrm_io_get_queue(struct fstrm_io *fio);
  * the I/O thread has an active output stream opened, the data frame will be
  * asynchronously written to the output stream.
  *
- * When this function returns #FSTRM_RES_SUCCESS, responsibility for
+ * When this function returns #fstrm_res_success, responsibility for
  * deallocating the data frame specified by the `buf` parameter passes to the
  * `fstrm` library. The caller **MUST** ensure that the `buf` object remains valid
  * after fstrm_io_submit() returns. The callback function specified by the
@@ -404,11 +404,11 @@ fstrm_io_get_queue(struct fstrm_io *fio);
  * \param free_data
  *      Parameter to pass to `free_func`.
  *
- * \return FSTRM_RES_SUCCESS
+ * \return fstrm_res_success
  *      The data frame was successfully queued.
- * \return FSTRM_RES_AGAIN
+ * \return fstrm_res_again
  *      The queue is full.
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_failure
  *      Permanent failure.
  */
 fstrm_res
@@ -783,10 +783,10 @@ my_writer_create(struct fstrm_io *fio,
                 (const struct my_writer_options *) wopt;
         struct my_writer_state *state = calloc(1, sizeof(*state));
         if (!state)
-                return FSTRM_RES_FAILURE;
+                return fstrm_res_failure;
 
         *data = state;
-        return FSTRM_RES_SUCCESS;
+        return fstrm_res_success;
 }
 
 fstrm_res
@@ -794,21 +794,21 @@ my_writer_destroy(void *data)
 {
         struct my_writer_state *state = (struct my_writer_state *) data;
         free(state);
-        return FSTRM_RES_SUCCESS;
+        return fstrm_res_success;
 }
 
 fstrm_res
 my_writer_open(void *data)
 {
         struct my_writer_state *state = (struct my_writer_state *) data;
-        return FSTRM_RES_SUCCESS;
+        return fstrm_res_success;
 }
 
 fstrm_res
 my_writer_close(void *data)
 {
         struct my_writer_state *state = (struct my_writer_state *) data;
-        return FSTRM_RES_SUCCESS;
+        return fstrm_res_success;
 }
 
 fstrm_res
@@ -817,7 +817,7 @@ my_writer_write_data(void *data,
                      unsigned nbytes)
 {
         struct my_writer_state *state = (struct my_writer_state *) data;
-        return FSTRM_RES_SUCCESS;
+        return fstrm_res_success;
 }
 
 fstrm_res
@@ -826,7 +826,7 @@ my_writer_write_control(void *data,
                         unsigned nbytes)
 {
         struct my_writer_state *state = (struct my_writer_state *) data;
-        return FSTRM_RES_SUCCESS;
+        return fstrm_res_success;
 }
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -867,7 +867,7 @@ my_writer_write_control(void *data,
  *      parameter.
  *
  * \return
- *      #FSTRM_RES_SUCCESS on success, or any other #fstrm_res value on failure.
+ *      #fstrm_res_success on success, or any other #fstrm_res value on failure.
  */
 typedef fstrm_res (*fstrm_writer_create_func)(
 	struct fstrm_io *fio,
@@ -884,7 +884,7 @@ typedef fstrm_res (*fstrm_writer_create_func)(
  *      The `data` value returned by the `create` method.
  *
  * \return
- *      #FSTRM_RES_SUCCESS on success, or any other #fstrm_res value on failure.
+ *      #fstrm_res_success on success, or any other #fstrm_res value on failure.
  */
 typedef fstrm_res (*fstrm_writer_destroy_func)(void *data);
 
@@ -906,7 +906,7 @@ typedef fstrm_res (*fstrm_writer_destroy_func)(void *data);
  *      The `data` value returned by the `create` method.
  *
  * \return
- *      #FSTRM_RES_SUCCESS on success, or any other #fstrm_res value on failure.
+ *      #fstrm_res_success on success, or any other #fstrm_res value on failure.
  */
 typedef fstrm_res (*fstrm_writer_open_func)(void *data);
 
@@ -925,7 +925,7 @@ typedef fstrm_res (*fstrm_writer_open_func)(void *data);
  *      The `data` value returned by the `create` method.
  *
  * \return
- *      #FSTRM_RES_SUCCESS on success, or any other #fstrm_res value on failure.
+ *      #fstrm_res_success on success, or any other #fstrm_res value on failure.
  */
 typedef fstrm_res (*fstrm_writer_close_func)(void *data);
 
@@ -945,7 +945,7 @@ typedef fstrm_res (*fstrm_writer_close_func)(void *data);
  *      Total number of bytes described by the `iovec` array.
  *
  * \return
- *      #FSTRM_RES_SUCCESS on success, or any other #fstrm_res value on failure.
+ *      #fstrm_res_success on success, or any other #fstrm_res value on failure.
  */
 typedef fstrm_res (*fstrm_writer_write_func)(
         void *data,
@@ -1431,8 +1431,8 @@ fstrm_control_reset(struct fstrm_control *c);
  * \param[out] type
  *	Type of the control frame.
  *
- * \return FSTRM_RES_SUCCESS
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_success
+ * \return fstrm_res_failure
  */
 fstrm_res
 fstrm_control_get_type(
@@ -1447,8 +1447,8 @@ fstrm_control_get_type(
  * \param[in] type
  *	Type of the control frame.
  *
- * \return FSTRM_RES_SUCCESS
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_success
+ * \return fstrm_res_failure
  */
 fstrm_res
 fstrm_control_set_type(
@@ -1468,9 +1468,9 @@ fstrm_control_set_type(
  * \param[out] len_content_type
  *	The number of bytes in `content_type`.
  *
- * \return FSTRM_RES_SUCCESS
+ * \return fstrm_res_success
  *	The control frame has a "Content Type" field.
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_failure
  *	The control frame does not have a "Content Type" field.
  */
 fstrm_res
@@ -1492,9 +1492,9 @@ fstrm_control_get_field_content_type(
  * \param[in] len_content_type
  *	The number of bytes in `content_type`.
  *
- * \return FSTRM_RES_SUCCESS
+ * \return fstrm_res_success
  *	The "Content Type" field was successfully set.
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_failure
  *	The "Content Type" string is too long.
  */
 fstrm_res
@@ -1522,14 +1522,14 @@ decode_control_frame(const void *control_frame, size_t len_control_frame)
 	c = fstrm_control_init();
 
 	res = fstrm_control_decode(c, control_frame, len_control_frame, flags);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		puts("fstrm_control_decode() failed.");
 		fstrm_control_destroy(&c);
 		return res;
 	}
 
 	res = fstrm_control_get_type(c, &c_type);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		puts("fstrm_control_get_type() failed.");
 		fstrm_control_destroy(&c);
 		return res;
@@ -1541,13 +1541,13 @@ decode_control_frame(const void *control_frame, size_t len_control_frame)
 	size_t len_content_type;
 	res = fstrm_control_get_field_content_type(c,
 		&content_type, &len_content_type);
-	if (res == FSTRM_RES_SUCCESS) {
+	if (res == fstrm_res_success) {
 		printf("The control frame has a CONTENT_TYPE field of length %zd.\n",
 		       len_content_type);
 	}
 
 	fstrm_control_destroy(&c);
-	return FSTRM_RES_SUCCESS;
+	return fstrm_res_success;
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
@@ -1561,8 +1561,8 @@ decode_control_frame(const void *control_frame, size_t len_control_frame)
  * \param flags
  *	Flags controlling the decoding process. See #fstrm_control_flag.
  *
- * \return FSTRM_RES_SUCCESS
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_success
+ * \return fstrm_res_failure
  */
 fstrm_res
 fstrm_control_decode(
@@ -1604,8 +1604,8 @@ typedef enum {
  * \param flags
  *	Flags controlling the encoding process. See #fstrm_control_flag.
  *
- * \return FSTRM_RES_SUCCESS
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_success
+ * \return fstrm_res_failure
  */
 fstrm_res
 fstrm_control_encoded_size(
@@ -1629,13 +1629,13 @@ fstrm_control_encoded_size(
 
 	c = fstrm_control_init();
 	res = fstrm_control_set_type(c, FSTRM_CONTROL_START);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		// Error handling goes here.
 	}
 
 	// Calculate the number of bytes needed.
 	res = fstrm_control_encoded_size(c, &len_control_frame, flags);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		// Error handling goes here.
 	}
 
@@ -1648,7 +1648,7 @@ fstrm_control_encoded_size(
 
 	// Serialize the control frame into the allocated buffer.
 	res = fstrm_control_encode(c, control_frame, &len_control_frame, 0);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		// Error handling goes here.
 	}
 
@@ -1671,13 +1671,13 @@ fstrm_control_encoded_size(
 
 	c = fstrm_control_init();
 	res = fstrm_control_set_type(c, FSTRM_CONTROL_START);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		// Error handling.
 	}
 
 	// Serialize the control frame.
 	res = fstrm_control_encode(c, control_frame, &len_control_frame, 0);
-	if (res != FSTRM_RES_SUCCESS) {
+	if (res != fstrm_res_success) {
 		// Error handling goes here.
 	}
 
@@ -1697,8 +1697,8 @@ fstrm_control_encoded_size(
  * \param flags
  *	Flags controlling the encoding process. See #fstrm_control_flag.
  *
- * \return FSTRM_RES_SUCCESS
- * \return FSTRM_RES_FAILURE
+ * \return fstrm_res_success
+ * \return fstrm_res_failure
  */
 fstrm_res
 fstrm_control_encode(
