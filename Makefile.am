@@ -74,6 +74,14 @@ AM_TESTS_ENVIRONMENT = DIRNAME=$(top_builddir)/t; export DIRNAME;
 TESTS_ENVIRONMENT = $(AM_TESTS_ENVIRONMENT)
 LOG_COMPILER = $(VALGRIND)
 
+check_PROGRAMS += t/test_control
+t_test_control_SOURCES = \
+    t/test_control.c \
+    libmy/print_string.h
+t_test_control_LDADD = \
+    fstrm/libfstrm.la
+TESTS += t/test_control
+
 check_PROGRAMS += t/test_queue
 t_test_queue_SOURCES = \
     t/test_queue.c \
