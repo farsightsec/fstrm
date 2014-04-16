@@ -343,8 +343,7 @@ main(int argc, char **argv)
 	elapsed = my_timespec_to_double(&ts_b);
 	printf("completed in %.2f seconds\n", elapsed);
 
-	struct producer_stats pstat_sum;
-	memset(&pstat_sum, 0, sizeof(pstat_sum));
+	struct producer_stats pstat_sum = {0};
 	for (unsigned i = 0; i < num_threads; i++) {
 		pstat_sum.count_generated += test_producers[i].pstat.count_generated;
 		pstat_sum.count_submitted += test_producers[i].pstat.count_submitted;
