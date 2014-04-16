@@ -45,6 +45,9 @@ struct fstrm_io {
 	/* Deep copy of options supplied by caller. */
 	struct fstrm_io_options		opt;
 
+	/* Control frame. */
+	struct fstrm_control		*control;
+
 	/* Queue implementation. */
 	const struct my_queue_ops	*queue_ops;
 
@@ -200,6 +203,9 @@ fstrm_io_init(const struct fstrm_io_options *opt, char **err)
 	 */
 	io->opt.writer_options = NULL;
 
+	/* Initialize a control frame. */
+	io->control = fstrm_control_init();
+
 	/* Start the I/O thread. */
 	res = pthread_create(&io->thr, NULL, fs_io_thr, io);
 	assert(res == 0);
@@ -251,6 +257,7 @@ fstrm_io_destroy(struct fstrm_io **io)
 			(*io)->opt.writer->destroy((*io)->writer_data);
 
 		/* Cleanup our allocations. */
+		fstrm_control_destroy(&(*io)->control);
 		fs_io_free_queues(*io);
 		my_free((*io)->opt.content_type);
 		my_free((*io)->opt.writer);
@@ -382,104 +389,44 @@ fs_io_write_control(struct fstrm_io *io,
 }
 
 static fstrm_res
-fs_io_write_control_start(struct fstrm_io *io)
+fs_io_write_control_frame(struct fstrm_io *io, fstrm_control_type type)
 {
-	size_t total_length = 0;
+	const uint32_t flags = FSTRM_CONTROL_FLAG_WITH_HEADER;
+	size_t len_control_frame = 0;
+	fstrm_res res;
 
-	/*
-	 * Calculate the total amount of space needed for the control frame.
-	 */
+	/* Set control frame type. */
+	fstrm_control_reset(io->control);
+	res = fstrm_control_set_type(io->control, type);
+	if (res != fstrm_res_success)
+		return res;
 
-	/* Escape: 32-bit BE integer. Zero. */
-	total_length += sizeof(uint32_t);
-
-	/* Frame length: 32-bit BE integer. */
-	total_length += sizeof(uint32_t);
-
-	/* Control type: 32-bit BE integer. */
-	total_length += sizeof(uint32_t);
-
+	/* Set "Content Type" option. */
 	if (io->opt.content_type != NULL) {
-		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
-		total_length += sizeof(uint32_t);
-
-		/* Length of content type string: 32-bit BE integer. */
-		total_length += sizeof(uint32_t);
-
-		/* The content type string itself: 'len_content_type' bytes. */
-		total_length += io->opt.len_content_type;
+		res = fstrm_control_set_field_content_type(io->control,
+			io->opt.content_type, io->opt.len_content_type);
+		if (res != fstrm_res_success)
+			return res;
 	}
 
-	/* Allocate the storage for the control frame. */
-	uint8_t buf[total_length];
-	uint32_t tmp;
+	/* Calculate the length of the control frame. */
+	res = fstrm_control_encoded_size(io->control, &len_control_frame, flags);
+	if (res != fstrm_res_success)
+		return res;
 
-	/*
-	 * Now actually serialize the control frame.
-	 */
+	/* Serialize the control frame. */
+	uint8_t control_frame[len_control_frame];
+	res = fstrm_control_encode(io->control, control_frame, &len_control_frame, flags);
+	if (res != fstrm_res_success)
+		return res;
 
-	/* Escape: 32-bit BE integer. Zero. */
-	memset(&buf[0*sizeof(uint32_t)], 0, sizeof(uint32_t));
-
-	/*
-	 * Frame length: 32-bit BE integer.
-	 *
-	 * This does not include the length of the escape frame or the length of
-	 * the frame length field itself, so subtract 2*4 bytes from the total
-	 * length.
-	 */
-	tmp = htonl((uint32_t) (total_length - 2*sizeof(uint32_t)));
-	memmove(&buf[1*sizeof(uint32_t)], &tmp, sizeof(tmp));
-
-	/* Control type: 32-bit BE integer. */
-	tmp = htonl(FSTRM_CONTROL_START);
-	memmove(&buf[2*sizeof(uint32_t)], &tmp, sizeof(tmp));
-
-	if (io->opt.content_type != NULL) {
-		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
-		tmp = htonl(FSTRM_CONTROL_FIELD_CONTENT_TYPE);
-		memmove(&buf[3*sizeof(uint32_t)], &tmp, sizeof(tmp));
-
-		/* Length of content type string: 32-bit BE integer. */
-		tmp = htonl((uint32_t) io->opt.len_content_type);
-		memmove(&buf[4*sizeof(uint32_t)], &tmp, sizeof(tmp));
-
-		/* The content type string itself. */
-		memmove(&buf[5*sizeof(uint32_t)], io->opt.content_type, io->opt.len_content_type);
-	}
 
 	/* Write the control frame. */
 	struct iovec control_iov = {
-		.iov_base = (void *) &buf[0],
-		.iov_len = total_length,
+		.iov_base = (void *) &control_frame[0],
+		.iov_len = len_control_frame,
 	};
-	return fs_io_write_control(io, &control_iov, 1, (unsigned) total_length);
-}
-
-static fstrm_res
-fs_io_write_control_stop(struct fstrm_io *io)
-{
-	size_t total_length = 3*sizeof(uint32_t);
-	uint8_t buf[total_length];
-	uint32_t tmp;
-
-	/* Escape: 32-bit BE integer. Zero. */
-	memset(&buf[0*sizeof(uint32_t)], 0, sizeof(uint32_t));
-
-	/* Frame length: 32-bit BE integer. */
-	tmp = htonl((uint32_t) (total_length - 2*sizeof(uint32_t)));
-	memmove(&buf[1*sizeof(uint32_t)], &tmp, sizeof(tmp));
-
-	/* Control type: 32-bit BE integer. */
-	tmp = htonl(FSTRM_CONTROL_STOP);
-	memmove(&buf[2*sizeof(uint32_t)], &tmp, sizeof(tmp));
-
-	/* Write the control frame. */
-	struct iovec control_iov = {
-		.iov_base = (void *) &buf[0],
-		.iov_len = total_length,
-	};
-	return fs_io_write_control(io, &control_iov, 1, (unsigned) total_length);
+	return fs_io_write_control(io, &control_iov, 1, (unsigned) len_control_frame);
 }
 
 static void
@@ -505,7 +452,9 @@ fs_io_maybe_connect(struct fstrm_io *io)
 				 * The transport has been reopened, so send the
 				 * start frame.
 				 */
-				if (fs_io_write_control_start(io) != fstrm_res_success) {
+				if (fs_io_write_control_frame(io, FSTRM_CONTROL_START)
+				    != fstrm_res_success)
+				{
 					/*
 					 * Writing the control frame failed, so
 					 * close the transport.
@@ -622,7 +571,7 @@ fs_io_thr(void *arg)
 		if (unlikely(io->shutting_down)) {
 			while (fs_io_process_queues(io));
 			fs_io_flush_output(io);
-			fs_io_write_control_stop(io);
+			fs_io_write_control_frame(io, FSTRM_CONTROL_STOP);
 			fs_io_close(io);
 			break;
 		}
