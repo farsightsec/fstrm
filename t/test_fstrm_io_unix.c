@@ -266,6 +266,9 @@ main(int argc, char **argv)
 		return (EXIT_FAILURE);
 	}
 
+	printf("setting up 300 second timeout\n");
+	alarm(300);
+
 	printf("testing fstrm_io with socket= %s "
 	       "queue_model= %s "
 	       "num_threads= %u "
