@@ -126,21 +126,21 @@ struct fstrm_writer {
 /* options */
 
 struct fstrm_io_options {
-	void		*content_type;
-	size_t		len_content_type;
+	void			*content_type;
+	size_t			len_content_type;
 
-	unsigned	buffer_hint;
-	unsigned	flush_timeout;
-	unsigned	iovec_size;
-	unsigned	num_queues;
-	unsigned	queue_length;
-	unsigned	queue_notify_threshold;
-	unsigned	reconnect_interval;
+	unsigned		buffer_hint;
+	unsigned		flush_timeout;
+	unsigned		iovec_size;
+	unsigned		num_queues;
+	unsigned		queue_length;
+	unsigned		queue_notify_threshold;
+	unsigned		reconnect_interval;
 
-	struct fstrm_writer			*writer;
-	const void				*writer_options;
+	struct fstrm_writer	*writer;
+	const void		*writer_options;
 
-	fstrm_queue_model			queue_model;
+	fstrm_queue_model	queue_model;
 };
 
 void fs_io_options_dup(struct fstrm_io_options *, const struct fstrm_io_options *);
