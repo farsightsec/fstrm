@@ -432,38 +432,32 @@ fs_io_write_control_frame(struct fstrm_io *io, fstrm_control_type type)
 static void
 fs_io_maybe_connect(struct fstrm_io *io)
 {
-	if (unlikely(!io->writable)) {
-		int res;
-		time_t since;
-		struct timespec ts;
+	/* If we're already connected, there's nothing to do. */
+	if (likely(io->writable))
+		return;
 
-		/*
-		 * If we're disconnected and the reconnect interval has expired,
-		 * try to reopen the transport.
-		 */
-		res = clock_gettime(io->clkid_gettime, &ts);
-		assert(res == 0);
-		since = ts.tv_sec - io->last_connect_attempt;
-		if (since >= (time_t) io->opt.reconnect_interval) {
-			/* The reconnect interval expired. */
+	int rv;
+	time_t since;
+	struct timespec ts;
 
-			if (fs_io_open(io) == fstrm_res_success) {
-				/*
-				 * The transport has been reopened, so send the
-				 * start frame.
-				 */
-				if (fs_io_write_control_frame(io, FSTRM_CONTROL_START)
-				    != fstrm_res_success)
-				{
-					/*
-					 * Writing the control frame failed, so
-					 * close the transport.
-					 */
-					fs_io_close(io);
-				}
-			}
-			io->last_connect_attempt = ts.tv_sec;
-		}
+	/* Check if the reconnect interval has expired yet. */
+	rv = clock_gettime(io->clkid_gettime, &ts);
+	assert(rv == 0);
+	since = ts.tv_sec - io->last_connect_attempt;
+	if (since < (time_t) io->opt.reconnect_interval)
+		return;
+
+	/* Attempt to open the transport. */
+	io->last_connect_attempt = ts.tv_sec;
+	if (fs_io_open(io) != fstrm_res_success)
+		return;
+
+	/* Write the START frame. */
+	if (fs_io_write_control_frame(io, FSTRM_CONTROL_START)
+	    != fstrm_res_success)
+	{
+		/* Writing the control frame failed, so close the transport. */
+		fs_io_close(io);
 	}
 }
 
