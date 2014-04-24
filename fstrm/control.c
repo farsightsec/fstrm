@@ -18,8 +18,7 @@
 
 struct fstrm_control {
 	fstrm_control_type	type;
-	uint8_t			*content_type;
-	size_t			len_content_type;
+	fs_bufvec		*content_types;
 };
 
 const char *
@@ -53,6 +52,7 @@ fstrm_control_init(void)
 {
 	struct fstrm_control *c;
 	c = my_calloc(1, sizeof(*c));
+	c->content_types = fs_bufvec_init(1);
 	return c;
 }
 
@@ -61,6 +61,7 @@ fstrm_control_destroy(struct fstrm_control **c)
 {
 	if (*c != NULL) {
 		fstrm_control_reset(*c);
+		fs_bufvec_destroy(&(*c)->content_types);
 		my_free(*c);
 	}
 }
@@ -68,8 +69,12 @@ fstrm_control_destroy(struct fstrm_control **c)
 void
 fstrm_control_reset(struct fstrm_control *c)
 {
-	my_free(c->content_type);
-	memset(c, 0, sizeof(*c));
+	for (size_t i = 0; i < fs_bufvec_size(c->content_types); i++) {
+		fs_buf buf = fs_bufvec_value(c->content_types, i);
+		my_free(buf.data);
+	}
+	fs_bufvec_reset(c->content_types);
+	c->type = 0;
 }
 
 fstrm_res
@@ -101,32 +106,107 @@ fstrm_control_set_type(struct fstrm_control *c, fstrm_control_type type)
 }
 
 fstrm_res
-fstrm_control_get_field_content_type(struct fstrm_control *c,
-				     const uint8_t **content_type,
-				     size_t *len_content_type)
+fstrm_control_get_num_field_content_type(struct fstrm_control *c,
+					 size_t *n_content_type)
 {
-	if (c->content_type != NULL) {
-		*content_type = c->content_type;
-		*len_content_type = c->len_content_type;
-		return fstrm_res_success;
-	} else {
-		return fstrm_res_failure;
-	}
+	*n_content_type = fs_bufvec_size(c->content_types);
+
+	/* STOP frames may not have any content type fields. */
+	if (c->type == FSTRM_CONTROL_STOP)
+		*n_content_type = 0;
+
+	/* START frames may not have more than one content type field. */
+	if (c->type == FSTRM_CONTROL_START && *n_content_type > 1)
+		*n_content_type = 1;
+
+	return fstrm_res_success;
 }
 
 fstrm_res
-fstrm_control_set_field_content_type(struct fstrm_control *c,
+fstrm_control_get_field_content_type(struct fstrm_control *c,
+				     const size_t idx,
+				     const uint8_t **content_type,
+				     size_t *len_content_type)
+{
+	if (idx < fs_bufvec_size(c->content_types)) {
+		fs_buf buf = fs_bufvec_value(c->content_types, idx);
+		*content_type = buf.data;
+		*len_content_type = buf.len;
+		return fstrm_res_success;
+	}
+	return fstrm_res_failure;
+}
+
+fstrm_res
+fstrm_control_add_field_content_type(struct fstrm_control *c,
 				     const uint8_t *content_type,
 				     size_t len_content_type)
 {
-	if (len_content_type > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
-		return fstrm_res_failure;
-	if (c->content_type != NULL)
-		my_free(c->content_type);
-	c->len_content_type = len_content_type;
-	c->content_type = my_malloc(len_content_type);
-	memmove(c->content_type, content_type, len_content_type);
+	fs_buf ctype;
+	ctype.len = len_content_type;
+	ctype.data = my_malloc(ctype.len);
+	memcpy(ctype.data, content_type, ctype.len);
+	fs_bufvec_add(c->content_types, ctype);
+
 	return fstrm_res_success;
+}
+
+fstrm_res
+fstrm_control_match_field_content_type(struct fstrm_control *c,
+				       const uint8_t *match,
+				       size_t len_match)
+{
+	fstrm_res res;
+	size_t n_ctype = 0;
+
+	/* STOP frames don't have a content type. They never match. */
+	if (c->type == FSTRM_CONTROL_STOP)
+		return fstrm_res_failure;
+
+	res = fstrm_control_get_num_field_content_type(c, &n_ctype);
+	if (res != fstrm_res_success)
+		return res;
+
+	if (n_ctype == 0) {
+		/* Control frame doesn't set any content type. */
+		return fstrm_res_success;
+	} else {
+		/*
+		 * The content type must match one of the control frame's
+		 * content types.
+		 */
+
+		if (match == NULL) {
+			/*
+			 * The control frame has at least one content type set,
+			 * which cannot match an unset content type.
+			 */
+			return fstrm_res_failure;
+		}
+
+		for (size_t idx = 0; idx < n_ctype; idx++) {
+			/*
+			 * Check against all the content types in the control
+			 * frame.
+			 */
+			const uint8_t *content_type = NULL;
+			size_t len_content_type = 0;
+
+			res = fstrm_control_get_field_content_type(c, idx,
+				&content_type, &len_content_type);
+			if (res != fstrm_res_success)
+				return res;
+
+			if (len_content_type != len_match)
+				continue;
+			if (memcmp(content_type, match, len_match) == 0) {
+				/* Exact match. */
+				return fstrm_res_success;
+			}
+		}
+	}
+
+	return fstrm_res_failure;
 }
 
 fstrm_res
@@ -149,7 +229,7 @@ fstrm_control_decode(struct fstrm_control *c,
 		/* The outer frame length must be zero, since this is a control frame. */
 		if (val != 0)
 			return fstrm_res_failure;
-		
+
 		/* Read the control frame length. */
 		if (!fs_load_be32(&buf, &len, &val))
 			return fstrm_res_failure;
@@ -191,34 +271,56 @@ fstrm_control_decode(struct fstrm_control *c,
 
 		switch (val) {
 		case FSTRM_CONTROL_FIELD_CONTENT_TYPE: {
+			fs_buf c_type;
+
 			/* Read the length of the "Content Type" payload. */
 			if (!fs_load_be32(&buf, &len, &val))
 				return fstrm_res_failure;
-			c->len_content_type = val;
+			c_type.len = val;
 
 			/*
 			 * Sanity check the length field. It cannot be larger
 			 * than 'len', the number of bytes remaining in 'buf'.
 			 */
-			if (c->len_content_type > len)
+			if (c_type.len > len)
 				return fstrm_res_failure;
 
 			/* Enforce limit on "Content Type" payload length. */
-			if (c->len_content_type > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
+			if (c_type.len > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
 				return fstrm_res_failure;
 
 			/* Read the "Content Type" payload. */
-			c->content_type = my_malloc(c->len_content_type);
-			if (!fs_load_bytes(c->content_type, c->len_content_type, &buf, &len))
+			c_type.data = my_malloc(c_type.len);
+			if (!fs_load_bytes(c_type.data, c_type.len, &buf, &len))
 			{
 				return fstrm_res_failure;
 			}
+
+			/* Insert the "Content Type" field. */
+			fs_bufvec_add(c->content_types, c_type);
 
 			break;
 		}
 		default:
 			return fstrm_res_failure;
 		}
+	}
+
+	/* Enforce limits on the number of "Content Type" fields. */
+	const size_t n_ctype = fs_bufvec_size(c->content_types);
+	switch (c->type) {
+	case FSTRM_CONTROL_START:
+		if (n_ctype > 1)
+			return fstrm_res_failure;
+		break;
+	case FSTRM_CONTROL_STOP:
+		if (n_ctype > 0)
+			return fstrm_res_failure;
+		break;
+	case FSTRM_CONTROL_ACCEPT:
+		/* FALLTHROUGH */
+	default:
+		break;
 	}
 
 	return fstrm_res_success;
@@ -230,7 +332,7 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 			   const uint32_t flags)
 {
 	size_t len = 0;
-	
+
 	if (flags & FSTRM_CONTROL_FLAG_WITH_HEADER) {
 		/* Escape: 32-bit BE integer. */
 		len += sizeof(uint32_t);
@@ -242,7 +344,14 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 	/* Control type: 32-bit BE integer. */
 	len += sizeof(uint32_t);
 
-	if (c->content_type != NULL) {
+	/* "Content Type" fields. */
+	for (size_t i = 0; i < fs_bufvec_size(c->content_types); i++) {
+		/* Do not add any "Content Type" fields to STOP frames. */
+		if (c->type == FSTRM_CONTROL_STOP)
+			break;
+
+		fs_buf c_type = fs_bufvec_value(c->content_types, i);
+
 		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
 		len += sizeof(uint32_t);
 
@@ -250,14 +359,18 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 		len += sizeof(uint32_t);
 
 		/* Enforce limit on "Content Type" payload length. */
-		if (c->len_content_type > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
+		if (c_type.len > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
 			return fstrm_res_failure;
 
 		/* The "Content Type" payload. */
-		len += c->len_content_type;
+		len += c_type.len;
+
+		/* Only add one "Content Type" field to START frames. */
+		if (c->type == FSTRM_CONTROL_START)
+			break;
 	}
 
-	/* Sanity check. */
+	/* Sanity check the overall length. */
 	if (len > FSTRM_MAX_CONTROL_FRAME_LENGTH)
 		return fstrm_res_failure;
 
@@ -312,18 +425,29 @@ fstrm_control_encode(struct fstrm_control *c,
 	if (!fs_store_be32(&buf, &len, c->type))
 		return fstrm_res_failure;
 
-	if (c->content_type != NULL) {
+	/* "Content Type" fields. */
+	for (size_t i = 0; i < fs_bufvec_size(c->content_types); i++) {
+		/* Do not add any "Content Type" fields to STOP frames. */
+		if (c->type == FSTRM_CONTROL_STOP)
+			break;
+
+		fs_buf c_type = fs_bufvec_value(c->content_types, i);
+
 		/* FSTRM_CONTROL_FIELD_CONTENT_TYPE: 32-bit BE integer. */
 		if (!fs_store_be32(&buf, &len, FSTRM_CONTROL_FIELD_CONTENT_TYPE))
 			return fstrm_res_failure;
 
 		/* Length of the "Content Type" payload: 32-bit BE integer. */
-		if (!fs_store_be32(&buf, &len, c->len_content_type))
+		if (!fs_store_be32(&buf, &len, c_type.len))
 			return fstrm_res_failure;
 
 		/* The "Content Type" string itself. */
-		if (!fs_store_bytes(&buf, &len, c->content_type, c->len_content_type))
+		if (!fs_store_bytes(&buf, &len, c_type.data, c_type.len))
 			return fstrm_res_failure;
+
+		/* Only add one "Content Type" field to START frames. */
+		if (c->type == FSTRM_CONTROL_START)
+			break;
 	}
 
 	*len_control_frame = encoded_size;

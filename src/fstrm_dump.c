@@ -137,12 +137,18 @@ dump_control_frame(FILE *fp, struct fstrm_control *c)
 	print_string(control_frame, len, stderr);
 	fputc('\n', stderr);
 
-	/* Print the "Content Type". */
+	/* Print the "Content Type" fields. */
 	const uint8_t *content_type;
 	size_t len_content_type;
-	res = fstrm_control_get_field_content_type(c,
-		&content_type, &len_content_type);
-	if (res == fstrm_res_success) {
+	size_t n_ctype = 0;
+	res = fstrm_control_get_num_field_content_type(c, &n_ctype);
+	if (res != fstrm_res_success)
+		return false;
+	for (size_t idx = 0; idx < n_ctype; idx++) {
+		res = fstrm_control_get_field_content_type(c, idx,
+			&content_type, &len_content_type);
+		if (res != fstrm_res_success)
+			return false;
 		fprintf(stderr, "%s [0x%08x] (%zd bytes):\n ",
 			fstrm_control_field_type_to_str(FSTRM_CONTROL_FIELD_CONTENT_TYPE),
 			FSTRM_CONTROL_FIELD_CONTENT_TYPE,

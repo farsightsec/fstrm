@@ -278,7 +278,7 @@ typedef enum {
  * fstrm_io_options_set_writer() function. Custom writers may be implemented
  * through the \ref fstrm_writer interface.
  *
- * `fstrm_io` users may also want to use the fstrm_io_options_set_content_type()
+ * `fstrm_io` users may also want to use the fstrm_io_options_add_content_type()
  * function to embed a "Content Type" value in the Frame Streams output. This
  * value can be used to describe the encoding of data frames. For instance, if
  * data frames are being encoded using Protocol Buffers, the Frame Streams
@@ -1456,11 +1456,33 @@ fstrm_control_set_type(
 	fstrm_control_type type);
 
 /**
- * Retrieve the "Content Type" of the control frame. This function returns a
- * reference which must not be modified.
+ * Retrieve the number of "Content Type" fields present in the control frame.
  *
  * \param c
  *	`fstrm_control` object.
+ * \param[out] n_content_type
+ *	The number of "Content Type" fields.
+ *
+ * \retval #fstrm_res_success
+ * \retval #fstrm_res_failure
+ *	The control frame type cannot have a "Content Type" field.
+ */
+fstrm_res
+fstrm_control_get_num_field_content_type(
+	struct fstrm_control *c,
+	size_t *n_content_type);
+
+/**
+ * Retrieve a "Content Type" field from the control frame. This function
+ * returns a reference which must not be modified. Control frames may contain
+ * zero, one, or more "Content Type" fields.
+ *
+ * \see fstrm_control_get_num_field_content_type()
+ *
+ * \param c
+ *	`fstrm_control` object.
+ * \param[in] idx
+ *	The index of the "Content Type" field to retrieve.
  * \param[out] content_type
  *	Pointer to where the reference to the "Content Type" string will be
  *	stored. Note that this string is not NUL-terminated and may contain
@@ -1476,13 +1498,16 @@ fstrm_control_set_type(
 fstrm_res
 fstrm_control_get_field_content_type(
 	struct fstrm_control *c,
+	const size_t idx,
 	const uint8_t **content_type,
 	size_t *len_content_type);
 
 /**
- * Set the "Content Type" of the control frame. This function makes a copy of
- * the provided string. This function is safe to call multiple times, as
- * previous field values will be discarded.
+ * Add a "Content Type" field to the control frame. This function makes a copy
+ * of the provided string. This function may be called multiple times, in which
+ * case multiple "Content Type" fields will be added to the control frame.
+ *
+ * The "Content Type" fields are removed on a call to fstrm_control_reset().
  *
  * \param c
  *	`fstrm_control` object.
@@ -1493,15 +1518,42 @@ fstrm_control_get_field_content_type(
  *	The number of bytes in `content_type`.
  *
  * \retval #fstrm_res_success
- *	The "Content Type" field was successfully set.
+ *	The "Content Type" field was successfully added.
  * \retval #fstrm_res_failure
  *	The "Content Type" string is too long.
  */
 fstrm_res
-fstrm_control_set_field_content_type(
+fstrm_control_add_field_content_type(
 	struct fstrm_control *c,
 	const uint8_t *content_type,
 	size_t len_content_type);
+
+/**
+ * Check if the control frame matches a particular content type value. That is,
+ * the content type given in the `match` and `len_match` parameters is checked
+ * for compatibility with the content types (if any) specified in the control
+ * frame.
+ *
+ * \param c
+ *	`fstrm_control` object.
+ * \param match
+ *	The "Content Type" string to match. Note that this string is not
+ *	NUL-terminated and may contain embedded NULs. May be NULL, in which case
+ *	the control frame must not have any content type fields in order to
+ *	match.
+ * \param len_match
+ *	The number of bytes in `match`.
+ *
+ * \retval #fstrm_res_success
+ *	A match was found.
+ * \retval #fstrm_res_failure
+ *	A match was not found.
+ */
+fstrm_res
+fstrm_control_match_field_content_type(
+	struct fstrm_control *c,
+	const uint8_t *match,
+	size_t len_match);
 
 /**
  * Decode a control frame from a buffer. The buffer starts with either the

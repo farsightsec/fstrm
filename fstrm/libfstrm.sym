@@ -1,15 +1,17 @@
 LIBFSTRM_0.2.0 {
 global:
+        fstrm_control_add_field_content_type;
         fstrm_control_decode;
         fstrm_control_destroy;
         fstrm_control_encode;
         fstrm_control_encoded_size;
         fstrm_control_field_type_to_str;
         fstrm_control_get_field_content_type;
+        fstrm_control_get_num_field_content_type;
         fstrm_control_get_type;
+        fstrm_control_match_field_content_type;
         fstrm_control_init;
         fstrm_control_reset;
-        fstrm_control_set_field_content_type;
         fstrm_control_set_type;
         fstrm_control_type_to_str;
         fstrm_file_writer;

@@ -35,6 +35,7 @@
 #include "libmy/my_alloc.h"
 #include "libmy/my_memory_barrier.h"
 #include "libmy/my_queue.h"
+#include "libmy/vector.h"
 
 #if defined(__GNUC__)
 # define likely(x)		__builtin_expect(!!(x), 1)
@@ -53,6 +54,15 @@
 #ifndef IOV_MAX
 # define IOV_MAX 1024
 #endif
+
+/* fs_buf, fs_bufvec */
+
+typedef struct {
+	size_t		len;
+	uint8_t		*data;
+} fs_buf;
+
+VECTOR_GENERATE(fs_bufvec, fs_buf);
 
 /* buffer helpers */
 

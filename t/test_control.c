@@ -24,8 +24,9 @@
 
 #include "libmy/print_string.h"
 
-/* Placeholder "Content Type" value. */
+/* Placeholder "Content Type" values. */
 static const uint8_t wharrgarbl[] = "wharr\x00garbl";
+static const uint8_t wharrgarblv2[] = "wharrgarblv2";
 
 /*
  * Valid control frames. These come in two variants, the *_wh suffixed ones that
@@ -49,6 +50,80 @@ static const uint8_t accept_1_wh[] = {
 
 	/* FSTRM_CONTROL_ACCEPT. */
 	0x00, 0x00, 0x00, 0x01,
+};
+
+static const uint8_t accept_2[] = {
+	/* FSTRM_CONTROL_ACCEPT. */
+	0x00, 0x00, 0x00, 0x01,
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0b (11 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0b,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 0x00, 'g', 'a', 'r', 'b', 'l',
+};
+
+static const uint8_t accept_2_wh[] = {
+	/* Escape sequence. */
+	0x00, 0x00, 0x00, 0x00,
+
+	/* Control frame length: 23 bytes of control frame payload. */
+	0x00, 0x00, 0x00, 0x17,
+
+	/* FSTRM_CONTROL_ACCEPT. */
+	0x00, 0x00, 0x00, 0x01,
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0b (11 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0b,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 0x00, 'g', 'a', 'r', 'b', 'l',
+};
+
+static const uint8_t accept_3[] = {
+	/* FSTRM_CONTROL_ACCEPT. */
+	0x00, 0x00, 0x00, 0x01,
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0b (11 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0b,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 0x00, 'g', 'a', 'r', 'b', 'l',
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0c (12 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0c,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 'g', 'a', 'r', 'b', 'l', 'v', '2',
+};
+
+static const uint8_t accept_3_wh[] = {
+	/* Escape sequence. */
+	0x00, 0x00, 0x00, 0x00,
+
+	/* Control frame length: 43 bytes of control frame payload. */
+	0x00, 0x00, 0x00, 0x2b,
+
+	/* FSTRM_CONTROL_ACCEPT. */
+	0x00, 0x00, 0x00, 0x01,
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0b (11 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0b,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 0x00, 'g', 'a', 'r', 'b', 'l',
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0c (12 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0c,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 'g', 'a', 'r', 'b', 'l', 'v', '2',
 };
 
 static const uint8_t start_1[] = {
@@ -128,6 +203,7 @@ struct control_test {
 	uint32_t		flags;
 	const uint8_t		*content_type;
 	size_t			len_content_type;
+	fstrm_res		match_res;
 };
 
 static const struct control_test control_tests[] = {
@@ -143,6 +219,51 @@ static const struct control_test control_tests[] = {
 		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
 	},
 	{
+		.frame		= accept_2,
+		.len_frame	= sizeof(accept_2),
+		.type		= FSTRM_CONTROL_ACCEPT,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= accept_2_wh,
+		.len_frame	= sizeof(accept_2_wh),
+		.type		= FSTRM_CONTROL_ACCEPT,
+		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= accept_3,
+		.len_frame	= sizeof(accept_3),
+		.type		= FSTRM_CONTROL_ACCEPT,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= accept_3_wh,
+		.len_frame	= sizeof(accept_3_wh),
+		.type		= FSTRM_CONTROL_ACCEPT,
+		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= accept_3,
+		.len_frame	= sizeof(accept_3),
+		.type		= FSTRM_CONTROL_ACCEPT,
+		.content_type	= wharrgarblv2,
+		.len_content_type = sizeof(wharrgarblv2) - 1,
+	},
+	{
+		.frame		= accept_3_wh,
+		.len_frame	= sizeof(accept_3_wh),
+		.type		= FSTRM_CONTROL_ACCEPT,
+		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
+		.content_type	= wharrgarblv2,
+		.len_content_type = sizeof(wharrgarblv2) - 1,
+	},
+	{
 		.frame		= start_1,
 		.len_frame	= sizeof(start_1),
 		.type		= FSTRM_CONTROL_START,
@@ -154,11 +275,34 @@ static const struct control_test control_tests[] = {
 		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
 	},
 	{
+		.frame		= start_1,
+		.len_frame	= sizeof(start_1),
+		.type		= FSTRM_CONTROL_START,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= start_1_wh,
+		.len_frame	= sizeof(start_1_wh),
+		.type		= FSTRM_CONTROL_START,
+		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
 		.frame		= start_2,
 		.len_frame	= sizeof(start_2),
 		.type		= FSTRM_CONTROL_START,
 		.content_type	= wharrgarbl,
 		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= start_2,
+		.len_frame	= sizeof(start_2),
+		.type		= FSTRM_CONTROL_START,
+		.content_type	= wharrgarblv2,
+		.len_content_type = sizeof(wharrgarblv2) - 1,
+		.match_res	= fstrm_res_failure,
 	},
 	{
 		.frame		= start_2_wh,
@@ -172,12 +316,14 @@ static const struct control_test control_tests[] = {
 		.frame		= stop_1,
 		.len_frame	= sizeof(stop_1),
 		.type		= FSTRM_CONTROL_STOP,
+		.match_res	= fstrm_res_failure,
 	},
 	{
 		.frame		= stop_1_wh,
 		.len_frame	= sizeof(stop_1_wh),
 		.type		= FSTRM_CONTROL_STOP,
 		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
+		.match_res	= fstrm_res_failure,
 	},
 		
 	{ .frame = NULL },
@@ -275,6 +421,23 @@ static const struct bytes invalid[] = {
 };
 
 static fstrm_res
+match_content_type(struct fstrm_control *c,
+		   const uint8_t *content_type,
+		   size_t len_content_type)
+{
+	fstrm_res res;
+
+	res = fstrm_control_match_field_content_type(c, content_type, len_content_type);
+	printf("  Control frame is %scompatible with CONTENT_TYPE (%zd bytes): ",
+	       res == fstrm_res_success ? "" : "NOT ",
+	       len_content_type);
+	print_string(content_type, len_content_type, stdout);
+	putchar('\n');
+
+	return res;
+}
+
+static fstrm_res
 decode_control_frame(struct fstrm_control *c,
 		     const uint8_t *control_frame,
 		     size_t len_control_frame,
@@ -305,20 +468,29 @@ decode_control_frame(struct fstrm_control *c,
 	printf("  The control frame is of type %s (0x%08x).\n",
 	       fstrm_control_type_to_str(type), type);
 
-	const uint8_t *content_type;
-	size_t len_content_type;
-	res = fstrm_control_get_field_content_type(c,
-		&content_type, &len_content_type);
-	if (res == fstrm_res_success) {
-		printf("  The control frame has a CONTENT_TYPE field (%zd bytes): ",
-		       len_content_type);
-		print_string(content_type, len_content_type, stdout);
-		putchar('\n');
-	} else if (res == fstrm_res_failure) {
-		puts("  The control frame does not have a CONTENT_TYPE field.");
-	} else {
-		/* Not reached. */
-		assert(0);
+	size_t n_ctype;
+	res = fstrm_control_get_num_field_content_type(c, &n_ctype);
+	if (res != fstrm_res_success) {
+		puts("  fstrm_control_get_num_field_content_type() failed.");
+		return res;
+	}
+	for (size_t idx = 0; idx < n_ctype; idx++) {
+		const uint8_t *content_type;
+		size_t len_content_type;
+
+		res = fstrm_control_get_field_content_type(c, idx,
+			&content_type, &len_content_type);
+		if (res == fstrm_res_success) {
+			printf("  The control frame has a CONTENT_TYPE field (%zd bytes): ",
+			       len_content_type);
+			print_string(content_type, len_content_type, stdout);
+			putchar('\n');
+		} else if (res == fstrm_res_failure) {
+			puts("  The control frame does not have any CONTENT_TYPE fields.");
+		} else {
+			/* Not reached. */
+			assert(0);
+		}
 	}
 
 	return fstrm_res_success;
@@ -400,20 +572,8 @@ test_control_test(struct fstrm_control *c, const struct control_test *test)
 	assert(res == fstrm_res_success);
 	assert(type == test->type);
 
-	const uint8_t *content_type;
-	size_t len_content_type;
-	res = fstrm_control_get_field_content_type(c, &content_type, &len_content_type);
-
-	if (test->content_type != NULL) {
-		int cmp;
-
-		assert(res == fstrm_res_success);
-		assert(len_content_type == test->len_content_type);
-		cmp = memcmp(content_type, test->content_type, len_content_type);
-		assert(cmp == 0);
-	} else {
-		assert(res == fstrm_res_failure);
-	}
+	res = match_content_type(c, test->content_type, test->len_content_type);
+	assert(res == test->match_res);
 
 	test_reencode_frame(c, test->frame, test->len_frame, test->flags);
 	test_reencode_frame_static(c, test->frame, test->len_frame, test->flags);

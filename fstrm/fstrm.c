@@ -401,9 +401,9 @@ fs_io_write_control_frame(struct fstrm_io *io, fstrm_control_type type)
 	if (res != fstrm_res_success)
 		return res;
 
-	/* Set "Content Type" option. */
+	/* Add "Content Type" field. */
 	if (io->opt.content_type != NULL) {
-		res = fstrm_control_set_field_content_type(io->control,
+		res = fstrm_control_add_field_content_type(io->control,
 			io->opt.content_type, io->opt.len_content_type);
 		if (res != fstrm_res_success)
 			return res;
