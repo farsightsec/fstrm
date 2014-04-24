@@ -28,6 +28,9 @@ LIBFSTRM_VERSION_INFO=0:0:0
 include_HEADERS = fstrm/fstrm.h
 lib_LTLIBRARIES = fstrm/libfstrm.la
 
+fstrm_libfstrm_la_DEPENDENCIES = \
+	$(top_srcdir)/fstrm/libfstrm.sym
+
 fstrm_libfstrm_la_SOURCES = \
 	fstrm/fstrm-private.h \
 	fstrm/control.c \
