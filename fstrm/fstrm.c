@@ -341,11 +341,13 @@ fs_io_open(struct fstrm_io *io)
 	return res;
 }
 
-static fstrm_res
+static void
 fs_io_close(struct fstrm_io *io)
 {
-	io->writable = false;
-	return io->opt.writer->close(io->writer_data);
+	if (io->writable) {
+		io->writable = false;
+		(void)io->opt.writer->close(io->writer_data);
+	}
 }
 
 static fstrm_res
@@ -364,7 +366,7 @@ fs_io_write_data(struct fstrm_io *io,
 					 iov, iovcnt,
 					 total_length);
 	if (res != fstrm_res_success)
-		(void)fs_io_close(io);
+		fs_io_close(io);
 	return res;
 }
 
@@ -384,7 +386,7 @@ fs_io_write_control(struct fstrm_io *io,
 					    iov, iovcnt,
 					    total_length);
 	if (res != fstrm_res_success)
-		(void)fs_io_close(io);
+		fs_io_close(io);
 	return res;
 }
 
