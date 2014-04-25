@@ -44,6 +44,7 @@ global:
         fstrm_writer_set_create;
         fstrm_writer_set_destroy;
         fstrm_writer_set_open;
+        fstrm_writer_set_read_control;
         fstrm_writer_set_write_control;
         fstrm_writer_set_write_data;
 local:

@@ -60,6 +60,13 @@ fstrm_writer_set_close(struct fstrm_writer *w,
 }
 
 void
+fstrm_writer_set_read_control(struct fstrm_writer *w,
+			      fstrm_writer_read_func w_read_control)
+{
+	w->read_control = w_read_control;
+}
+
+void
 fstrm_writer_set_write_control(struct fstrm_writer *w,
 			       fstrm_writer_write_func w_write_control)
 {

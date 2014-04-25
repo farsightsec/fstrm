@@ -930,6 +930,31 @@ typedef fstrm_res (*fstrm_writer_open_func)(void *data);
 typedef fstrm_res (*fstrm_writer_close_func)(void *data);
 
 /**
+ * `read_control` method function type. This method is used to read control
+ * frames from a bi-directional byte stream. If present, this method will be
+ * used to execute a handshake protocol to ensure that a compatible Frame
+ * Streams reader is connected to the transport.
+ *
+ * \see fstrm_writer_set_read_control
+ *
+ * \param data
+ *      The `data` value returned by the `create` method.
+ * \param buf
+ *      The buffer to read data into.
+ * \param nbytes
+ *      The number of bytes to read.
+ *
+ * \retval #fstrm_res_success
+ *      Exactly `nbytes` of data were successfully read into `buf`.
+ * \retval #fstrm_res_failure
+ *      The read failed.
+ */
+typedef fstrm_res (*fstrm_writer_read_func)(
+	void *data,
+	void *buf,
+	size_t nbytes);
+
+/**
  * `write_data` and `write_control` method function type. These methods are used
  * to write Frame Streams data frames and control frames respectively. If these
  * methods fail when called by the I/O thread, the `close` method will be
@@ -1038,6 +1063,22 @@ void
 fstrm_writer_set_close(
 	struct fstrm_writer *writer,
 	fstrm_writer_close_func w_close);
+
+/**
+ * Set the `read_control` method for an `fstrm_writer` implementation.
+ * This must be set for bi-directional transports and unset for uni-directional
+ * transports.
+ *
+ * \see fstrm_writer_read_func
+ * \param writer
+ *      `fstrm_writer` object.
+ * \param w_read_control
+ *      Function to use as the `fstrm_writer` `read_control` method.
+ */
+void
+fstrm_writer_set_read_control(
+	struct fstrm_writer *writer,
+	fstrm_writer_read_func w_read_control);
 
 /**
  * Set the `write_control` method for an `fstrm_writer` implementation.

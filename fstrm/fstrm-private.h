@@ -129,6 +129,7 @@ struct fstrm_writer {
 	fstrm_writer_destroy_func	destroy;
 	fstrm_writer_open_func		open;
 	fstrm_writer_close_func		close;
+	fstrm_writer_read_func		read_control;
 	fstrm_writer_write_func		write_control;
 	fstrm_writer_write_func		write_data;
 };
