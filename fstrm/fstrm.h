@@ -1296,15 +1296,23 @@ fstrm_unix_writer_options_set_socket_path(
  * prefixed by a 32-bit big endian unsigned integer (the **control frame
  * length**) specifying the length of the following **control frame payload**.
  *
- * There are currently three types of control frames defined: `ACCEPT`, `START`,
- * and `STOP` control frames.
+ * There are two types of control frames used for uni-directional streams:
+ * `START` and `STOP`. These control frame types bracket the stream of data
+ * frames. `START` indicates the beginning of the stream and communicates
+ * metadata about the stream to follow, and `STOP` indicates the end of the
+ * stream.
  *
- * A unidirectional Frame Streams byte stream normally consists of the
+ * Bi-directional streams make use of three additional control frame types:
+ * `READY`, `ACCEPT`, and `FINISH`. These control frame types are used in a
+ * simple handshake protocol between sender and receiver.
+ *
+ * A uni-directional Frame Streams byte stream normally consists of the
  * following:
  *
  * 1. The `START` control frame.
  * 2. A sequence of zero or more data frames or control frames that are not of
- *      the control frame types `ACCEPT`, `START`, or `STOP`.
+ *      the control frame types `START`, `STOP`, `ACCEPT`, `READY`, or
+ *      `FINISH`.
  * 3. The `STOP` control frame.
  *
  * The `START` and `STOP` control frames are not optional. The `START` control
@@ -1323,9 +1331,13 @@ fstrm_unix_writer_options_set_socket_path(
  * used by cooperating programs to unambiguously identify how to interpret the
  * data frames in a particular Frame Streams byte stream. For instance, this
  * field may specify a particular schema to use to interpret the data frames
- * appearing in the byte stream.
+ * appearing in the byte stream. Zero, one, or more `CONTENT_TYPE` fields may
+ * appear in `READY` or `ACCEPT` control frames. Zero or one `CONTENT_TYPE`
+ * fields may appear in `START` control frames. No `CONTENT_TYPE` fields may
+ * appear in `STOP` or `FINISH` control frames.
  *
- * A Frame Streams encoder would normally produce a byte stream as follows:
+ * A uni-directional Frame Streams encoder would normally produce a byte stream
+ * as follows:
  *
  * 1. Write the `START` **control frame**.
  *      + At the start of the byte stream, write the four byte **escape
@@ -1341,9 +1353,10 @@ fstrm_unix_writer_options_set_socket_path(
  *      + Write the **control frame length** as a 32-bit big endian unsigned
  *      integer.
  *      + Write the **control frame payload**. It must be a `STOP` control
- *      frame. It may optionally specify a `CONTENT_TYPE` field.
+ *      frame.
  *
- * A Frame Streams decoder would normally process the byte stream as follows:
+ * A uni-directional Frame Streams decoder would normally process the byte
+ * stream as follows:
  *
  * 1. Read the `START` control frame.
  *      + At the start of the byte stream, read the four byte **escape
@@ -1361,11 +1374,11 @@ fstrm_unix_writer_options_set_socket_path(
  *              + Decode the **control frame payload**. If it is a `STOP`
  *              control frame, the end of the Frame Streams byte stream has
  *              occurred, and no frames follow. Break out of the decoding loop
- *              and halt processing.  (`ACCEPT` and `START` control frames may
- *              not occur here. For forward compatibility, control frames of
- *              types other than `ACCEPT`, `START`, or `STOP` must be ignored.
- *              No control frames specified in the future may alter the encoding
- *              of succeeding frames.)
+ *              and halt processing. (`READY`, `ACCEPT`, `START`, and `FINISH`
+ *              may not occur here. For forward compatibility, control frames of
+ *              types other than the types `READY`, `ACCEPT`, `START`, `STOP`,
+ *              and `FINISH` must be ignored here. No control frames specified
+ *              in the future may alter the encoding of succeeding frames.)
  *      + If the **frame length** is non-zero, it specifies the number of bytes
  *      in the following **data frame**. Consume these bytes from the byte
  *      stream.
@@ -1401,6 +1414,12 @@ typedef enum {
 
 	/** Control frame type value for "Stop" control frames. */
 	FSTRM_CONTROL_STOP	= 0x03,
+
+	/** Control frame type value for "Ready" control frames. */
+	FSTRM_CONTROL_READY	= 0x04,
+
+	/** Control frame type value for "Finish" control frames. */
+	FSTRM_CONTROL_FINISH	= 0x05,
 } fstrm_control_type;
 
 /**

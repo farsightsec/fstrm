@@ -126,6 +126,25 @@ static const uint8_t accept_3_wh[] = {
 	'w', 'h', 'a', 'r', 'r', 'g', 'a', 'r', 'b', 'l', 'v', '2',
 };
 
+static const uint8_t ready_1[] = {
+	/* FSTRM_CONTROL_READY. */
+	0x00, 0x00, 0x00, 0x04,
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0b (11 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0b,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 0x00, 'g', 'a', 'r', 'b', 'l',
+
+	/* FSTRM_CONTROL_FIELD_CONTENT_TYPE. */
+	0x00, 0x00, 0x00, 0x01,
+	/* 0x0c (12 bytes) of CONTENT_TYPE field payload follow. */
+	0x00, 0x00, 0x00, 0x0c,
+	/* The CONTENT_TYPE field payload. */
+	'w', 'h', 'a', 'r', 'r', 'g', 'a', 'r', 'b', 'l', 'v', '2',
+};
+
 static const uint8_t start_1[] = {
 	/* FSTRM_CONTROL_START. */
 	0x00, 0x00, 0x00, 0x02,
@@ -260,6 +279,20 @@ static const struct control_test control_tests[] = {
 		.len_frame	= sizeof(accept_3_wh),
 		.type		= FSTRM_CONTROL_ACCEPT,
 		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
+		.content_type	= wharrgarblv2,
+		.len_content_type = sizeof(wharrgarblv2) - 1,
+	},
+	{
+		.frame		= ready_1,
+		.len_frame	= sizeof(ready_1),
+		.type		= FSTRM_CONTROL_READY,
+		.content_type	= wharrgarbl,
+		.len_content_type = sizeof(wharrgarbl) - 1,
+	},
+	{
+		.frame		= ready_1,
+		.len_frame	= sizeof(ready_1),
+		.type		= FSTRM_CONTROL_READY,
 		.content_type	= wharrgarblv2,
 		.len_content_type = sizeof(wharrgarblv2) - 1,
 	},

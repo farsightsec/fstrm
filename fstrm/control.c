@@ -31,6 +31,10 @@ fstrm_control_type_to_str(fstrm_control_type type)
 		return "FSTRM_CONTROL_START";
 	case FSTRM_CONTROL_STOP:
 		return "FSTRM_CONTROL_STOP";
+	case FSTRM_CONTROL_READY:
+		return "FSTRM_CONTROL_READY";
+	case FSTRM_CONTROL_FINISH:
+		return "FSTRM_CONTROL_FINISH";
 	default:
 		return "FSTRM_CONTROL_UNKNOWN";
 	}
@@ -83,7 +87,9 @@ fstrm_control_get_type(struct fstrm_control *c, fstrm_control_type *type)
 	switch (c->type) {
 	case FSTRM_CONTROL_ACCEPT:	/* FALLTHROUGH */
 	case FSTRM_CONTROL_START:	/* FALLTHROUGH */
-	case FSTRM_CONTROL_STOP:
+	case FSTRM_CONTROL_STOP:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_READY:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_FINISH:
 		*type = c->type;
 		return fstrm_res_success;
 	default:
@@ -97,7 +103,9 @@ fstrm_control_set_type(struct fstrm_control *c, fstrm_control_type type)
 	switch (type) {
 	case FSTRM_CONTROL_ACCEPT:	/* FALLTHROUGH */
 	case FSTRM_CONTROL_START:	/* FALLTHROUGH */
-	case FSTRM_CONTROL_STOP:
+	case FSTRM_CONTROL_STOP:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_READY:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_FINISH:
 		c->type = type;
 		return fstrm_res_success;
 	default:
@@ -111,13 +119,22 @@ fstrm_control_get_num_field_content_type(struct fstrm_control *c,
 {
 	*n_content_type = fs_bufvec_size(c->content_types);
 
-	/* STOP frames may not have any content type fields. */
-	if (c->type == FSTRM_CONTROL_STOP)
+	switch (c->type) {
+	case FSTRM_CONTROL_STOP:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_FINISH:	/* FALLTHROUGH */
+		/*
+		 * STOP and FINISH frames may not have any content type fields.
+		 */
 		*n_content_type = 0;
-
-	/* START frames may not have more than one content type field. */
-	if (c->type == FSTRM_CONTROL_START && *n_content_type > 1)
-		*n_content_type = 1;
+		break;
+	case FSTRM_CONTROL_START:
+		/* START frames may not have more than one content type field. */
+		if (*n_content_type > 1)
+			*n_content_type = 1;
+		break;
+	default:
+		break;
+	}
 
 	return fstrm_res_success;
 }
@@ -159,8 +176,10 @@ fstrm_control_match_field_content_type(struct fstrm_control *c,
 	fstrm_res res;
 	size_t n_ctype = 0;
 
-	/* STOP frames don't have a content type. They never match. */
-	if (c->type == FSTRM_CONTROL_STOP)
+	/*
+	 * STOP and FINISH frames don't have a content type. They never match.
+	 */
+	if (c->type == FSTRM_CONTROL_STOP || c->type == FSTRM_CONTROL_FINISH)
 		return fstrm_res_failure;
 
 	res = fstrm_control_get_num_field_content_type(c, &n_ctype);
@@ -256,7 +275,9 @@ fstrm_control_decode(struct fstrm_control *c,
 	switch (val) {
 	case FSTRM_CONTROL_ACCEPT:	/* FALLTHROUGH */
 	case FSTRM_CONTROL_START:	/* FALLTHROUGH */
-	case FSTRM_CONTROL_STOP:
+	case FSTRM_CONTROL_STOP:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_READY:	/* FALLTHROUGH */
+	case FSTRM_CONTROL_FINISH:
 		c->type = (fstrm_control_type) val;
 		break;
 	default:
@@ -314,10 +335,14 @@ fstrm_control_decode(struct fstrm_control *c,
 			return fstrm_res_failure;
 		break;
 	case FSTRM_CONTROL_STOP:
+		/* FALLTHROUGH */
+	case FSTRM_CONTROL_FINISH:
 		if (n_ctype > 0)
 			return fstrm_res_failure;
 		break;
 	case FSTRM_CONTROL_ACCEPT:
+		/* FALLTHROUGH */
+	case FSTRM_CONTROL_READY:
 		/* FALLTHROUGH */
 	default:
 		break;
@@ -346,9 +371,12 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 
 	/* "Content Type" fields. */
 	for (size_t i = 0; i < fs_bufvec_size(c->content_types); i++) {
-		/* Do not add any "Content Type" fields to STOP frames. */
-		if (c->type == FSTRM_CONTROL_STOP)
+		/* Do not add "Content Type" fields to STOP or FINISH frames. */
+		if (c->type == FSTRM_CONTROL_STOP ||
+		    c->type == FSTRM_CONTROL_FINISH)
+		{
 			break;
+		}
 
 		fs_buf c_type = fs_bufvec_value(c->content_types, i);
 
@@ -427,9 +455,12 @@ fstrm_control_encode(struct fstrm_control *c,
 
 	/* "Content Type" fields. */
 	for (size_t i = 0; i < fs_bufvec_size(c->content_types); i++) {
-		/* Do not add any "Content Type" fields to STOP frames. */
-		if (c->type == FSTRM_CONTROL_STOP)
+		/* Do not add "Content Type" fields to STOP or FINISH frames. */
+		if (c->type == FSTRM_CONTROL_STOP ||
+		    c->type == FSTRM_CONTROL_FINISH)
+		{
 			break;
+		}
 
 		fs_buf c_type = fs_bufvec_value(c->content_types, i);
 
