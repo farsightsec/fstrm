@@ -506,6 +506,39 @@ fs_io_write_control_frame(struct fstrm_io *io, fstrm_control_type type)
 	return fs_io_write_control(io, &control_iov, 1, (unsigned) len_control_frame);
 }
 
+static fstrm_res
+fs_io_maybe_handshake(struct fstrm_io *io)
+{
+	fstrm_res res;
+
+	if (io->opt.writer->read_control == NULL) {
+		/*
+		 * If there is no 'read_control' method, then this is a
+		 * uni-directional transport and thus there is no handshake to
+		 * perform.
+		 */
+		return fstrm_res_success;
+	}
+
+	/* Send READY. */
+	res = fs_io_write_control_frame(io, FSTRM_CONTROL_READY);
+	if (res != fstrm_res_success)
+		return res;
+
+	/* Receive ACCEPT. */
+	res = fs_io_read_control_frame(io, FSTRM_CONTROL_ACCEPT);
+	if (res != fstrm_res_success)
+		return res;
+
+	/* Verify that the receiver accepted our "Content Type". */
+	res = fstrm_control_match_field_content_type(io->control,
+		io->opt.content_type, io->opt.len_content_type);
+	if (res != fstrm_res_success)
+		return res;
+
+	return fstrm_res_success;
+}
+
 static void
 fs_io_maybe_connect(struct fstrm_io *io)
 {
@@ -529,6 +562,10 @@ fs_io_maybe_connect(struct fstrm_io *io)
 	if (fs_io_open(io) != fstrm_res_success)
 		return;
 
+	/* Perform the bi-directional handshake, if applicable. */
+	if (fs_io_maybe_handshake(io) != fstrm_res_success)
+		fs_io_close(io);
+
 	/* Write the START frame. */
 	if (fs_io_write_control_frame(io, FSTRM_CONTROL_START)
 	    != fstrm_res_success)
@@ -536,6 +573,26 @@ fs_io_maybe_connect(struct fstrm_io *io)
 		/* Writing the control frame failed, so close the transport. */
 		fs_io_close(io);
 	}
+}
+
+static void
+fs_io_disconnect(struct fstrm_io *io)
+{
+	fstrm_res res;
+
+	/* If we're already disconnected, there's nothing to do. */
+	if (!io->writable)
+		return;
+
+	/* Write the STOP frame. */
+	res = fs_io_write_control_frame(io, FSTRM_CONTROL_STOP);
+	if (res != fstrm_res_success)
+		return;
+
+	/* Wait for the FINISH frame, if applicable. */
+	(void)fs_io_read_control_frame(io, FSTRM_CONTROL_FINISH);
+
+	fs_io_close(io);
 }
 
 static void
@@ -642,8 +699,7 @@ fs_io_thr(void *arg)
 		if (unlikely(io->shutting_down)) {
 			while (fs_io_process_queues(io));
 			fs_io_flush_output(io);
-			fs_io_write_control_frame(io, FSTRM_CONTROL_STOP);
-			fs_io_close(io);
+			fs_io_disconnect(io);
 			break;
 		}
 
