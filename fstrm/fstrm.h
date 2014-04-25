@@ -161,7 +161,7 @@
  *
  * The following code example shows data frames containing a short sequence of
  * bytes being created and submitted repeatedly, with appropriate error
- * handling.  Note that the data frames in this example intentionally contain
+ * handling. Note that the data frames in this example intentionally contain
  * embedded unprintable characters, showing that Frame Streams is binary clean.
  * This example follows from the previous examples, where the `fio` and `fq`
  * variables have already been initialized.
@@ -1700,7 +1700,7 @@ typedef enum {
 	 * begins with the control frame header containing the escape sequence
 	 * and control frame payload length. (Note that this requires the caller
 	 * to peak at the input buffer to calculate the right buffer length.)
-	 * Otherwise, the input buffer begins with the control frame payload.  *
+	 * Otherwise, the input buffer begins with the control frame payload.
 	 */
 	FSTRM_CONTROL_FLAG_WITH_HEADER		= (1 << 0),
 } fstrm_control_flag;
