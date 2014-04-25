@@ -45,6 +45,7 @@ fstrm_libfstrm_la_SOURCES = \
 	libmy/my_queue.h \
 	libmy/my_queue_mb.c \
 	libmy/my_queue_mutex.c \
+	libmy/read_bytes.h \
 	libmy/vector.h
 
 EXTRA_DIST += \

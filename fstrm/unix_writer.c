@@ -108,6 +108,17 @@ fs_unix_writer_close(void *data)
 }
 
 static fstrm_res
+fs_unix_writer_read(void *data, void *buf, size_t nbytes)
+{
+	struct fs_unix_writer *w = data;
+
+	if (read_bytes(w->fd, buf, nbytes))
+		return fstrm_res_success;
+
+	return fstrm_res_failure;
+}
+
+static fstrm_res
 fs_unix_writer_write(void *data,
 		     struct iovec *iov, int iovcnt,
 		     unsigned nbytes)
@@ -220,6 +231,8 @@ static const struct fstrm_writer fs_writer_impl_unix = {
 		fs_unix_writer_open,
 	.close =
 		fs_unix_writer_close,
+	.read_control =
+		fs_unix_writer_read,
 	.write_control =
 		fs_unix_writer_write,
 	.write_data =
