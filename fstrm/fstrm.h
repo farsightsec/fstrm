@@ -1465,7 +1465,6 @@ fstrm_control_set_type(
  *
  * \retval #fstrm_res_success
  * \retval #fstrm_res_failure
- *	The control frame type cannot have a "Content Type" field.
  */
 fstrm_res
 fstrm_control_get_num_field_content_type(
