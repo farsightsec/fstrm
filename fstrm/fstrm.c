@@ -498,7 +498,6 @@ fs_io_write_control_frame(struct fstrm_io *io, fstrm_control_type type)
 	if (res != fstrm_res_success)
 		return res;
 
-
 	/* Write the control frame. */
 	struct iovec control_iov = {
 		.iov_base = (void *) &control_frame[0],
