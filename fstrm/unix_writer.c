@@ -120,31 +120,28 @@ fs_unix_writer_write(void *data,
 		.msg_iovlen = iovcnt,
 	};
 
-	if (likely(w->connected)) {
-		for (;;) {
-			do {
-				written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
-			} while (written == -1 && errno == EINTR);
-			if (written == -1)
-				return fstrm_res_failure;
-			if (cur == 0 && written == (ssize_t) nbytes)
-				return fstrm_res_success;
-
-			while (written >= (ssize_t) msg.msg_iov[cur].iov_len)
-			       written -= msg.msg_iov[cur++].iov_len;
-
-			if (cur == iovcnt)
-				return fstrm_res_success;
-
-			msg.msg_iov[cur].iov_base = (void *)
-				((char *) msg.msg_iov[cur].iov_base + written);
-			msg.msg_iov[cur].iov_len -= written;
-		}
-	} else {
+	if (unlikely(!w->connected))
 		return fstrm_res_failure;
-	}
 
-	return fstrm_res_success;
+	for (;;) {
+		do {
+			written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
+		} while (written == -1 && errno == EINTR);
+		if (written == -1)
+			return fstrm_res_failure;
+		if (cur == 0 && written == (ssize_t) nbytes)
+			return fstrm_res_success;
+
+		while (written >= (ssize_t) msg.msg_iov[cur].iov_len)
+		       written -= msg.msg_iov[cur++].iov_len;
+
+		if (cur == iovcnt)
+			return fstrm_res_success;
+
+		msg.msg_iov[cur].iov_base = (void *)
+			((char *) msg.msg_iov[cur].iov_base + written);
+		msg.msg_iov[cur].iov_len -= written;
+	}
 }
 
 static fstrm_res
