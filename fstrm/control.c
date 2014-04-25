@@ -314,6 +314,7 @@ fstrm_control_decode(struct fstrm_control *c,
 			c_type.data = my_malloc(c_type.len);
 			if (!fs_load_bytes(c_type.data, c_type.len, &buf, &len))
 			{
+				my_free(c_type.data);
 				return fstrm_res_failure;
 			}
 
