@@ -34,6 +34,7 @@
 
 #include "libmy/my_alloc.h"
 #include "libmy/my_time.h"
+#include "libmy/print_string.h"
 #include "libmy/ubuf.h"
 
 #define MAX_MESSAGE_SIZE	4096
@@ -105,16 +106,124 @@ thr_producer(void *arg)
 	return (NULL);
 }
 
+static fstrm_control_type
+decode_control_frame(struct fstrm_control *c, const uint8_t *frame, const size_t len)
+{
+	fstrm_res res;
+
+	/* Decode the control frame. */
+	res = fstrm_control_decode(c, frame, len, 0);
+	assert(res == fstrm_res_success);
+
+	/* Return the control frame type. */
+	fstrm_control_type type;
+	res = fstrm_control_get_type(c, &type);
+	assert(res == fstrm_res_success);
+	printf("%s: got a %s\n", __func__, fstrm_control_type_to_str(type));
+	return type;
+}
+
+static fstrm_control_type
+read_control_frame(FILE *f, struct fstrm_control *c)
+{
+	uint8_t frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
+	uint32_t len_control_frame;
+	uint32_t tmp;
+	size_t n;
+
+	/* Read the escape sequence. */
+	n = fread(&tmp, sizeof(tmp), 1, f);
+	assert(!ferror(f) && !feof(f) && n == 1);
+	assert(ntohl(tmp) == 0);
+
+	/* Read the control frame length. */
+	n = fread(&tmp, sizeof(tmp), 1, f);
+	assert(!ferror(f) && !feof(f) && n == 1);
+	len_control_frame = ntohl(tmp);
+	assert(len_control_frame <= FSTRM_MAX_CONTROL_FRAME_LENGTH);
+
+	/* Read the control frame. */
+	n = fread(frame, len_control_frame, 1, f);
+	assert(!ferror(f) && !feof(f) && n == 1);
+
+	return decode_control_frame(c, frame, len_control_frame);
+}
+
+static void
+write_control_frame(int fd, struct fstrm_control *c, fstrm_control_type type)
+{
+	fstrm_res res;
+	const uint32_t flags = FSTRM_CONTROL_FLAG_WITH_HEADER;
+	size_t len_control_frame;
+
+	res = fstrm_control_set_type(c, type);
+	assert(res == fstrm_res_success);
+
+	res = fstrm_control_encoded_size(c, &len_control_frame, flags);
+	assert(res == fstrm_res_success);
+
+	uint8_t control_frame[len_control_frame];
+	res = fstrm_control_encode(c, control_frame, &len_control_frame, flags);
+	assert(res == fstrm_res_success);
+
+	size_t n_written = (size_t) write(fd, control_frame, len_control_frame);
+	assert(n_written == len_control_frame);
+
+	printf("%s: wrote a %s\n", __func__, fstrm_control_type_to_str(type));
+}
+
+static void
+print_content_types(struct fstrm_control *c)
+{
+	fstrm_res res;
+	size_t n_ctype = 0;
+	fstrm_control_type type;
+
+	res = fstrm_control_get_type(c, &type);
+	assert(res == fstrm_res_success);
+
+
+	res = fstrm_control_get_num_field_content_type(c, &n_ctype);
+	assert(res == fstrm_res_success);
+
+	for (size_t idx = 0; idx < n_ctype; idx++) {
+		const uint8_t *ctype;
+		size_t len_ctype;
+
+		res = fstrm_control_get_field_content_type(c, idx, &ctype, &len_ctype);
+		assert(res == fstrm_res_success);
+
+		printf("%s: %s has CONTENT_TYPE field: ", __func__,
+		       fstrm_control_type_to_str(type));
+		print_string(ctype, len_ctype, stdout);
+		putchar('\n');
+	}
+}
+
 static void
 read_input(int fd, struct consumer_stats *cstat)
 {
 	FILE *f;
+	fstrm_control_type type;
 
 	f = fdopen(fd, "r");
 	if (f == NULL) {
-		perror("fdopen");
+		perror("fdopen failed");
 		abort();
 	}
+
+	struct fstrm_control *c;
+	c = fstrm_control_init();
+
+	type = read_control_frame(f, c);
+	assert(type == FSTRM_CONTROL_READY);
+	print_content_types(c);
+
+	write_control_frame(fd, c, FSTRM_CONTROL_ACCEPT);
+
+	type = read_control_frame(f, c);
+	assert(type == FSTRM_CONTROL_START);
+	print_content_types(c);
 
 	for (;;) {
 		size_t n;
@@ -133,15 +242,19 @@ read_input(int fd, struct consumer_stats *cstat)
 		len = ntohl(wire_len);
 		if (len == 0) {
 			/* Skip the control frame. */
-			printf("%s: got a control frame\n", __func__);
 			n = fread(&wire_len, sizeof(wire_len), 1, f);
 			assert(!ferror(f) && !feof(f) && n == 1);
 			len = ntohl(wire_len);
-			printf("%s: control frame is %u bytes long\n", __func__, len);
 			if (len > 0) {
 				n = fread(message, len, 1, f);
 				assert(!ferror(f) && !feof(f) && n == 1);
-				printf("%s: read a %u byte control frame\n", __func__, len);
+				type = decode_control_frame(c, message, len);
+				printf("%s: read a %u byte control frame (%s)\n",
+				       __func__, len, fstrm_control_type_to_str(type));
+				if (type == FSTRM_CONTROL_STOP) {
+					printf("%s: shutting down\n", __func__);
+					break;
+				}
 			}
 			continue;
 		}
@@ -159,10 +272,14 @@ read_input(int fd, struct consumer_stats *cstat)
 		cstat->bytes_received += len;
 	}
 
+	write_control_frame(fd, c, FSTRM_CONTROL_FINISH);
+
 	if (fclose(f)) {
 		perror("fclose");
 		abort();
 	}
+
+	fstrm_control_destroy(&c);
 }
 
 static void *

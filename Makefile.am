@@ -116,6 +116,7 @@ t_test_fstrm_io_unix_SOURCES = \
     t/test_fstrm_io_unix.c \
     libmy/my_alloc.h \
     libmy/my_time.h \
+    libmy/print_string.h \
     libmy/ubuf.h \
     libmy/vector.h
 t_test_fstrm_io_unix_LDADD = \
