@@ -351,6 +351,82 @@ fs_io_close(struct fstrm_io *io)
 }
 
 static fstrm_res
+fs_io_read_control(struct fstrm_io *io, void *data, size_t nbytes)
+{
+	fstrm_res res;
+
+	/*
+	 * This should never be called on a writer without a 'read_control'
+	 * method.
+	 */
+	if (io->opt.writer->read_control == NULL)
+		return fstrm_res_failure;
+
+	/*
+	 * Invoke the writer's 'read_control' method call.
+	 * If this fails we need to clean up by invoking the 'close' method call
+	 * and marking the writer non-writable.
+	 */
+	res = io->opt.writer->read_control(io->writer_data, data, nbytes);
+	if (res != fstrm_res_success)
+		fs_io_close(io);
+	return res;
+}
+
+static fstrm_res
+fs_io_read_control_frame(struct fstrm_io *io, fstrm_control_type wanted_type)
+{
+	const uint32_t flags = 0;
+	uint32_t tmp;
+	fstrm_res res;
+
+	/* The writer must have a 'read_control' method. */
+	if (io->opt.writer->read_control == NULL)
+		return fstrm_res_failure;
+
+	/* Read the escape sequence. */
+	res = fs_io_read_control(io, &tmp, sizeof(tmp));
+	if (res != fstrm_res_success)
+		return res;
+	if (ntohl(tmp) != 0)
+		return fstrm_res_failure;
+
+	/* Read the control frame length. */
+	res = fs_io_read_control(io, &tmp, sizeof(tmp));
+	if (res != fstrm_res_success)
+		return res;
+	const size_t len_control_frame = ntohl(tmp);
+
+	/* Sanity check the control frame length. */
+	if (len_control_frame > FSTRM_MAX_CONTROL_FRAME_LENGTH)
+		return fstrm_res_failure;
+
+	/* Read the control frame. */
+	uint8_t control_frame[len_control_frame];
+	res = fs_io_read_control(io, control_frame, sizeof(control_frame));
+	if (res != fstrm_res_success)
+		return res;
+
+	/* Decode the control frame. */
+	fstrm_control_reset(io->control);
+	res = fstrm_control_decode(io->control,
+				   control_frame, len_control_frame,
+				   flags);
+	if (res != fstrm_res_success)
+		return res;
+
+	/* Verify the control frame is the right type. */
+	fstrm_control_type actual_type;
+	res = fstrm_control_get_type(io->control, &actual_type);
+	if (res != fstrm_res_success)
+		return res;
+	if (actual_type != wanted_type)
+		return fstrm_res_failure;
+
+	return fstrm_res_success;
+}
+
+static fstrm_res
 fs_io_write_data(struct fstrm_io *io,
 		 struct iovec *iov, int iovcnt,
 		 unsigned total_length)
