@@ -123,7 +123,7 @@ fstrm_reader_init(const struct fstrm_reader_options *ropt,
 
 	/* Copy options. */
 	r->max_frame_size = ropt->max_frame_size;
-	if (ropt != NULL && ropt->content_types != NULL) {
+	if (ropt->content_types != NULL) {
 		for (size_t i = 0; i < fs_bufvec_size(ropt->content_types); i++) {
 			fs_buf ctype = fs_bufvec_value(ropt->content_types, i);
 			fs_buf ctype_copy = {
