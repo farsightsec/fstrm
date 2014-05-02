@@ -52,56 +52,28 @@ $(document).ready(function(){initNavTree('group__fstrm__unix__writer.html','');}
 <div id="doc-content">
 <div class="header">
   <div class="summary">
-<a href="#func-members">Functions</a> &#124;
-<a href="#var-members">Variables</a>  </div>
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">fstrm_unix_writer</div>  </div>
 </div><!--header-->
 <div class="contents">
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<p><code>fstrm_unix_writer</code> is a concrete implementation of the <code>fstrm_writer</code> interface. It connects to the <code>AF_UNIX</code> domain socket specified by <a class="el" href="group__fstrm__unix__writer.html#ga242616961b63952593e092951e27d122" title="Set the socket_path option. ">fstrm_unix_writer_options_set_socket_path()</a> and writes Frame Streams content to this socket. Note that the socket type used will be <code>SOCK_STREAM</code>.</p>
-<p>Note that the <code>AF_UNIX</code> socket does not have to exist at connection time. <code>fstrm_io</code> will periodically attempt to reconnect a disconnected socket.</p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__io.html#gad810160c9a4b6f970f0399df533d040d" title="Set the reconnect_interval option. ">fstrm_io_options_set_reconnect_interval()</a></dd></dl>
-<p>The <code>fstrm_unix_writer</code> implementation is generally used with <a class="el" href="group__fstrm__io.html">fstrm_io</a> by creating an <code>fstrm_unix_writer_options</code> object, setting the <code>socket_path</code> parameter on this options object, and passing it to <a class="el" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer()</a>, as in the following example: </p>
-<div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keywordtype">char</span> *socket_path = <span class="stringliteral">&quot;/path/to/unix.sock&quot;</span>;</div>
-<div class="line"></div>
-<div class="line"><span class="keyword">struct </span>fstrm_unix_writer_options *uwopt;</div>
-<div class="line">uwopt = <a class="code" href="group__fstrm__unix__writer.html#gae4750b1f83eab7ac764b8997835fbaec" title="Initialize an fstrm_unix_writer_options object, which is needed to configure fstrm_unix_writer. ">fstrm_unix_writer_options_init</a>();</div>
-<div class="line"><a class="code" href="group__fstrm__unix__writer.html#ga242616961b63952593e092951e27d122" title="Set the socket_path option. ">fstrm_unix_writer_options_set_socket_path</a>(uwopt, socket_path);</div>
-<div class="line"></div>
-<div class="line"><span class="keyword">struct </span>fstrm_io_options *fopt;</div>
-<div class="line">fopt = <a class="code" href="group__fstrm__io.html#gab57a03166e6cee802c6a8cce813cc106" title="Initialize an fstrm_io_options object, which is needed by fstrm_io_init(). ">fstrm_io_options_init</a>();</div>
-<div class="line"><a class="code" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer</a>(fopt, <a class="code" href="group__fstrm__unix__writer.html#gad09054f33b4f47bda35a40284047190a" title="An fstrm_writer implementation that writes Frame Streams content to an AF_UNIX domain socket...">fstrm_unix_writer</a>, uwopt);</div>
-<div class="line"></div>
-<div class="line"><span class="keywordtype">char</span> *errstr = NULL;</div>
-<div class="line"><span class="keyword">struct </span>fstrm_io *fio;</div>
-<div class="line">fio = <a class="code" href="group__fstrm__io.html#ga8884c56475e2f106859a09302dbb0034" title="Initialize an fstrm_io object. ">fstrm_io_init</a>(fopt, &amp;errstr);</div>
-<div class="line"><a class="code" href="group__fstrm__io.html#gaed60ee50b93a0779298e54dfdca40865" title="Destroy an fstrm_io_options object. ">fstrm_io_options_destroy</a>(&amp;fopt);</div>
-<div class="line"><a class="code" href="group__fstrm__unix__writer.html#gafd11cadd3c1839ec581aa2f9bff6d06b" title="Destroy an fstrm_unix_writer_options object. ">fstrm_unix_writer_options_destroy</a>(&amp;uwopt);</div>
-<div class="line"><span class="keywordflow">if</span> (fio != NULL) {</div>
-<div class="line">        <span class="comment">// fio is ready to accept data now.</span></div>
-<div class="line">} <span class="keywordflow">else</span> {</div>
-<div class="line">        fprintf(stderr, <span class="stringliteral">&quot;Error: fstrm_io_init() failed: %s\n&quot;</span>, errstr);</div>
-<div class="line">        free(errstr);</div>
-<div class="line">}</div>
-</div><!-- fragment --> <table class="memberdecls">
+<p><code>fstrm_unix_writer</code> is an interface for opening an <a class="el" href="group__fstrm__writer.html">fstrm_writer</a> object that is backed by I/O on a stream-oriented (<code>SOCK_STREAM</code>) Unix socket. </p>
+<table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:gae4750b1f83eab7ac764b8997835fbaec"><td class="memItemLeft" align="right" valign="top">struct fstrm_unix_writer_options *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#gae4750b1f83eab7ac764b8997835fbaec">fstrm_unix_writer_options_init</a> (void)</td></tr>
-<tr class="memdesc:gae4750b1f83eab7ac764b8997835fbaec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize an <code>fstrm_unix_writer_options</code> object, which is needed to configure <code>fstrm_unix_writer</code>.  <a href="#gae4750b1f83eab7ac764b8997835fbaec">More...</a><br/></td></tr>
+<tr class="memdesc:gae4750b1f83eab7ac764b8997835fbaec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize an <code>fstrm_unix_writer_options</code> object, which is needed to configure the socket path to be opened by the writer.  <a href="#gae4750b1f83eab7ac764b8997835fbaec">More...</a><br/></td></tr>
 <tr class="separator:gae4750b1f83eab7ac764b8997835fbaec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gafd11cadd3c1839ec581aa2f9bff6d06b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#gafd11cadd3c1839ec581aa2f9bff6d06b">fstrm_unix_writer_options_destroy</a> (struct fstrm_unix_writer_options **fuwopt)</td></tr>
-<tr class="memdesc:gafd11cadd3c1839ec581aa2f9bff6d06b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy an <code>fstrm_unix_writer_options</code> object.  <a href="#gafd11cadd3c1839ec581aa2f9bff6d06b">More...</a><br/></td></tr>
-<tr class="separator:gafd11cadd3c1839ec581aa2f9bff6d06b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga242616961b63952593e092951e27d122"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#ga242616961b63952593e092951e27d122">fstrm_unix_writer_options_set_socket_path</a> (struct fstrm_unix_writer_options *fuwopt, const char *socket_path)</td></tr>
-<tr class="memdesc:ga242616961b63952593e092951e27d122"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>socket_path</code> option.  <a href="#ga242616961b63952593e092951e27d122">More...</a><br/></td></tr>
-<tr class="separator:ga242616961b63952593e092951e27d122"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
-Variables</h2></td></tr>
-<tr class="memitem:gad09054f33b4f47bda35a40284047190a"><td class="memItemLeft" align="right" valign="top">const struct fstrm_writer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#gad09054f33b4f47bda35a40284047190a">fstrm_unix_writer</a></td></tr>
-<tr class="memdesc:gad09054f33b4f47bda35a40284047190a"><td class="mdescLeft">&#160;</td><td class="mdescRight">An <code>fstrm_writer</code> implementation that writes Frame Streams content to an <code>AF_UNIX</code> domain socket.  <a href="#gad09054f33b4f47bda35a40284047190a">More...</a><br/></td></tr>
-<tr class="separator:gad09054f33b4f47bda35a40284047190a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadc0ba5dc84587ef107235b5e26d57b0b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#gadc0ba5dc84587ef107235b5e26d57b0b">fstrm_unix_writer_options_destroy</a> (struct fstrm_unix_writer_options **uwopt)</td></tr>
+<tr class="memdesc:gadc0ba5dc84587ef107235b5e26d57b0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy an <code>fstrm_unix_writer_options</code> object.  <a href="#gadc0ba5dc84587ef107235b5e26d57b0b">More...</a><br/></td></tr>
+<tr class="separator:gadc0ba5dc84587ef107235b5e26d57b0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa46408d124da9ac3af053cb00d8b688a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#gaa46408d124da9ac3af053cb00d8b688a">fstrm_unix_writer_options_set_socket_path</a> (struct fstrm_unix_writer_options *uwopt, const char *socket_path)</td></tr>
+<tr class="memdesc:gaa46408d124da9ac3af053cb00d8b688a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>socket_path</code> option.  <a href="#gaa46408d124da9ac3af053cb00d8b688a">More...</a><br/></td></tr>
+<tr class="separator:gaa46408d124da9ac3af053cb00d8b688a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaad9a7cbbc6ac5a50997cfba4a4fd8bba"><td class="memItemLeft" align="right" valign="top">struct fstrm_writer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__unix__writer.html#gaad9a7cbbc6ac5a50997cfba4a4fd8bba">fstrm_unix_writer_init</a> (const struct fstrm_unix_writer_options *uwopt, const struct fstrm_writer_options *wopt)</td></tr>
+<tr class="memdesc:gaad9a7cbbc6ac5a50997cfba4a4fd8bba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the <code>fstrm_writer</code> object.  <a href="#gaad9a7cbbc6ac5a50997cfba4a4fd8bba">More...</a><br/></td></tr>
+<tr class="separator:gaad9a7cbbc6ac5a50997cfba4a4fd8bba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a class="anchor" id="gae4750b1f83eab7ac764b8997835fbaec"></a>
@@ -118,12 +90,12 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Initialize an <code>fstrm_unix_writer_options</code> object, which is needed to configure <code>fstrm_unix_writer</code>. </p>
+<p>Initialize an <code>fstrm_unix_writer_options</code> object, which is needed to configure the socket path to be opened by the writer. </p>
 <dl class="section return"><dt>Returns</dt><dd><code>fstrm_unix_writer_options</code> object. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="gafd11cadd3c1839ec581aa2f9bff6d06b"></a>
+<a class="anchor" id="gadc0ba5dc84587ef107235b5e26d57b0b"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -131,7 +103,7 @@ Variables</h2></td></tr>
           <td class="memname">void fstrm_unix_writer_options_destroy </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_unix_writer_options **&#160;</td>
-          <td class="paramname"><em>fuwopt</em></td><td>)</td>
+          <td class="paramname"><em>uwopt</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -140,14 +112,14 @@ Variables</h2></td></tr>
 <p>Destroy an <code>fstrm_unix_writer_options</code> object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">fuwopt</td><td>Pointer to <code>fstrm_unix_writer_options</code> object. </td></tr>
+    <tr><td class="paramname">uwopt</td><td>Pointer to <code>fstrm_unix_writer_options</code> object. </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a class="anchor" id="ga242616961b63952593e092951e27d122"></a>
+<a class="anchor" id="gaa46408d124da9ac3af053cb00d8b688a"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -155,7 +127,7 @@ Variables</h2></td></tr>
           <td class="memname">void fstrm_unix_writer_options_set_socket_path </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_unix_writer_options *&#160;</td>
-          <td class="paramname"><em>fuwopt</em>, </td>
+          <td class="paramname"><em>uwopt</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -172,30 +144,57 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Set the <code>socket_path</code> option. </p>
-<p>This is the filesystem path to connect the <code>AF_UNIX</code> socket to. This option is required for <code>fstrm_unix_writer</code> objects.</p>
+<p>This is a filesystem path that will be connected to as an <code>AF_UNIX</code> socket.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">fuwopt</td><td><code>fstrm_unix_writer_options</code> object. </td></tr>
-    <tr><td class="paramname">socket_path</td><td>The filesystem path for the <code>AF_UNIX</code> domain socket. </td></tr>
+    <tr><td class="paramname">uwopt</td><td><code>fstrm_unix_writer_options</code> object. </td></tr>
+    <tr><td class="paramname">socket_path</td><td>The filesystem path to the <code>AF_UNIX</code> socket. </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<h2 class="groupheader">Variable Documentation</h2>
-<a class="anchor" id="gad09054f33b4f47bda35a40284047190a"></a>
+<a class="anchor" id="gaad9a7cbbc6ac5a50997cfba4a4fd8bba"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">const struct fstrm_writer* fstrm_unix_writer</td>
+          <td class="memname">struct fstrm_writer* fstrm_unix_writer_init </td>
+          <td>(</td>
+          <td class="paramtype">const struct fstrm_unix_writer_options *&#160;</td>
+          <td class="paramname"><em>uwopt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct fstrm_writer_options *&#160;</td>
+          <td class="paramname"><em>wopt</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>An <code>fstrm_writer</code> implementation that writes Frame Streams content to an <code>AF_UNIX</code> domain socket. </p>
-<p>This value may be passed as the <code>writer</code> parameter to <a class="el" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer()</a>. </p>
+<p>Initialize the <code>fstrm_writer</code> object. </p>
+<p>Note that the <code>AF_UNIX</code> socket will not actually be opened until a subsequent call to <a class="el" href="group__fstrm__writer.html#ga2870b6313d6d24f276a616e9ffa26e65" title="Open an fstrm_writer object and prepare it to write data. ">fstrm_writer_open()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">uwopt</td><td><code>fstrm_unix_writer_options</code> object. Must be non-NULL, and have the <code>socket_path</code> option set. </td></tr>
+    <tr><td class="paramname">wopt</td><td><code>fstrm_writer_options</code> object. May be NULL, in which chase default values will be used.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>fstrm_writer</code> object. </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">NULL</td><td>on failure. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

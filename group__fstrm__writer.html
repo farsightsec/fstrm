@@ -52,291 +52,56 @@ $(document).ready(function(){initNavTree('group__fstrm__writer.html','');});
 <div id="doc-content">
 <div class="header">
   <div class="summary">
-<a href="#typedef-members">Typedefs</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">fstrm_writer</div>  </div>
 </div><!--header-->
 <div class="contents">
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<p><code>fstrm_writer</code> is an interface for abstracting the process of writing to a byte stream output. It allows extending the <code>fstrm</code> library to support writing Frame Streams output to new kinds of byte stream outputs. It also allows building mock outputs for testing the correct functioning of the library.</p>
-<p>Several concrete implementations of the <code>fstrm_writer</code> interface are already provided by the <code>fstrm</code> library that allow writing to file and <code>AF_UNIX</code> socket outputs.</p>
-<p>A new concrete implementation can be defined by calling <a class="el" href="group__fstrm__writer.html#ga395d90219cb84dec4ab794142ba863a2" title="Initialize an fstrm_writer implementation. ">fstrm_writer_init()</a> and then providing the "methods" for the implementation by passing function pointers via the <a class="el" href="group__fstrm__writer.html#gab358b8c0ba8c4beccf63aa45ce44789a" title="Set the create method for an fstrm_writer implementation. ">fstrm_writer_set_create()</a>, <a class="el" href="group__fstrm__writer.html#ga4fdd42917f842438c096964c2097bddd" title="Set the destroy method for an fstrm_writer implementation. ">fstrm_writer_set_destroy()</a>, etc. functions. A concrete implementation of <code>fstrm_writer</code> <b>MUST</b> provide the following "methods", which are further described below:</p>
-<table class="doxtable">
-<tr>
-<th>Method name </th><th>Method type </th><th>Method description  </th></tr>
-<tr>
-<td><code>create</code> </td><td><a class="el" href="group__fstrm__writer.html#ga60ee1b50fbb9f12ff33936689e93c1b0" title="create method function type. ">fstrm_writer_create_func</a> </td><td>Creates a new instance of the output. </td></tr>
-<tr>
-<td><code>destroy</code> </td><td><a class="el" href="group__fstrm__writer.html#ga8fd128e162937ba0b366c2c5bb915c77" title="destroy method function type. ">fstrm_writer_destroy_func</a> </td><td>Destroys an instance of the output. </td></tr>
-<tr>
-<td><code>open</code> </td><td><a class="el" href="group__fstrm__writer.html#ga8e5c6cc9b33269903805486002833348" title="open method function type. ">fstrm_writer_open_func</a> </td><td>Opens the output and readies it for writing. </td></tr>
-<tr>
-<td><code>close</code> </td><td><a class="el" href="group__fstrm__writer.html#gaa4279ba1eda06e52896fede92eea82ca" title="close method function type. ">fstrm_writer_close_func</a> </td><td>Closes the output. </td></tr>
-<tr>
-<td><code>write_control</code> </td><td><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb" title="write_data and write_control method function type. ">fstrm_writer_write_func</a> </td><td>Writes a Frame Streams control frame. </td></tr>
-<tr>
-<td><code>write_data</code> </td><td><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb" title="write_data and write_control method function type. ">fstrm_writer_write_func</a> </td><td>Writes a Frame Streams data frame. </td></tr>
-</table>
-<p>The following code example shows how to construct an <code>fstrm_writer</code> given implementations of these methods: </p>
-<div class="fragment"><div class="line"><span class="keyword">extern</span> <a class="code" href="group__fstrm__writer.html#ga60ee1b50fbb9f12ff33936689e93c1b0" title="create method function type. ">fstrm_writer_create_func</a>  my_writer_create;</div>
-<div class="line"><span class="keyword">extern</span> <a class="code" href="group__fstrm__writer.html#ga8fd128e162937ba0b366c2c5bb915c77" title="destroy method function type. ">fstrm_writer_destroy_func</a> my_writer_destroy;</div>
-<div class="line"><span class="keyword">extern</span> <a class="code" href="group__fstrm__writer.html#ga8e5c6cc9b33269903805486002833348" title="open method function type. ">fstrm_writer_open_func</a>    my_writer_open;</div>
-<div class="line"><span class="keyword">extern</span> <a class="code" href="group__fstrm__writer.html#gaa4279ba1eda06e52896fede92eea82ca" title="close method function type. ">fstrm_writer_close_func</a>   my_writer_close;</div>
-<div class="line"><span class="keyword">extern</span> <a class="code" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb" title="write_data and write_control method function type. ">fstrm_writer_write_func</a>   my_writer_write;</div>
-<div class="line"><span class="keyword">extern</span> <a class="code" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb" title="write_data and write_control method function type. ">fstrm_writer_write_func</a>   my_writer_write;</div>
-<div class="line"></div>
-<div class="line"><span class="keyword">struct </span>fstrm_writer *my_writer_impl;</div>
-<div class="line"></div>
-<div class="line">my_writer = <a class="code" href="group__fstrm__writer.html#ga395d90219cb84dec4ab794142ba863a2" title="Initialize an fstrm_writer implementation. ">fstrm_writer_init</a>();</div>
-<div class="line"><a class="code" href="group__fstrm__writer.html#gab358b8c0ba8c4beccf63aa45ce44789a" title="Set the create method for an fstrm_writer implementation. ">fstrm_writer_set_create</a>(my_writer_impl,        my_writer_create);</div>
-<div class="line"><a class="code" href="group__fstrm__writer.html#ga4fdd42917f842438c096964c2097bddd" title="Set the destroy method for an fstrm_writer implementation. ">fstrm_writer_set_destroy</a>(my_writer_impl,       my_writer_destroy);</div>
-<div class="line"><a class="code" href="group__fstrm__writer.html#ga1a5443e647f167fb0cb867a8d2803210" title="Set the open method for an fstrm_writer implementation. ">fstrm_writer_set_open</a>(my_writer_impl,          my_writer_open);</div>
-<div class="line"><a class="code" href="group__fstrm__writer.html#gabf43c71f417bf1f8dacbc4a8cc9032e7" title="Set the close method for an fstrm_writer implementation. ">fstrm_writer_set_close</a>(my_writer_impl,         my_writer_close);</div>
-<div class="line"><a class="code" href="group__fstrm__writer.html#ga21c40cbf9b20e864c215f5617c78946d" title="Set the write_data method for an fstrm_writer implementation. ">fstrm_writer_set_write_data</a>(my_writer_impl,    my_writer_write_data);</div>
-<div class="line"><a class="code" href="group__fstrm__writer.html#ga8eb225596a1d34c1b59e3b2423b19c28" title="Set the write_control method for an fstrm_writer implementation. ">fstrm_writer_set_write_control</a>(my_writer_impl, my_writer_write_control);</div>
-<div class="line"></div>
-<div class="line"><span class="keyword">const</span> <span class="keyword">struct </span>fstrm_writer *my_writer = my_writer_impl;</div>
-</div><!-- fragment --><p> At this point, the <code>my_writer</code> variable is now suitable as the <code>writer</code> argument to <a class="el" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer()</a>.</p>
-<p>The following code example follows on from the above example and shows dummy implementations of the functions referenced above. This implementation doesn't actually do anything with the data provided to it and is only meant to show how to construct an implementation that conforms to the <code>fstrm_writer</code> interface. </p>
-<div class="fragment"><div class="line"><span class="keyword">struct </span>my_writer_state;</div>
-<div class="line"><span class="keyword">struct </span>my_writer_options;</div>
-<div class="line"></div>
-<div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
-<div class="line">my_writer_create(<span class="keyword">struct</span> fstrm_io *fio,</div>
-<div class="line">                 <span class="keyword">const</span> <span class="keyword">struct</span> fstrm_writer_options *wopt,</div>
-<div class="line">                 <span class="keywordtype">void</span> **data)</div>
-<div class="line">{</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">struct </span>my_writer_options *my_wopt =</div>
-<div class="line">                (<span class="keyword">const</span> <span class="keyword">struct </span>my_writer_options *) wopt;</div>
-<div class="line">        <span class="keyword">struct </span>my_writer_state *state = calloc(1, <span class="keyword">sizeof</span>(*state));</div>
-<div class="line">        <span class="keywordflow">if</span> (!state)</div>
-<div class="line">                <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a>;</div>
-<div class="line"></div>
-<div class="line">        *data = state;</div>
-<div class="line">        <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>;</div>
-<div class="line">}</div>
-<div class="line"></div>
-<div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
-<div class="line">my_writer_destroy(<span class="keywordtype">void</span> *data)</div>
-<div class="line">{</div>
-<div class="line">        <span class="keyword">struct </span>my_writer_state *state = (<span class="keyword">struct </span>my_writer_state *) data;</div>
-<div class="line">        free(state);</div>
-<div class="line">        <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>;</div>
-<div class="line">}</div>
-<div class="line"></div>
-<div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
-<div class="line">my_writer_open(<span class="keywordtype">void</span> *data)</div>
-<div class="line">{</div>
-<div class="line">        <span class="keyword">struct </span>my_writer_state *state = (<span class="keyword">struct </span>my_writer_state *) data;</div>
-<div class="line">        <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>;</div>
-<div class="line">}</div>
-<div class="line"></div>
-<div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
-<div class="line">my_writer_close(<span class="keywordtype">void</span> *data)</div>
-<div class="line">{</div>
-<div class="line">        <span class="keyword">struct </span>my_writer_state *state = (<span class="keyword">struct </span>my_writer_state *) data;</div>
-<div class="line">        <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>;</div>
-<div class="line">}</div>
-<div class="line"></div>
-<div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
-<div class="line">my_writer_write_data(<span class="keywordtype">void</span> *data,</div>
-<div class="line">                     <span class="keyword">struct</span> iovec *iov, <span class="keywordtype">int</span> iovcnt,</div>
-<div class="line">                     <span class="keywordtype">unsigned</span> nbytes)</div>
-<div class="line">{</div>
-<div class="line">        <span class="keyword">struct </span>my_writer_state *state = (<span class="keyword">struct </span>my_writer_state *) data;</div>
-<div class="line">        <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>;</div>
-<div class="line">}</div>
-<div class="line"></div>
-<div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
-<div class="line">my_writer_write_control(<span class="keywordtype">void</span> *data,</div>
-<div class="line">                        <span class="keyword">struct</span> iovec *iov, <span class="keywordtype">int</span> iovcnt,</div>
-<div class="line">                        <span class="keywordtype">unsigned</span> nbytes)</div>
-<div class="line">{</div>
-<div class="line">        <span class="keyword">struct </span>my_writer_state *state = (<span class="keyword">struct </span>my_writer_state *) data;</div>
-<div class="line">        <span class="keywordflow">return</span> <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>;</div>
-<div class="line">}</div>
-</div><!-- fragment --><dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__file__writer.html#ga0d017a7713d31c63587fffda67d79225" title="An fstrm_writer implementation that writes Frame Streams content to a regular file. ">fstrm_file_writer</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__unix__writer.html#gad09054f33b4f47bda35a40284047190a" title="An fstrm_writer implementation that writes Frame Streams content to an AF_UNIX domain socket...">fstrm_unix_writer</a> </dd></dl>
+<p><code>fstrm_writer</code> is an interface for writing Frame Streams data into a byte stream. </p>
+<p>The underlying byte stream I/O operations are abstracted by the <a class="el" href="group__fstrm__rdwr.html">fstrm_rdwr</a> interface. THus, the <code>fstrm_writer</code> interface can be used to write Frame Streams data to any type of output whose read/write operations are wrapped by an <code>fstrm_rdwr</code> object.</p>
+<p>Some basic <code>fstrm_writer</code> implementations are already provided in the <code>fstrm</code> library. See <a class="el" href="group__fstrm__file.html#ga0996800d71c6be618760328383be785e" title="Open a file for writing Frame Streams data. ">fstrm_file_writer_init()</a> for an implementation that writes to a regular file and <a class="el" href="group__fstrm__unix__writer.html#gaad9a7cbbc6ac5a50997cfba4a4fd8bba" title="Initialize the fstrm_writer object. ">fstrm_unix_writer_init()</a> for an implementation that writes to a Unix socket. </p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
-Typedefs</h2></td></tr>
-<tr class="memitem:ga60ee1b50fbb9f12ff33936689e93c1b0"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga60ee1b50fbb9f12ff33936689e93c1b0">fstrm_writer_create_func</a> )(struct fstrm_io *fio, const struct fstrm_writer_options *wopt, void **data)</td></tr>
-<tr class="memdesc:ga60ee1b50fbb9f12ff33936689e93c1b0"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>create</code> method function type.  <a href="#ga60ee1b50fbb9f12ff33936689e93c1b0">More...</a><br/></td></tr>
-<tr class="separator:ga60ee1b50fbb9f12ff33936689e93c1b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8fd128e162937ba0b366c2c5bb915c77"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga8fd128e162937ba0b366c2c5bb915c77">fstrm_writer_destroy_func</a> )(void *data)</td></tr>
-<tr class="memdesc:ga8fd128e162937ba0b366c2c5bb915c77"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>destroy</code> method function type.  <a href="#ga8fd128e162937ba0b366c2c5bb915c77">More...</a><br/></td></tr>
-<tr class="separator:ga8fd128e162937ba0b366c2c5bb915c77"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8e5c6cc9b33269903805486002833348"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga8e5c6cc9b33269903805486002833348">fstrm_writer_open_func</a> )(void *data)</td></tr>
-<tr class="memdesc:ga8e5c6cc9b33269903805486002833348"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>open</code> method function type.  <a href="#ga8e5c6cc9b33269903805486002833348">More...</a><br/></td></tr>
-<tr class="separator:ga8e5c6cc9b33269903805486002833348"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa4279ba1eda06e52896fede92eea82ca"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gaa4279ba1eda06e52896fede92eea82ca">fstrm_writer_close_func</a> )(void *data)</td></tr>
-<tr class="memdesc:gaa4279ba1eda06e52896fede92eea82ca"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>close</code> method function type.  <a href="#gaa4279ba1eda06e52896fede92eea82ca">More...</a><br/></td></tr>
-<tr class="separator:gaa4279ba1eda06e52896fede92eea82ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabe8ba8fc1c341554372510439efa3ddb"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb">fstrm_writer_write_func</a> )(void *data, struct iovec *iov, int iovcnt, unsigned nbytes)</td></tr>
-<tr class="memdesc:gabe8ba8fc1c341554372510439efa3ddb"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>write_data</code> and <code>write_control</code> method function type.  <a href="#gabe8ba8fc1c341554372510439efa3ddb">More...</a><br/></td></tr>
-<tr class="separator:gabe8ba8fc1c341554372510439efa3ddb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ga395d90219cb84dec4ab794142ba863a2"><td class="memItemLeft" align="right" valign="top">struct fstrm_writer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga395d90219cb84dec4ab794142ba863a2">fstrm_writer_init</a> (void)</td></tr>
-<tr class="memdesc:ga395d90219cb84dec4ab794142ba863a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize an <code>fstrm_writer</code> implementation.  <a href="#ga395d90219cb84dec4ab794142ba863a2">More...</a><br/></td></tr>
-<tr class="separator:ga395d90219cb84dec4ab794142ba863a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gade3014b318363ea939849a2aea796802"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gade3014b318363ea939849a2aea796802">fstrm_writer_destroy</a> (struct fstrm_writer **writer)</td></tr>
-<tr class="memdesc:gade3014b318363ea939849a2aea796802"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy an <code>fstrm_writer</code> object.  <a href="#gade3014b318363ea939849a2aea796802">More...</a><br/></td></tr>
-<tr class="separator:gade3014b318363ea939849a2aea796802"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab358b8c0ba8c4beccf63aa45ce44789a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gab358b8c0ba8c4beccf63aa45ce44789a">fstrm_writer_set_create</a> (struct fstrm_writer *writer, <a class="el" href="group__fstrm__writer.html#ga60ee1b50fbb9f12ff33936689e93c1b0">fstrm_writer_create_func</a> w_create)</td></tr>
-<tr class="memdesc:gab358b8c0ba8c4beccf63aa45ce44789a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>create</code> method for an <code>fstrm_writer</code> implementation.  <a href="#gab358b8c0ba8c4beccf63aa45ce44789a">More...</a><br/></td></tr>
-<tr class="separator:gab358b8c0ba8c4beccf63aa45ce44789a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga4fdd42917f842438c096964c2097bddd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga4fdd42917f842438c096964c2097bddd">fstrm_writer_set_destroy</a> (struct fstrm_writer *writer, <a class="el" href="group__fstrm__writer.html#ga8fd128e162937ba0b366c2c5bb915c77">fstrm_writer_destroy_func</a> w_destroy)</td></tr>
-<tr class="memdesc:ga4fdd42917f842438c096964c2097bddd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>destroy</code> method for an <code>fstrm_writer</code> implementation.  <a href="#ga4fdd42917f842438c096964c2097bddd">More...</a><br/></td></tr>
-<tr class="separator:ga4fdd42917f842438c096964c2097bddd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga1a5443e647f167fb0cb867a8d2803210"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga1a5443e647f167fb0cb867a8d2803210">fstrm_writer_set_open</a> (struct fstrm_writer *writer, <a class="el" href="group__fstrm__writer.html#ga8e5c6cc9b33269903805486002833348">fstrm_writer_open_func</a> w_open)</td></tr>
-<tr class="memdesc:ga1a5443e647f167fb0cb867a8d2803210"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>open</code> method for an <code>fstrm_writer</code> implementation.  <a href="#ga1a5443e647f167fb0cb867a8d2803210">More...</a><br/></td></tr>
-<tr class="separator:ga1a5443e647f167fb0cb867a8d2803210"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabf43c71f417bf1f8dacbc4a8cc9032e7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gabf43c71f417bf1f8dacbc4a8cc9032e7">fstrm_writer_set_close</a> (struct fstrm_writer *writer, <a class="el" href="group__fstrm__writer.html#gaa4279ba1eda06e52896fede92eea82ca">fstrm_writer_close_func</a> w_close)</td></tr>
-<tr class="memdesc:gabf43c71f417bf1f8dacbc4a8cc9032e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>close</code> method for an <code>fstrm_writer</code> implementation.  <a href="#gabf43c71f417bf1f8dacbc4a8cc9032e7">More...</a><br/></td></tr>
-<tr class="separator:gabf43c71f417bf1f8dacbc4a8cc9032e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8eb225596a1d34c1b59e3b2423b19c28"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga8eb225596a1d34c1b59e3b2423b19c28">fstrm_writer_set_write_control</a> (struct fstrm_writer *writer, <a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb">fstrm_writer_write_func</a> w_write_control)</td></tr>
-<tr class="memdesc:ga8eb225596a1d34c1b59e3b2423b19c28"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>write_control</code> method for an <code>fstrm_writer</code> implementation.  <a href="#ga8eb225596a1d34c1b59e3b2423b19c28">More...</a><br/></td></tr>
-<tr class="separator:ga8eb225596a1d34c1b59e3b2423b19c28"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga21c40cbf9b20e864c215f5617c78946d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga21c40cbf9b20e864c215f5617c78946d">fstrm_writer_set_write_data</a> (struct fstrm_writer *writer, <a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb">fstrm_writer_write_func</a> w_write_data)</td></tr>
-<tr class="memdesc:ga21c40cbf9b20e864c215f5617c78946d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the <code>write_data</code> method for an <code>fstrm_writer</code> implementation.  <a href="#ga21c40cbf9b20e864c215f5617c78946d">More...</a><br/></td></tr>
-<tr class="separator:ga21c40cbf9b20e864c215f5617c78946d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab5cda46e0543f1dcebbae189bc158047"><td class="memItemLeft" align="right" valign="top">struct fstrm_writer_options *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gab5cda46e0543f1dcebbae189bc158047">fstrm_writer_options_init</a> (void)</td></tr>
+<tr class="memdesc:gab5cda46e0543f1dcebbae189bc158047"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize an <code>fstrm_writer_options</code> object.  <a href="#gab5cda46e0543f1dcebbae189bc158047">More...</a><br/></td></tr>
+<tr class="separator:gab5cda46e0543f1dcebbae189bc158047"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gace43b96fdcace3bc19da775170cf8b90"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gace43b96fdcace3bc19da775170cf8b90">fstrm_writer_options_destroy</a> (struct fstrm_writer_options **wopt)</td></tr>
+<tr class="memdesc:gace43b96fdcace3bc19da775170cf8b90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy an <code>fstrm_writer_options</code> object.  <a href="#gace43b96fdcace3bc19da775170cf8b90">More...</a><br/></td></tr>
+<tr class="separator:gace43b96fdcace3bc19da775170cf8b90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0808a04fbc445118b0d8d3f02555aa37"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga0808a04fbc445118b0d8d3f02555aa37">fstrm_writer_options_add_content_type</a> (struct fstrm_writer_options *wopt, const void *content_type, size_t len_content_type)</td></tr>
+<tr class="memdesc:ga0808a04fbc445118b0d8d3f02555aa37"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a "Content Type" value to the set of content types that can be negotiated by the writer.  <a href="#ga0808a04fbc445118b0d8d3f02555aa37">More...</a><br/></td></tr>
+<tr class="separator:ga0808a04fbc445118b0d8d3f02555aa37"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1ea77b1aac26232956d8e3dbbb7681f1"><td class="memItemLeft" align="right" valign="top">struct fstrm_writer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga1ea77b1aac26232956d8e3dbbb7681f1">fstrm_writer_init</a> (const struct fstrm_writer_options *wopt, struct fstrm_rdwr **rdwr)</td></tr>
+<tr class="memdesc:ga1ea77b1aac26232956d8e3dbbb7681f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize a new <code>fstrm_writer</code> object based on an underlying <code>fstrm_rdwr</code> object and an <code>fstrm_writer_options</code> object.  <a href="#ga1ea77b1aac26232956d8e3dbbb7681f1">More...</a><br/></td></tr>
+<tr class="separator:ga1ea77b1aac26232956d8e3dbbb7681f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacbe22b289a47a79bc5189c4e4a2929a3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gacbe22b289a47a79bc5189c4e4a2929a3">fstrm_writer_destroy</a> (struct fstrm_writer **w)</td></tr>
+<tr class="memdesc:gacbe22b289a47a79bc5189c4e4a2929a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy an <code>fstrm_writer</code> object.  <a href="#gacbe22b289a47a79bc5189c4e4a2929a3">More...</a><br/></td></tr>
+<tr class="separator:gacbe22b289a47a79bc5189c4e4a2929a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2870b6313d6d24f276a616e9ffa26e65"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga2870b6313d6d24f276a616e9ffa26e65">fstrm_writer_open</a> (struct fstrm_writer *w)</td></tr>
+<tr class="memdesc:ga2870b6313d6d24f276a616e9ffa26e65"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open an <code>fstrm_writer</code> object and prepare it to write data.  <a href="#ga2870b6313d6d24f276a616e9ffa26e65">More...</a><br/></td></tr>
+<tr class="separator:ga2870b6313d6d24f276a616e9ffa26e65"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4981deb13857b3c5e13c6918950e2c48"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga4981deb13857b3c5e13c6918950e2c48">fstrm_writer_close</a> (struct fstrm_writer *w)</td></tr>
+<tr class="memdesc:ga4981deb13857b3c5e13c6918950e2c48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close an <code>fstrm_writer</code> object.  <a href="#ga4981deb13857b3c5e13c6918950e2c48">More...</a><br/></td></tr>
+<tr class="separator:ga4981deb13857b3c5e13c6918950e2c48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab8929ae4cf232362a6a41ce8a261bc1b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gab8929ae4cf232362a6a41ce8a261bc1b">fstrm_writer_write</a> (struct fstrm_writer *w, const void *data, size_t len_data)</td></tr>
+<tr class="memdesc:gab8929ae4cf232362a6a41ce8a261bc1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write a data frame to an <code>fstrm_writer</code> object.  <a href="#gab8929ae4cf232362a6a41ce8a261bc1b">More...</a><br/></td></tr>
+<tr class="separator:gab8929ae4cf232362a6a41ce8a261bc1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6c542932d678ca831182003cb7a94672"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#ga6c542932d678ca831182003cb7a94672">fstrm_writer_writev</a> (struct fstrm_writer *w, const struct iovec *iov, int iovcnt)</td></tr>
+<tr class="memdesc:ga6c542932d678ca831182003cb7a94672"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write multiple data frames to an <code>fstrm_writer</code> object.  <a href="#ga6c542932d678ca831182003cb7a94672">More...</a><br/></td></tr>
+<tr class="separator:ga6c542932d678ca831182003cb7a94672"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaf9682779716b10ed6bfd2f832f89159"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__writer.html#gaaf9682779716b10ed6bfd2f832f89159">fstrm_writer_get_control</a> (struct fstrm_writer *w, <a class="el" href="group__fstrm__control.html#ga0210744b7c387b0ae6d55e9737c40117">fstrm_control_type</a> type, struct fstrm_control **control)</td></tr>
+<tr class="memdesc:gaaf9682779716b10ed6bfd2f832f89159"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain a pointer to an <code>fstrm_control</code> object used during processing.  <a href="#gaaf9682779716b10ed6bfd2f832f89159">More...</a><br/></td></tr>
+<tr class="separator:gaaf9682779716b10ed6bfd2f832f89159"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Typedef Documentation</h2>
-<a class="anchor" id="ga60ee1b50fbb9f12ff33936689e93c1b0"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(* fstrm_writer_create_func)(struct fstrm_io *fio, const struct fstrm_writer_options *wopt, void **data)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p><code>create</code> method function type. </p>
-<p>This method is used to instantiate any per-output state and process any per-output configuration options needed by an <code>fstrm_writer</code> implementation.</p>
-<p>The interface for the <code>create</code> method allows user-specified, implementation-defined options to be passed through the <code>wopt</code> parameter. Note that the <code>create</code> method should <b>copy</b> any options provided via the <code>wopt</code> parameter, so that the caller may fully dispose of any dynamic allocations used for writer options after a call to <a class="el" href="group__fstrm__io.html#ga8884c56475e2f106859a09302dbb0034" title="Initialize an fstrm_io object. ">fstrm_io_init()</a>.</p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#gab358b8c0ba8c4beccf63aa45ce44789a" title="Set the create method for an fstrm_writer implementation. ">fstrm_writer_set_create()</a></dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir"></td><td class="paramname">fio</td><td><code>fstrm_io</code> object. </td></tr>
-    <tr><td class="paramdir"></td><td class="paramname">wopt</td><td>The <code>writer_options</code> parameter that was originally passed to <a class="el" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer()</a>. This is an opaque pointer and its contents are determined by the <code>fstrm_writer</code> implementation. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">data</td><td>The <code>fstrm_writer</code> implementation may store a pointer containing state specific to the instantiation of the output here. For example, an <code>fstrm_writer</code> implementation whose outputs are backed by file descriptors might allocate a structure containing a file descriptor number and other resources and return the pointer to that state structure via this parameter. The value returned via this parameter will be provided to the other <code>fstrm_writer</code> methods taking a <code>data</code> parameter.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a> on success, or any other <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> value on failure. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="ga8fd128e162937ba0b366c2c5bb915c77"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(* fstrm_writer_destroy_func)(void *data)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p><code>destroy</code> method function type. </p>
-<p>This method is used to deallocate any per-output resources used by an <code>fstrm_writer</code> implementation.</p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#ga4fdd42917f842438c096964c2097bddd" title="Set the destroy method for an fstrm_writer implementation. ">fstrm_writer_set_destroy()</a></dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">data</td><td>The <code>data</code> value returned by the <code>create</code> method.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a> on success, or any other <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> value on failure. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="ga8e5c6cc9b33269903805486002833348"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(* fstrm_writer_open_func)(void *data)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p><code>open</code> method function type. </p>
-<p>This method is used to open the output used by an <code>fstrm_writer</code> implementation and prepare it for writing. For example, if an <code>fstrm_writer</code> implementation is backed by file I/O, this method might be responsible for opening a file descriptor.</p>
-<p>This method may be called multiple times for the same object returned by the <code>create</code> method. For instance, if a write to the output fails, the output will have its <code>close</code> method called, and after the <code>reconnect_interval</code> expires the I/O thread will attempt to reopen the output.</p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#ga1a5443e647f167fb0cb867a8d2803210" title="Set the open method for an fstrm_writer implementation. ">fstrm_writer_set_open()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__io.html#gad810160c9a4b6f970f0399df533d040d" title="Set the reconnect_interval option. ">fstrm_io_options_set_reconnect_interval()</a></dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">data</td><td>The <code>data</code> value returned by the <code>create</code> method.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a> on success, or any other <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> value on failure. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="gaa4279ba1eda06e52896fede92eea82ca"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(* fstrm_writer_close_func)(void *data)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p><code>close</code> method function type. </p>
-<p>This method is used to close the output used by an <code>fstrm_writer</code> implementation. For example, if an <code>fstrm_writer</code> implementation is backed by file I/O, this method might be responsible for closing a file descriptor.</p>
-<p>This method will be called by the I/O thread subsequent to a failure of the <code>write</code> or <code>write_control</code> methods.</p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#gabf43c71f417bf1f8dacbc4a8cc9032e7" title="Set the close method for an fstrm_writer implementation. ">fstrm_writer_set_close()</a></dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">data</td><td>The <code>data</code> value returned by the <code>create</code> method.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a> on success, or any other <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> value on failure. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="gabe8ba8fc1c341554372510439efa3ddb"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>(* fstrm_writer_write_func)(void *data, struct iovec *iov, int iovcnt, unsigned nbytes)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p><code>write_data</code> and <code>write_control</code> method function type. </p>
-<p>These methods are used to write Frame Streams data frames and control frames respectively. If these methods fail when called by the I/O thread, the <code>close</code> method will be subsequently invoked.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">data</td><td>The <code>data</code> value returned by the <code>create</code> method. </td></tr>
-    <tr><td class="paramname">iov</td><td>Pointer to the first element of the <code>iovec</code> array. </td></tr>
-    <tr><td class="paramname">iovcnt</td><td>Number of elements in the <code>iovec</code> array. </td></tr>
-    <tr><td class="paramname">nbytes</td><td>Total number of bytes described by the <code>iovec</code> array.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a> on success, or any other <a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> value on failure. </dd></dl>
-
-</div>
-</div>
 <h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="ga395d90219cb84dec4ab794142ba863a2"></a>
+<a class="anchor" id="gab5cda46e0543f1dcebbae189bc158047"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">struct fstrm_writer* fstrm_writer_init </td>
+          <td class="memname">struct fstrm_writer_options* fstrm_writer_options_init </td>
           <td>(</td>
           <td class="paramtype">void&#160;</td>
           <td class="paramname"></td><td>)</td>
@@ -345,65 +110,250 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Initialize an <code>fstrm_writer</code> implementation. </p>
-<p>This object is used to define the methods of a concrete <code>fstrm_writer</code> implementation. Once all the methods have been set, this object becomes suitable for use as the <code>writer</code> parameter to <a class="el" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer()</a>.</p>
-<p>Once the methods for a concrete <code>fstrm_writer</code> implementation have been set and used to instantiate outputs via a call to <a class="el" href="group__fstrm__io.html#ga8884c56475e2f106859a09302dbb0034" title="Initialize an fstrm_io object. ">fstrm_io_init()</a>, they should <em>not</em> be overridden again by subsequent calls to the <code>fstrm_writer_set_*()</code> functions.</p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#gab358b8c0ba8c4beccf63aa45ce44789a" title="Set the create method for an fstrm_writer implementation. ">fstrm_writer_set_create()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__writer.html#ga4fdd42917f842438c096964c2097bddd" title="Set the destroy method for an fstrm_writer implementation. ">fstrm_writer_set_destroy()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__writer.html#ga1a5443e647f167fb0cb867a8d2803210" title="Set the open method for an fstrm_writer implementation. ">fstrm_writer_set_open()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__writer.html#gabf43c71f417bf1f8dacbc4a8cc9032e7" title="Set the close method for an fstrm_writer implementation. ">fstrm_writer_set_close()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__writer.html#ga8eb225596a1d34c1b59e3b2423b19c28" title="Set the write_control method for an fstrm_writer implementation. ">fstrm_writer_set_write_control()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__writer.html#ga21c40cbf9b20e864c215f5617c78946d" title="Set the write_data method for an fstrm_writer implementation. ">fstrm_writer_set_write_data()</a> </dd>
-<dd>
-<a class="el" href="group__fstrm__io.html#gaa4c688613ff342028d5e48ed68bd8d13" title="Set the writer implementation to use for the output stream. ">fstrm_io_options_set_writer()</a></dd></dl>
-<dl class="section return"><dt>Returns</dt><dd><code>fstrm_writer</code> object. </dd></dl>
+<p>Initialize an <code>fstrm_writer_options</code> object. </p>
+<dl class="section return"><dt>Returns</dt><dd><code>fstrm_writer_options</code> object. </dd></dl>
 
 </div>
 </div>
-<a class="anchor" id="gade3014b318363ea939849a2aea796802"></a>
+<a class="anchor" id="gace43b96fdcace3bc19da775170cf8b90"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void fstrm_writer_destroy </td>
+          <td class="memname">void fstrm_writer_options_destroy </td>
+          <td>(</td>
+          <td class="paramtype">struct fstrm_writer_options **&#160;</td>
+          <td class="paramname"><em>wopt</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Destroy an <code>fstrm_writer_options</code> object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">wopt</td><td>Pointer to <code>fstrm_writer_options</code> object. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga0808a04fbc445118b0d8d3f02555aa37"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_options_add_content_type </td>
+          <td>(</td>
+          <td class="paramtype">struct fstrm_writer_options *&#160;</td>
+          <td class="paramname"><em>wopt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>content_type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>len_content_type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add a "Content Type" value to the set of content types that can be negotiated by the writer. </p>
+<p>This function makes a copy of the provided string. This function may be called multiple times, in which case multiple "Content Type" values will be accepted by the reader.</p>
+<p>For uni-directional streams like regular files, the negotiated content type will simply be the first content type provided to this function. For bi-directional streams like sockets, a handshake occurs and the remote end determines which content type should be sent. In the latter case, after the writer has been successfully opened with a call to <a class="el" href="group__fstrm__writer.html#ga2870b6313d6d24f276a616e9ffa26e65" title="Open an fstrm_writer object and prepare it to write data. ">fstrm_writer_open()</a>, the <a class="el" href="group__fstrm__writer.html#gaaf9682779716b10ed6bfd2f832f89159" title="Obtain a pointer to an fstrm_control object used during processing. ">fstrm_writer_get_control()</a> function should be called with <code>type</code> set to <code>FSTRM_CONTROL_ACCEPT</code> and the control frame queried in order to determine the negotiated content type.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">wopt</td><td><code>fstrm_writer_options</code> object. </td></tr>
+    <tr><td class="paramname">content_type</td><td>The "Content Type" string to copy. Note that this string is not NUL-terminated and may contain embedded NULs. </td></tr>
+    <tr><td class="paramname">len_content_type</td><td>The number of bytes in <code>content_type</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>The "Content Type" field was successfully added. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td>The "Content Type" string is too long. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga1ea77b1aac26232956d8e3dbbb7681f1"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct fstrm_writer* fstrm_writer_init </td>
+          <td>(</td>
+          <td class="paramtype">const struct fstrm_writer_options *&#160;</td>
+          <td class="paramname"><em>wopt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct fstrm_rdwr **&#160;</td>
+          <td class="paramname"><em>rdwr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initialize a new <code>fstrm_writer</code> object based on an underlying <code>fstrm_rdwr</code> object and an <code>fstrm_writer_options</code> object. </p>
+<p>The underlying <code>fstrm_rdwr</code> object MUST have a <code>write</code> method. It MAY optionally have a <code>read</code> method, in which case the stream will be treated as a bi-directional, handshaked stream. Otherwise, if there is no <code>read</code> method the stream will be treated as a uni-directional stream.</p>
+<p>This function is useful for implementing functions that return new types of <code>fstrm_writer</code> objects, such as <a class="el" href="group__fstrm__file.html#ga0996800d71c6be618760328383be785e" title="Open a file for writing Frame Streams data. ">fstrm_file_writer_init()</a> and <a class="el" href="group__fstrm__unix__writer.html#gaad9a7cbbc6ac5a50997cfba4a4fd8bba" title="Initialize the fstrm_writer object. ">fstrm_unix_writer_init()</a>.</p>
+<p>After a successful call to this function, the ownership of the <code>fstrm_rdwr</code> object passes from the caller to the <code>fstrm_writer</code> object. The caller should perform no further calls on the <code>fstrm_rdwr</code> object. The <code>fstrm_rdwr</code> object will be cleaned up on a call to <a class="el" href="group__fstrm__writer.html#gacbe22b289a47a79bc5189c4e4a2929a3" title="Destroy an fstrm_writer object. ">fstrm_writer_destroy()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">wopt</td><td><code>fstrm_writer_options</code> object. May be NULL, in which case default values will be used.</td></tr>
+    <tr><td class="paramname">rdwr</td><td>Pointer to <code>fstrm_rdwr</code> object. Must be non-NULL. The <code>fstrm_rdwr</code> object must have a <code>write</code> method, and may optionally have a <code>read</code> method.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>fstrm_writer</code> object. </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">NULL</td><td>on failure. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="gacbe22b289a47a79bc5189c4e4a2929a3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_destroy </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_writer **&#160;</td>
-          <td class="paramname"><em>writer</em></td><td>)</td>
+          <td class="paramname"><em>w</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Destroy an <code>fstrm_writer</code> object. </p>
+<p>This implicitly calls <a class="el" href="group__fstrm__writer.html#ga4981deb13857b3c5e13c6918950e2c48" title="Close an fstrm_writer object. ">fstrm_writer_close()</a> if necessary.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">writer</td><td>Pointer to an <code>fstrm_writer</code> object. </td></tr>
+    <tr><td class="paramname">w</td><td>Pointer to <code>fstrm_writer</code> object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a class="anchor" id="gab358b8c0ba8c4beccf63aa45ce44789a"></a>
+<a class="anchor" id="ga2870b6313d6d24f276a616e9ffa26e65"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void fstrm_writer_set_create </td>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_open </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_writer *&#160;</td>
-          <td class="paramname"><em>writer</em>, </td>
+          <td class="paramname"><em>w</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Open an <code>fstrm_writer</code> object and prepare it to write data. </p>
+<p>For bi-directional writer implementations, this performs content type negotiation.</p>
+<p>This function may fail if there was an underlying problem opening the output stream.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">w</td><td><code>fstrm_writer</code> object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga4981deb13857b3c5e13c6918950e2c48"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_close </td>
+          <td>(</td>
+          <td class="paramtype">struct fstrm_writer *&#160;</td>
+          <td class="paramname"><em>w</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Close an <code>fstrm_writer</code> object. </p>
+<p>Open it has been closed, no data frames may subsequently be written.</p>
+<p>Calling this function is optional; it may be implicitly invoked by a call to <a class="el" href="group__fstrm__writer.html#gacbe22b289a47a79bc5189c4e4a2929a3" title="Destroy an fstrm_writer object. ">fstrm_writer_destroy()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">w</td><td><code>fstrm_writer</code> object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="gab8929ae4cf232362a6a41ce8a261bc1b"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_write </td>
+          <td>(</td>
+          <td class="paramtype">struct fstrm_writer *&#160;</td>
+          <td class="paramname"><em>w</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__fstrm__writer.html#ga60ee1b50fbb9f12ff33936689e93c1b0">fstrm_writer_create_func</a>&#160;</td>
-          <td class="paramname"><em>w_create</em>&#160;</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>len_data</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -413,33 +363,47 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Set the <code>create</code> method for an <code>fstrm_writer</code> implementation. </p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#ga60ee1b50fbb9f12ff33936689e93c1b0" title="create method function type. ">fstrm_writer_create_func</a> </dd></dl>
+<p>Write a data frame to an <code>fstrm_writer</code> object. </p>
+<p>This function implicitly calls <a class="el" href="group__fstrm__writer.html#ga2870b6313d6d24f276a616e9ffa26e65" title="Open an fstrm_writer object and prepare it to write data. ">fstrm_writer_open()</a> if necessary.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">writer</td><td><code>fstrm_writer</code> object. </td></tr>
-    <tr><td class="paramname">w_create</td><td>Function to use as the <code>fstrm_writer</code> <code>create</code> method. </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">w</td><td><code>fstrm_writer</code> object. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Buffer containing the data frame payload. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">len_data</td><td>The number of bytes in <code>data</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>The data frame was successfully written. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a class="anchor" id="ga4fdd42917f842438c096964c2097bddd"></a>
+<a class="anchor" id="ga6c542932d678ca831182003cb7a94672"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void fstrm_writer_set_destroy </td>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_writev </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_writer *&#160;</td>
-          <td class="paramname"><em>writer</em>, </td>
+          <td class="paramname"><em>w</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__fstrm__writer.html#ga8fd128e162937ba0b366c2c5bb915c77">fstrm_writer_destroy_func</a>&#160;</td>
-          <td class="paramname"><em>w_destroy</em>&#160;</td>
+          <td class="paramtype">const struct iovec *&#160;</td>
+          <td class="paramname"><em>iov</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>iovcnt</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -449,33 +413,48 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Set the <code>destroy</code> method for an <code>fstrm_writer</code> implementation. </p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#ga8fd128e162937ba0b366c2c5bb915c77" title="destroy method function type. ">fstrm_writer_destroy_func</a> </dd></dl>
+<p>Write multiple data frames to an <code>fstrm_writer</code> object. </p>
+<p>This function implicitly calls <a class="el" href="group__fstrm__writer.html#ga2870b6313d6d24f276a616e9ffa26e65" title="Open an fstrm_writer object and prepare it to write data. ">fstrm_writer_open()</a> if necessary.</p>
+<p>Data frames are passed similarly to the <code>writev()</code> system call, with an array of <code>struct iovec</code> objects describing the data frame payloads and their lengths. The complete set of data frames will be written to the output stream after a successful call.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">writer</td><td><code>fstrm_writer</code> object. </td></tr>
-    <tr><td class="paramname">w_destroy</td><td>Function to use as the <code>fstrm_writer</code> <code>destroy</code> method. </td></tr>
+    <tr><td class="paramname">w</td><td><code>fstrm_writer</code> object. </td></tr>
+    <tr><td class="paramname">iov</td><td>Array of <code>struct iovec</code> objects. </td></tr>
+    <tr><td class="paramname">iovcnt</td><td>Number of <code>struct iovec</code> objects in <code>iov</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>The data frames were successfully written. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a class="anchor" id="ga1a5443e647f167fb0cb867a8d2803210"></a>
+<a class="anchor" id="gaaf9682779716b10ed6bfd2f832f89159"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void fstrm_writer_set_open </td>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_writer_get_control </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_writer *&#160;</td>
-          <td class="paramname"><em>writer</em>, </td>
+          <td class="paramname"><em>w</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__fstrm__writer.html#ga8e5c6cc9b33269903805486002833348">fstrm_writer_open_func</a>&#160;</td>
-          <td class="paramname"><em>w_open</em>&#160;</td>
+          <td class="paramtype"><a class="el" href="group__fstrm__control.html#ga0210744b7c387b0ae6d55e9737c40117">fstrm_control_type</a>&#160;</td>
+          <td class="paramname"><em>type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct fstrm_control **&#160;</td>
+          <td class="paramname"><em>control</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -485,120 +464,22 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Set the <code>open</code> method for an <code>fstrm_writer</code> implementation. </p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#ga8e5c6cc9b33269903805486002833348" title="open method function type. ">fstrm_writer_open_func</a> </dd></dl>
+<p>Obtain a pointer to an <code>fstrm_control</code> object used during processing. </p>
+<p>Objects returned by this function are owned by the <code>fstrm_reader</code> object and must not be modified by the caller. After a call to <a class="el" href="group__fstrm__reader.html#gabe12fe34cb3498ab5c3528442b6ae7b6" title="Destroy an fstrm_reader object. ">fstrm_reader_destroy()</a> these pointers will no longer be valid.</p>
+<p>For example, with bi-directional streams this function can be used to obtain a pointer to the ACCEPT control frame, which can be queried to see which "Content Type" was negotiated during the opening of the writer.</p>
+<p>This function implicitly calls <a class="el" href="group__fstrm__writer.html#ga2870b6313d6d24f276a616e9ffa26e65" title="Open an fstrm_writer object and prepare it to write data. ">fstrm_writer_open()</a> if necessary.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">writer</td><td><code>fstrm_writer</code> object. </td></tr>
-    <tr><td class="paramname">w_open</td><td>Function to use as the <code>fstrm_writer</code> <code>open</code> method. </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">w</td><td><code>fstrm_writer</code> object. </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">type</td><td>Which control frame to return. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">control</td><td>The <code>fstrm_control</code> object.</td></tr>
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a class="anchor" id="gabf43c71f417bf1f8dacbc4a8cc9032e7"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void fstrm_writer_set_close </td>
-          <td>(</td>
-          <td class="paramtype">struct fstrm_writer *&#160;</td>
-          <td class="paramname"><em>writer</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__fstrm__writer.html#gaa4279ba1eda06e52896fede92eea82ca">fstrm_writer_close_func</a>&#160;</td>
-          <td class="paramname"><em>w_close</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set the <code>close</code> method for an <code>fstrm_writer</code> implementation. </p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#gaa4279ba1eda06e52896fede92eea82ca" title="close method function type. ">fstrm_writer_close_func</a> </dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">writer</td><td><code>fstrm_writer</code> object. </td></tr>
-    <tr><td class="paramname">w_close</td><td>Function to use as the <code>fstrm_writer</code> <code>close</code> method. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a class="anchor" id="ga8eb225596a1d34c1b59e3b2423b19c28"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void fstrm_writer_set_write_control </td>
-          <td>(</td>
-          <td class="paramtype">struct fstrm_writer *&#160;</td>
-          <td class="paramname"><em>writer</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb">fstrm_writer_write_func</a>&#160;</td>
-          <td class="paramname"><em>w_write_control</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set the <code>write_control</code> method for an <code>fstrm_writer</code> implementation. </p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb" title="write_data and write_control method function type. ">fstrm_writer_write_func</a> </dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">writer</td><td><code>fstrm_writer</code> object. </td></tr>
-    <tr><td class="paramname">w_write_control</td><td>Function to use as the <code>fstrm_writer</code> <code>write_control</code> method. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a class="anchor" id="ga21c40cbf9b20e864c215f5617c78946d"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void fstrm_writer_set_write_data </td>
-          <td>(</td>
-          <td class="paramtype">struct fstrm_writer *&#160;</td>
-          <td class="paramname"><em>writer</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb">fstrm_writer_write_func</a>&#160;</td>
-          <td class="paramname"><em>w_write_data</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set the <code>write_data</code> method for an <code>fstrm_writer</code> implementation. </p>
-<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__writer.html#gabe8ba8fc1c341554372510439efa3ddb" title="write_data and write_control method function type. ">fstrm_writer_write_func</a> </dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">writer</td><td><code>fstrm_writer</code> object. </td></tr>
-    <tr><td class="paramname">w_write_data</td><td>Function to use as the <code>fstrm_writer</code> <code>write_data</code> method. </td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>If an <code>fstrm_control</code> object was returned. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
   </table>
   </dd>
 </dl>

@@ -4,7 +4,7 @@ var NAVTREE =
     [ "Introduction", "index.html", null ],
     [ "Library overview", "overview.html", [
       [ "Initializing the library", "overview.html#init", null ],
-      [ "Getting a queue", "overview.html#queue", null ],
+      [ "Getting an input queue", "overview.html#queue", null ],
       [ "Submitting data frames", "overview.html#submit", null ],
       [ "Shutting down", "overview.html#shutdown", null ]
     ] ],

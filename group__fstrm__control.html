@@ -60,18 +60,19 @@ $(document).ready(function(){initNavTree('group__fstrm__control.html','');});
 </div><!--header-->
 <div class="contents">
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<p><code>fstrm_control</code> is an interface for encoding and decoding Frame Streams control frames.</p>
+<p><code>fstrm_control</code> is an interface for encoding and decoding Frame Streams control frames. </p>
 <p>Two types of frames are possible in a Frame Streams byte stream: <b>data frames</b> and <b>control frames</b>. Both are variable length byte sequences prefixed by a 32-bit big endian unsigned integer (the <b>frame length</b>) specifying the length of the following byte sequence. If this frame length value is greater than zero, the <b>frame length</b> specifies the <b>data frame length</b>, and a data frame follows it. If the frame length is zero (i.e., it is the four byte sequence <code>00 00 00 00</code>), this is an <b>escape sequence</b>, which means that a control frame follows. The control frame itself is prefixed by a 32-bit big endian unsigned integer (the <b>control frame length</b>) specifying the length of the following <b>control frame payload</b>.</p>
-<p>There are currently three types of control frames defined: <code>ACCEPT</code>, <code>START</code>, and <code>STOP</code> control frames.</p>
-<p>A unidirectional Frame Streams byte stream normally consists of the following:</p>
+<p>There are two types of control frames used for uni-directional streams: <code>START</code> and <code>STOP</code>. These control frame types bracket the stream of data frames. <code>START</code> indicates the beginning of the stream and communicates metadata about the stream to follow, and <code>STOP</code> indicates the end of the stream.</p>
+<p>Bi-directional streams make use of three additional control frame types: <code>READY</code>, <code>ACCEPT</code>, and <code>FINISH</code>. These control frame types are used in a simple handshake protocol between sender and receiver.</p>
+<p>A uni-directional Frame Streams byte stream normally consists of the following:</p>
 <ol type="1">
 <li>The <code>START</code> control frame.</li>
-<li>A sequence of zero or more data frames or control frames that are not of the control frame types <code>ACCEPT</code>, <code>START</code>, or <code>STOP</code>.</li>
+<li>A sequence of zero or more data frames or control frames that are not of the control frame types <code>START</code>, <code>STOP</code>, <code>ACCEPT</code>, <code>READY</code>, or <code>FINISH</code>.</li>
 <li>The <code>STOP</code> control frame.</li>
 </ol>
 <p>The <code>START</code> and <code>STOP</code> control frames are not optional. The <code>START</code> control frame must appear at the beginning of the byte stream, and the <code>STOP</code> control frame must appear at the end of the byte stream. (If the byte stream has an end.) <code>START</code> control frames must not appear anywhere other than at the beginning of the byte stream, and <code>STOP</code> control frames must not appear anywhere other than at the end of the byte stream. Only one <code>START</code> control frame and only one <code>STOP</code> control frame may appear in a Frame Streams byte stream.</p>
-<p>Control frames may optionally include zero or more <b>control frame fields</b>. There is currently one type of control frame field defined: <code>CONTENT_TYPE</code>. This field specifies a variable length byte sequence describing the encoding of data frames that appear in the Frame Streams byte stream. This field is used by cooperating programs to unambiguously identify how to interpret the data frames in a particular Frame Streams byte stream. For instance, this field may specify a particular schema to use to interpret the data frames appearing in the byte stream.</p>
-<p>A Frame Streams encoder would normally produce a byte stream as follows:</p>
+<p>Control frames may optionally include zero or more <b>control frame fields</b>. There is currently one type of control frame field defined: <code>CONTENT_TYPE</code>. This field specifies a variable length byte sequence describing the encoding of data frames that appear in the Frame Streams byte stream. This field is used by cooperating programs to unambiguously identify how to interpret the data frames in a particular Frame Streams byte stream. For instance, this field may specify a particular schema to use to interpret the data frames appearing in the byte stream. Zero, one, or more <code>CONTENT_TYPE</code> fields may appear in <code>READY</code> or <code>ACCEPT</code> control frames. Zero or one <code>CONTENT_TYPE</code> fields may appear in <code>START</code> control frames. No <code>CONTENT_TYPE</code> fields may appear in <code>STOP</code> or <code>FINISH</code> control frames.</p>
+<p>A uni-directional Frame Streams encoder would normally produce a byte stream as follows:</p>
 <ol type="1">
 <li>Write the <code>START</code> <b>control frame</b>.<ul>
 <li>At the start of the byte stream, write the four byte <b>escape sequence</b> <code>00 00 00 00</code> that precedes control frames.</li>
@@ -83,11 +84,11 @@ $(document).ready(function(){initNavTree('group__fstrm__control.html','');});
 <li>Write the <code>STOP</code> <b>control frame</b>.<ul>
 <li>At the start of the byte stream, write the four byte <b>escape sequence</b> <code>00 00 00 00</code> that precedes control frames.</li>
 <li>Write the <b>control frame length</b> as a 32-bit big endian unsigned integer.</li>
-<li>Write the <b>control frame payload</b>. It must be a <code>STOP</code> control frame. It may optionally specify a <code>CONTENT_TYPE</code> field.</li>
+<li>Write the <b>control frame payload</b>. It must be a <code>STOP</code> control frame.</li>
 </ul>
 </li>
 </ol>
-<p>A Frame Streams decoder would normally process the byte stream as follows:</p>
+<p>A uni-directional Frame Streams decoder would normally process the byte stream as follows:</p>
 <ol type="1">
 <li>Read the <code>START</code> control frame.<ul>
 <li>At the start of the byte stream, read the four byte <b>escape sequence</b> <code>00 00 00 00</code> that precedes control frames.</li>
@@ -99,23 +100,23 @@ $(document).ready(function(){initNavTree('group__fstrm__control.html','');});
 <li>Read the <b>frame length</b>, a 32-bit big endian unsigned integer.</li>
 <li>If the <b>frame length</b> is zero, a control frame follows:<ul>
 <li>Read the 32-bit big endian unsigned integer specifying the <b>control frame length</b>.</li>
-<li>Decode the <b>control frame payload</b>. If it is a <code>STOP</code> control frame, the end of the Frame Streams byte stream has occurred, and no frames follow. Break out of the decoding loop and halt processing. (<code>ACCEPT</code> and <code>START</code> control frames may not occur here. For forward compatibility, control frames of types other than <code>ACCEPT</code>, <code>START</code>, or <code>STOP</code> must be ignored. No control frames specified in the future may alter the encoding of succeeding frames.)</li>
+<li>Decode the <b>control frame payload</b>. If it is a <code>STOP</code> control frame, the end of the Frame Streams byte stream has occurred, and no frames follow. Break out of the decoding loop and halt processing. (<code>READY</code>, <code>ACCEPT</code>, <code>START</code>, and <code>FINISH</code> may not occur here. For forward compatibility, control frames of types other than the types <code>READY</code>, <code>ACCEPT</code>, <code>START</code>, <code>STOP</code>, and <code>FINISH</code> must be ignored here. No control frames specified in the future may alter the encoding of succeeding frames.)</li>
 </ul>
 </li>
 <li>If the <b>frame length</b> is non-zero, it specifies the number of bytes in the following <b>data frame</b>. Consume these bytes from the byte stream.</li>
 </ul>
 </li>
 </ol>
-<p>The functions <a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> and <a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c" title="Decode a control frame from a buffer. ">fstrm_control_decode()</a> are provided to encode and decode control frames. See the detailed descriptions of those functions for code examples showing their usage. </p>
+<p>The functions <a class="el" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> and <a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c" title="Decode a control frame from a buffer. ">fstrm_control_decode()</a> are provided to encode and decode control frames. See the detailed descriptions of those functions for code examples showing their usage. </p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:ga4008509837532ab4515f425b4c6d693d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga4008509837532ab4515f425b4c6d693d">FSTRM_MAX_CONTROL_FRAME_LENGTH</a>&#160;&#160;&#160;512</td></tr>
-<tr class="memdesc:ga4008509837532ab4515f425b4c6d693d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The maximum length in bytes of an "Accept", "Start", or "Stop" control frame payload.  <a href="#ga4008509837532ab4515f425b4c6d693d">More...</a><br/></td></tr>
-<tr class="separator:ga4008509837532ab4515f425b4c6d693d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3eb98fe31dc879740bb39a0fb27aa027"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga3eb98fe31dc879740bb39a0fb27aa027">FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH</a>&#160;&#160;&#160;256</td></tr>
-<tr class="memdesc:ga3eb98fe31dc879740bb39a0fb27aa027"><td class="mdescLeft">&#160;</td><td class="mdescRight">The maximum length in bytes of a "Content Type" control frame field payload.  <a href="#ga3eb98fe31dc879740bb39a0fb27aa027">More...</a><br/></td></tr>
-<tr class="separator:ga3eb98fe31dc879740bb39a0fb27aa027"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4e67dcc80e7190fef15b35f85c596e8d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga4e67dcc80e7190fef15b35f85c596e8d">FSTRM_CONTROL_FRAME_LENGTH_MAX</a>&#160;&#160;&#160;512</td></tr>
+<tr class="memdesc:ga4e67dcc80e7190fef15b35f85c596e8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The maximum length in bytes of an "Accept", "Start", or "Stop" control frame payload.  <a href="#ga4e67dcc80e7190fef15b35f85c596e8d">More...</a><br/></td></tr>
+<tr class="separator:ga4e67dcc80e7190fef15b35f85c596e8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2a7fbb8f7f9e3354f314886f8119e13c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga2a7fbb8f7f9e3354f314886f8119e13c">FSTRM_CONTROL_FIELD_CONTENT_TYPE_LENGTH_MAX</a>&#160;&#160;&#160;256</td></tr>
+<tr class="memdesc:ga2a7fbb8f7f9e3354f314886f8119e13c"><td class="mdescLeft">&#160;</td><td class="mdescRight">The maximum length in bytes of a "Content Type" control frame field payload.  <a href="#ga2a7fbb8f7f9e3354f314886f8119e13c">More...</a><br/></td></tr>
+<tr class="separator:ga2a7fbb8f7f9e3354f314886f8119e13c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -126,7 +127,7 @@ Enumerations</h2></td></tr>
 <tr class="memdesc:ga81def568690686c13dff680b1b0c4d25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Control frame field types.  <a href="group__fstrm__control.html#ga81def568690686c13dff680b1b0c4d25">More...</a><br/></td></tr>
 <tr class="separator:ga81def568690686c13dff680b1b0c4d25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabeea197ecccbc24933fecb30aa90826d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d">fstrm_control_flag</a> </td></tr>
-<tr class="memdesc:gabeea197ecccbc24933fecb30aa90826d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags for controlling the behavior of <a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> and <a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c" title="Decode a control frame from a buffer. ">fstrm_control_decode()</a>.  <a href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d">More...</a><br/></td></tr>
+<tr class="memdesc:gabeea197ecccbc24933fecb30aa90826d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags for controlling the behavior of the encoding and decoding functions.  <a href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d">More...</a><br/></td></tr>
 <tr class="separator:gabeea197ecccbc24933fecb30aa90826d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -146,35 +147,41 @@ Functions</h2></td></tr>
 <tr class="memitem:ga29ff26d2c5eb6d2aad9a8c303547be23"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga29ff26d2c5eb6d2aad9a8c303547be23">fstrm_control_reset</a> (struct fstrm_control *c)</td></tr>
 <tr class="memdesc:ga29ff26d2c5eb6d2aad9a8c303547be23"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reinitialize an <code>fstrm_control</code> object.  <a href="#ga29ff26d2c5eb6d2aad9a8c303547be23">More...</a><br/></td></tr>
 <tr class="separator:ga29ff26d2c5eb6d2aad9a8c303547be23"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga28f88503070e28cd3aca0e9a38db4d58"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga28f88503070e28cd3aca0e9a38db4d58">fstrm_control_get_type</a> (struct fstrm_control *c, <a class="el" href="group__fstrm__control.html#ga0210744b7c387b0ae6d55e9737c40117">fstrm_control_type</a> *type)</td></tr>
-<tr class="memdesc:ga28f88503070e28cd3aca0e9a38db4d58"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve the type of the control frame.  <a href="#ga28f88503070e28cd3aca0e9a38db4d58">More...</a><br/></td></tr>
-<tr class="separator:ga28f88503070e28cd3aca0e9a38db4d58"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabce9edd88f281429f8417a1c686ee1a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gabce9edd88f281429f8417a1c686ee1a5">fstrm_control_get_type</a> (const struct fstrm_control *c, <a class="el" href="group__fstrm__control.html#ga0210744b7c387b0ae6d55e9737c40117">fstrm_control_type</a> *type)</td></tr>
+<tr class="memdesc:gabce9edd88f281429f8417a1c686ee1a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve the type of the control frame.  <a href="#gabce9edd88f281429f8417a1c686ee1a5">More...</a><br/></td></tr>
+<tr class="separator:gabce9edd88f281429f8417a1c686ee1a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5b7a7454dee3e122c1f2ac55720cddc2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga5b7a7454dee3e122c1f2ac55720cddc2">fstrm_control_set_type</a> (struct fstrm_control *c, <a class="el" href="group__fstrm__control.html#ga0210744b7c387b0ae6d55e9737c40117">fstrm_control_type</a> type)</td></tr>
 <tr class="memdesc:ga5b7a7454dee3e122c1f2ac55720cddc2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the type of the control frame.  <a href="#ga5b7a7454dee3e122c1f2ac55720cddc2">More...</a><br/></td></tr>
 <tr class="separator:ga5b7a7454dee3e122c1f2ac55720cddc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga24774fbe4cc5df6e97ef12febf03ecf4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga24774fbe4cc5df6e97ef12febf03ecf4">fstrm_control_get_field_content_type</a> (struct fstrm_control *c, const uint8_t **content_type, size_t *len_content_type)</td></tr>
-<tr class="memdesc:ga24774fbe4cc5df6e97ef12febf03ecf4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve the "Content Type" of the control frame.  <a href="#ga24774fbe4cc5df6e97ef12febf03ecf4">More...</a><br/></td></tr>
-<tr class="separator:ga24774fbe4cc5df6e97ef12febf03ecf4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab468ed5c1af4e7a76b2d2dec4f404ae0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gab468ed5c1af4e7a76b2d2dec4f404ae0">fstrm_control_set_field_content_type</a> (struct fstrm_control *c, const uint8_t *content_type, size_t len_content_type)</td></tr>
-<tr class="memdesc:gab468ed5c1af4e7a76b2d2dec4f404ae0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the "Content Type" of the control frame.  <a href="#gab468ed5c1af4e7a76b2d2dec4f404ae0">More...</a><br/></td></tr>
-<tr class="separator:gab468ed5c1af4e7a76b2d2dec4f404ae0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac7656071d8c5168a367306b831fd43b9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gac7656071d8c5168a367306b831fd43b9">fstrm_control_get_num_field_content_type</a> (const struct fstrm_control *c, size_t *n_content_type)</td></tr>
+<tr class="memdesc:gac7656071d8c5168a367306b831fd43b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve the number of "Content Type" fields present in the control frame.  <a href="#gac7656071d8c5168a367306b831fd43b9">More...</a><br/></td></tr>
+<tr class="separator:gac7656071d8c5168a367306b831fd43b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8c08659f162b1927cbaacc3a529439e8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga8c08659f162b1927cbaacc3a529439e8">fstrm_control_get_field_content_type</a> (const struct fstrm_control *c, const size_t idx, const uint8_t **content_type, size_t *len_content_type)</td></tr>
+<tr class="memdesc:ga8c08659f162b1927cbaacc3a529439e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve a "Content Type" field from the control frame.  <a href="#ga8c08659f162b1927cbaacc3a529439e8">More...</a><br/></td></tr>
+<tr class="separator:ga8c08659f162b1927cbaacc3a529439e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaab6a5aed259882afc8d8e3dd60294ec9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gaab6a5aed259882afc8d8e3dd60294ec9">fstrm_control_add_field_content_type</a> (struct fstrm_control *c, const uint8_t *content_type, size_t len_content_type)</td></tr>
+<tr class="memdesc:gaab6a5aed259882afc8d8e3dd60294ec9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a "Content Type" field to the control frame.  <a href="#gaab6a5aed259882afc8d8e3dd60294ec9">More...</a><br/></td></tr>
+<tr class="separator:gaab6a5aed259882afc8d8e3dd60294ec9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga48944bf9595da151055fecdd0b510aae"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga48944bf9595da151055fecdd0b510aae">fstrm_control_match_field_content_type</a> (const struct fstrm_control *c, const uint8_t *match, const size_t len_match)</td></tr>
+<tr class="memdesc:ga48944bf9595da151055fecdd0b510aae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the control frame matches a particular content type value.  <a href="#ga48944bf9595da151055fecdd0b510aae">More...</a><br/></td></tr>
+<tr class="separator:ga48944bf9595da151055fecdd0b510aae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa5328a17b32c72d97050342d1e02353c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c">fstrm_control_decode</a> (struct fstrm_control *c, const void *control_frame, size_t len_control_frame, const uint32_t flags)</td></tr>
 <tr class="memdesc:gaa5328a17b32c72d97050342d1e02353c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode a control frame from a buffer.  <a href="#gaa5328a17b32c72d97050342d1e02353c">More...</a><br/></td></tr>
 <tr class="separator:gaa5328a17b32c72d97050342d1e02353c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaeeb62913022d3b9cdd9179977f8ddd35"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#gaeeb62913022d3b9cdd9179977f8ddd35">fstrm_control_encoded_size</a> (struct fstrm_control *c, size_t *len_control_frame, const uint32_t flags)</td></tr>
-<tr class="memdesc:gaeeb62913022d3b9cdd9179977f8ddd35"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the number of bytes needed to serialize the control frame.  <a href="#gaeeb62913022d3b9cdd9179977f8ddd35">More...</a><br/></td></tr>
-<tr class="separator:gaeeb62913022d3b9cdd9179977f8ddd35"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga27ea01561e578fada59e136d4928347f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f">fstrm_control_encode</a> (struct fstrm_control *c, void *control_frame, size_t *len_control_frame, const uint32_t flags)</td></tr>
-<tr class="memdesc:ga27ea01561e578fada59e136d4928347f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a control frame into a buffer.  <a href="#ga27ea01561e578fada59e136d4928347f">More...</a><br/></td></tr>
-<tr class="separator:ga27ea01561e578fada59e136d4928347f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1049654e60649d4f02db11026173399e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga1049654e60649d4f02db11026173399e">fstrm_control_encoded_size</a> (const struct fstrm_control *c, size_t *len_control_frame, const uint32_t flags)</td></tr>
+<tr class="memdesc:ga1049654e60649d4f02db11026173399e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the number of bytes needed to serialize the control frame.  <a href="#ga1049654e60649d4f02db11026173399e">More...</a><br/></td></tr>
+<tr class="separator:ga1049654e60649d4f02db11026173399e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4ae9c09cb17525cdf4cec4a17ce3017f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f">fstrm_control_encode</a> (const struct fstrm_control *c, void *control_frame, size_t *len_control_frame, const uint32_t flags)</td></tr>
+<tr class="memdesc:ga4ae9c09cb17525cdf4cec4a17ce3017f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encode a control frame into a buffer.  <a href="#ga4ae9c09cb17525cdf4cec4a17ce3017f">More...</a><br/></td></tr>
+<tr class="separator:ga4ae9c09cb17525cdf4cec4a17ce3017f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
-<a class="anchor" id="ga4008509837532ab4515f425b4c6d693d"></a>
+<a class="anchor" id="ga4e67dcc80e7190fef15b35f85c596e8d"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define FSTRM_MAX_CONTROL_FRAME_LENGTH&#160;&#160;&#160;512</td>
+          <td class="memname">#define FSTRM_CONTROL_FRAME_LENGTH_MAX&#160;&#160;&#160;512</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -184,12 +191,12 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ga3eb98fe31dc879740bb39a0fb27aa027"></a>
+<a class="anchor" id="ga2a7fbb8f7f9e3354f314886f8119e13c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH&#160;&#160;&#160;256</td>
+          <td class="memname">#define FSTRM_CONTROL_FIELD_CONTENT_TYPE_LENGTH_MAX&#160;&#160;&#160;256</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -220,6 +227,12 @@ Functions</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="gga0210744b7c387b0ae6d55e9737c40117a4c3d9549d3f2b1e9698812c2200a77bf"></a>FSTRM_CONTROL_STOP</em>&#160;</td><td class="fielddoc">
 <p>Control frame type value for "Stop" control frames. </p>
+</td></tr>
+<tr><td class="fieldname"><em><a class="anchor" id="gga0210744b7c387b0ae6d55e9737c40117a5a1f42c2241109e82c0c7ae514e3716f"></a>FSTRM_CONTROL_READY</em>&#160;</td><td class="fielddoc">
+<p>Control frame type value for "Ready" control frames. </p>
+</td></tr>
+<tr><td class="fieldname"><em><a class="anchor" id="gga0210744b7c387b0ae6d55e9737c40117a85cc8b3a38b90d651d882c46307ae140"></a>FSTRM_CONTROL_FINISH</em>&#160;</td><td class="fielddoc">
+<p>Control frame type value for "Finish" control frames. </p>
 </td></tr>
 </table>
 
@@ -255,12 +268,12 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Flags for controlling the behavior of <a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> and <a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c" title="Decode a control frame from a buffer. ">fstrm_control_decode()</a>. </p>
+<p>Flags for controlling the behavior of the encoding and decoding functions. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><em><a class="anchor" id="ggabeea197ecccbc24933fecb30aa90826da32b9304249abae50dd127091b0d7ae19"></a>FSTRM_CONTROL_FLAG_WITH_HEADER</em>&#160;</td><td class="fielddoc">
 <p>Set to control whether to include the control frame header in encoding/decoding operations. </p>
-<p>Causes <a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> and <a class="el" href="group__fstrm__control.html#gaeeb62913022d3b9cdd9179977f8ddd35" title="Calculate the number of bytes needed to serialize the control frame. ">fstrm_control_encoded_size()</a> to include the control frame header containing the escape sequence and control frame payload length in the encoded output. Otherwise, only the control frame payload itself is encoded.</p>
-<p>Tells <a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c" title="Decode a control frame from a buffer. ">fstrm_control_decode()</a> that the input buffer to be decoded begins with the control frame header containing the escape sequence and control frame payload length. (Note that this requires the caller to peak at the input buffer to calculate the right buffer length.) Otherwise, the input buffer begins with the control frame payload. * </p>
+<p>Causes <a class="el" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> and <a class="el" href="group__fstrm__control.html#ga1049654e60649d4f02db11026173399e" title="Calculate the number of bytes needed to serialize the control frame. ">fstrm_control_encoded_size()</a> to include the control frame header containing the escape sequence and control frame payload length in the encoded output. Otherwise, only the control frame payload itself is encoded.</p>
+<p>Tells <a class="el" href="group__fstrm__control.html#gaa5328a17b32c72d97050342d1e02353c" title="Decode a control frame from a buffer. ">fstrm_control_decode()</a> that the input buffer to be decoded begins with the control frame header containing the escape sequence and control frame payload length. (Note that this requires the caller to peek at the input buffer to calculate the right buffer length.) Otherwise, the input buffer begins with the control frame payload. </p>
 </td></tr>
 </table>
 
@@ -388,14 +401,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ga28f88503070e28cd3aca0e9a38db4d58"></a>
+<a class="anchor" id="gabce9edd88f281429f8417a1c686ee1a5"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_get_type </td>
           <td>(</td>
-          <td class="paramtype">struct fstrm_control *&#160;</td>
+          <td class="paramtype">const struct fstrm_control *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
         </tr>
         <tr>
@@ -420,9 +433,13 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success </dd>
-<dd>
-fstrm_res_failure </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -458,21 +475,73 @@ fstrm_res_failure </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success </dd>
-<dd>
-fstrm_res_failure </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a class="anchor" id="ga24774fbe4cc5df6e97ef12febf03ecf4"></a>
+<a class="anchor" id="gac7656071d8c5168a367306b831fd43b9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_get_num_field_content_type </td>
+          <td>(</td>
+          <td class="paramtype">const struct fstrm_control *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>n_content_type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Retrieve the number of "Content Type" fields present in the control frame. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir"></td><td class="paramname">c</td><td><code>fstrm_control</code> object. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">n_content_type</td><td>The number of "Content Type" fields.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga8c08659f162b1927cbaacc3a529439e8"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_get_field_content_type </td>
           <td>(</td>
-          <td class="paramtype">struct fstrm_control *&#160;</td>
+          <td class="paramtype">const struct fstrm_control *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const size_t&#160;</td>
+          <td class="paramname"><em>idx</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -494,28 +563,34 @@ fstrm_res_failure </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Retrieve the "Content Type" of the control frame. </p>
-<p>This function returns a reference which must not be modified.</p>
+<p>Retrieve a "Content Type" field from the control frame. </p>
+<p>This function returns a reference which must not be modified. Control frames may contain zero, one, or more "Content Type" fields.</p>
+<dl class="section see"><dt>See Also</dt><dd><a class="el" href="group__fstrm__control.html#gac7656071d8c5168a367306b831fd43b9" title="Retrieve the number of &quot;Content Type&quot; fields present in the control frame. ">fstrm_control_get_num_field_content_type()</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir"></td><td class="paramname">c</td><td><code>fstrm_control</code> object. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">idx</td><td>The index of the "Content Type" field to retrieve. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">content_type</td><td>Pointer to where the reference to the "Content Type" string will be stored. Note that this string is not NUL-terminated and may contain embedded NULs. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">len_content_type</td><td>The number of bytes in <code>content_type</code>.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success The control frame has a "Content Type" field. </dd>
-<dd>
-fstrm_res_failure The control frame does not have a "Content Type" field. </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>The control frame has a "Content Type" field. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td>The control frame does not have a "Content Type" field. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a class="anchor" id="gab468ed5c1af4e7a76b2d2dec4f404ae0"></a>
+<a class="anchor" id="gaab6a5aed259882afc8d8e3dd60294ec9"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_set_field_content_type </td>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_add_field_content_type </td>
           <td>(</td>
           <td class="paramtype">struct fstrm_control *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
@@ -540,8 +615,9 @@ fstrm_res_failure The control frame does not have a "Content Type" field. </dd><
       </table>
 </div><div class="memdoc">
 
-<p>Set the "Content Type" of the control frame. </p>
-<p>This function makes a copy of the provided string. This function is safe to call multiple times, as previous field values will be discarded.</p>
+<p>Add a "Content Type" field to the control frame. </p>
+<p>This function makes a copy of the provided string. This function may be called multiple times, in which case multiple "Content Type" fields will be added to the control frame.</p>
+<p>The "Content Type" fields are removed on a call to <a class="el" href="group__fstrm__control.html#ga29ff26d2c5eb6d2aad9a8c303547be23" title="Reinitialize an fstrm_control object. ">fstrm_control_reset()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir"></td><td class="paramname">c</td><td><code>fstrm_control</code> object. </td></tr>
@@ -550,9 +626,63 @@ fstrm_res_failure The control frame does not have a "Content Type" field. </dd><
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success The "Content Type" field was successfully set. </dd>
-<dd>
-fstrm_res_failure The "Content Type" string is too long. </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>The "Content Type" field was successfully added. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td>The "Content Type" string is too long. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga48944bf9595da151055fecdd0b510aae"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_match_field_content_type </td>
+          <td>(</td>
+          <td class="paramtype">const struct fstrm_control *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t *&#160;</td>
+          <td class="paramname"><em>match</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const size_t&#160;</td>
+          <td class="paramname"><em>len_match</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if the control frame matches a particular content type value. </p>
+<p>That is, the content type given in the <code>match</code> and <code>len_match</code> parameters is checked for compatibility with the content types (if any) specified in the control frame.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">c</td><td><code>fstrm_control</code> object. </td></tr>
+    <tr><td class="paramname">match</td><td>The "Content Type" string to match. Note that this string is not NUL-terminated and may contain embedded NULs. May be NULL, in which case the control frame must not have any content type fields in order to match. </td></tr>
+    <tr><td class="paramname">len_match</td><td>The number of bytes in <code>match</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td>A match was found. </td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td>A match was not found. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -593,9 +723,9 @@ fstrm_res_failure The "Content Type" string is too long. </dd></dl>
 </div><div class="memdoc">
 
 <p>Decode a control frame from a buffer. </p>
-<p>The buffer starts with either the escape sequence or the control frame payload depending on whether the <code>FSTRM_CONTROL_FLAG_WITH_HEADER</code> flag is set or not.</p>
+<p>The buffer starts with either the escape sequence or the control frame payload depending on whether the <code>FSTRM_CONTROL_FLAG_WITH_HEADER</code> flag is set or not. In either case, the 'len_control_frame' parameter must be exact. Underflow or overflow is not permitted.</p>
 <p>The following code example shows a function that decodes a control frame payload: </p>
-<div class="fragment"><div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
+<div class="fragment"><div class="line"><span class="keyword">static</span> <a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a></div>
 <div class="line">decode_control_frame(<span class="keyword">const</span> <span class="keywordtype">void</span> *control_frame, <span class="keywordtype">size_t</span> len_control_frame)</div>
 <div class="line">{</div>
 <div class="line">        <a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> res;</div>
@@ -612,7 +742,7 @@ fstrm_res_failure The "Content Type" string is too long. </dd></dl>
 <div class="line">                <span class="keywordflow">return</span> res;</div>
 <div class="line">        }</div>
 <div class="line"></div>
-<div class="line">        res = <a class="code" href="group__fstrm__control.html#ga28f88503070e28cd3aca0e9a38db4d58" title="Retrieve the type of the control frame. ">fstrm_control_get_type</a>(c, &amp;c_type);</div>
+<div class="line">        res = <a class="code" href="group__fstrm__control.html#gabce9edd88f281429f8417a1c686ee1a5" title="Retrieve the type of the control frame. ">fstrm_control_get_type</a>(c, &amp;c_type);</div>
 <div class="line">        <span class="keywordflow">if</span> (res != <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
 <div class="line">                puts(<span class="stringliteral">&quot;fstrm_control_get_type() failed.&quot;</span>);</div>
 <div class="line">                <a class="code" href="group__fstrm__control.html#ga5dbe51deff01060740ff09402410d1e2" title="Destroy an fstrm_control object. ">fstrm_control_destroy</a>(&amp;c);</div>
@@ -621,13 +751,23 @@ fstrm_res_failure The "Content Type" string is too long. </dd></dl>
 <div class="line">        printf(<span class="stringliteral">&quot;The control frame is of type %s (%u).\n&quot;</span>,</div>
 <div class="line">               <a class="code" href="group__fstrm__control.html#ga6cb915068a99803f322231f52fdad8d5" title="Convert an fstrm_control_type enum value to a string representation. ">fstrm_control_type_to_str</a>(c_type), c_type);</div>
 <div class="line"></div>
-<div class="line">        <span class="keyword">const</span> <span class="keywordtype">void</span> *content_type;</div>
+<div class="line">        <span class="keywordtype">size_t</span> n_content_type;</div>
+<div class="line">        res = <a class="code" href="group__fstrm__control.html#gac7656071d8c5168a367306b831fd43b9" title="Retrieve the number of &quot;Content Type&quot; fields present in the control frame. ">fstrm_control_get_num_field_content_type</a>(c, &amp;n_content_type);</div>
+<div class="line">        <span class="keywordflow">if</span> (res != <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
+<div class="line">                puts(<span class="stringliteral">&quot;fstrm_control_get_num_field_content_type() failed.&quot;</span>);</div>
+<div class="line">                <a class="code" href="group__fstrm__control.html#ga5dbe51deff01060740ff09402410d1e2" title="Destroy an fstrm_control object. ">fstrm_control_destroy</a>(&amp;c);</div>
+<div class="line">                <span class="keywordflow">return</span> res;</div>
+<div class="line">        }</div>
+<div class="line"></div>
+<div class="line">        <span class="keyword">const</span> uint8_t *content_type;</div>
 <div class="line">        <span class="keywordtype">size_t</span> len_content_type;</div>
-<div class="line">        res = <a class="code" href="group__fstrm__control.html#ga24774fbe4cc5df6e97ef12febf03ecf4" title="Retrieve the &quot;Content Type&quot; of the control frame. ">fstrm_control_get_field_content_type</a>(c,</div>
-<div class="line">                &amp;content_type, &amp;len_content_type);</div>
-<div class="line">        <span class="keywordflow">if</span> (res == <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
-<div class="line">                printf(<span class="stringliteral">&quot;The control frame has a CONTENT_TYPE field of length %zd.\n&quot;</span>,</div>
-<div class="line">                       len_content_type);</div>
+<div class="line">        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> idx = 0; idx &lt; n_content_type; idx++) {</div>
+<div class="line">                res = <a class="code" href="group__fstrm__control.html#ga8c08659f162b1927cbaacc3a529439e8" title="Retrieve a &quot;Content Type&quot; field from the control frame. ">fstrm_control_get_field_content_type</a>(c, idx,</div>
+<div class="line">                        &amp;content_type, &amp;len_content_type);</div>
+<div class="line">                <span class="keywordflow">if</span> (res == <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
+<div class="line">                        printf(<span class="stringliteral">&quot;The control frame has a CONTENT_TYPE field of length %zd.\n&quot;</span>,</div>
+<div class="line">                               len_content_type);</div>
+<div class="line">                }</div>
 <div class="line">        }</div>
 <div class="line"></div>
 <div class="line">        <a class="code" href="group__fstrm__control.html#ga5dbe51deff01060740ff09402410d1e2" title="Destroy an fstrm_control object. ">fstrm_control_destroy</a>(&amp;c);</div>
@@ -638,24 +778,28 @@ fstrm_res_failure The "Content Type" string is too long. </dd></dl>
     <tr><td class="paramdir"></td><td class="paramname">c</td><td><code>fstrm_control</code> object. Its state will be overwritten. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">control_frame</td><td>Buffer containing the serialized control frame. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">len_control_frame</td><td>The number of bytes in <code>control_frame</code>. This parameter must specify the exact number of bytes in the control frame. </td></tr>
-    <tr><td class="paramdir"></td><td class="paramname">flags</td><td>Flags controlling the decoding process. See <a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d" title="Flags for controlling the behavior of fstrm_control_encode() and fstrm_control_decode(). ">fstrm_control_flag</a>.</td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">flags</td><td>Flags controlling the decoding process. See <a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d" title="Flags for controlling the behavior of the encoding and decoding functions. ">fstrm_control_flag</a>.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success </dd>
-<dd>
-fstrm_res_failure </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a class="anchor" id="gaeeb62913022d3b9cdd9179977f8ddd35"></a>
+<a class="anchor" id="ga1049654e60649d4f02db11026173399e"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_encoded_size </td>
           <td>(</td>
-          <td class="paramtype">struct fstrm_control *&#160;</td>
+          <td class="paramtype">const struct fstrm_control *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
         </tr>
         <tr>
@@ -683,24 +827,28 @@ fstrm_res_failure </dd></dl>
   <table class="params">
     <tr><td class="paramdir"></td><td class="paramname">c</td><td><code>fstrm_control</code> object. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">len_control_frame</td><td>The number of bytes needed to encode <code>c</code>. </td></tr>
-    <tr><td class="paramdir"></td><td class="paramname">flags</td><td>Flags controlling the encoding process. See <a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d" title="Flags for controlling the behavior of fstrm_control_encode() and fstrm_control_decode(). ">fstrm_control_flag</a>.</td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">flags</td><td>Flags controlling the encoding process. See <a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d" title="Flags for controlling the behavior of the encoding and decoding functions. ">fstrm_control_flag</a>.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success </dd>
-<dd>
-fstrm_res_failure </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a class="anchor" id="ga27ea01561e578fada59e136d4928347f"></a>
+<a class="anchor" id="ga4ae9c09cb17525cdf4cec4a17ce3017f"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329">fstrm_res</a> fstrm_control_encode </td>
           <td>(</td>
-          <td class="paramtype">struct fstrm_control *&#160;</td>
+          <td class="paramtype">const struct fstrm_control *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
         </tr>
         <tr>
@@ -730,7 +878,7 @@ fstrm_res_failure </dd></dl>
 </div><div class="memdoc">
 
 <p>Encode a control frame into a buffer. </p>
-<p>Since a Frame Streams control frame is a variable length byte sequence of up to <a class="el" href="group__fstrm__control.html#ga4008509837532ab4515f425b4c6d693d" title="The maximum length in bytes of an &quot;Accept&quot;, &quot;Start&quot;, or &quot;Stop&quot; control frame payload. ">FSTRM_MAX_CONTROL_FRAME_LENGTH</a> bytes, this function can be used in two different ways. The first way is to call <a class="el" href="group__fstrm__control.html#gaeeb62913022d3b9cdd9179977f8ddd35" title="Calculate the number of bytes needed to serialize the control frame. ">fstrm_control_encoded_size()</a> to obtain the exact number of bytes needed to encode the frame, and then pass a buffer of this exact size to <a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a>. The following example shows this usage: </p>
+<p>Since a Frame Streams control frame is a variable length byte sequence of up to <a class="el" href="group__fstrm__control.html#ga4e67dcc80e7190fef15b35f85c596e8d" title="The maximum length in bytes of an &quot;Accept&quot;, &quot;Start&quot;, or &quot;Stop&quot; control frame payload. ">FSTRM_CONTROL_FRAME_LENGTH_MAX</a> bytes, this function can be used in two different ways. The first way is to call <a class="el" href="group__fstrm__control.html#ga1049654e60649d4f02db11026173399e" title="Calculate the number of bytes needed to serialize the control frame. ">fstrm_control_encoded_size()</a> to obtain the exact number of bytes needed to encode the frame, and then pass a buffer of this exact size to <a class="el" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a>. The following example shows this usage: </p>
 <div class="fragment"><div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> res;</div>
 <div class="line"><span class="keyword">struct </span>fstrm_control *c;</div>
 <div class="line">uint8_t *control_frame;</div>
@@ -744,7 +892,7 @@ fstrm_res_failure </dd></dl>
 <div class="line">}</div>
 <div class="line"></div>
 <div class="line"><span class="comment">// Calculate the number of bytes needed.</span></div>
-<div class="line">res = <a class="code" href="group__fstrm__control.html#gaeeb62913022d3b9cdd9179977f8ddd35" title="Calculate the number of bytes needed to serialize the control frame. ">fstrm_control_encoded_size</a>(c, &amp;len_control_frame, flags);</div>
+<div class="line">res = <a class="code" href="group__fstrm__control.html#ga1049654e60649d4f02db11026173399e" title="Calculate the number of bytes needed to serialize the control frame. ">fstrm_control_encoded_size</a>(c, &amp;len_control_frame, flags);</div>
 <div class="line"><span class="keywordflow">if</span> (res != <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
 <div class="line">        <span class="comment">// Error handling goes here.</span></div>
 <div class="line">}</div>
@@ -757,7 +905,7 @@ fstrm_res_failure </dd></dl>
 <div class="line">}</div>
 <div class="line"></div>
 <div class="line"><span class="comment">// Serialize the control frame into the allocated buffer.</span></div>
-<div class="line">res = <a class="code" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode</a>(c, control_frame, &amp;len_control_frame, 0);</div>
+<div class="line">res = <a class="code" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f" title="Encode a control frame into a buffer. ">fstrm_control_encode</a>(c, control_frame, &amp;len_control_frame, 0);</div>
 <div class="line"><span class="keywordflow">if</span> (res != <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
 <div class="line">        <span class="comment">// Error handling goes here.</span></div>
 <div class="line">}</div>
@@ -767,10 +915,10 @@ fstrm_res_failure </dd></dl>
 <div class="line"><span class="comment">// Clean up.</span></div>
 <div class="line">free(control_frame);</div>
 <div class="line"><a class="code" href="group__fstrm__control.html#ga5dbe51deff01060740ff09402410d1e2" title="Destroy an fstrm_control object. ">fstrm_control_destroy</a>(&amp;c);</div>
-</div><!-- fragment --><p>The second way to use <a class="el" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> is to allocate a statically sized buffer of <a class="el" href="group__fstrm__control.html#ga4008509837532ab4515f425b4c6d693d" title="The maximum length in bytes of an &quot;Accept&quot;, &quot;Start&quot;, or &quot;Stop&quot; control frame payload. ">FSTRM_MAX_CONTROL_FRAME_LENGTH</a> bytes. The exact number of bytes serialized by the encoder will be returned in the <code>len_control_frame</code> parameter. The following example shows this usage: </p>
+</div><!-- fragment --><p>The second way to use <a class="el" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f" title="Encode a control frame into a buffer. ">fstrm_control_encode()</a> is to allocate a statically sized buffer of <a class="el" href="group__fstrm__control.html#ga4e67dcc80e7190fef15b35f85c596e8d" title="The maximum length in bytes of an &quot;Accept&quot;, &quot;Start&quot;, or &quot;Stop&quot; control frame payload. ">FSTRM_CONTROL_FRAME_LENGTH_MAX</a> bytes. The exact number of bytes serialized by the encoder will be returned in the <code>len_control_frame</code> parameter. The following example shows this usage: </p>
 <div class="fragment"><div class="line"><a class="code" href="group__fstrm__res.html#gad3cb32b083ff99d02ccfbc1a69823329" title="Result codes for functions. ">fstrm_res</a> res;</div>
 <div class="line"><span class="keyword">struct </span>fstrm_control *c;</div>
-<div class="line">uint8_t control_frame[<a class="code" href="group__fstrm__control.html#ga4008509837532ab4515f425b4c6d693d" title="The maximum length in bytes of an &quot;Accept&quot;, &quot;Start&quot;, or &quot;Stop&quot; control frame payload. ">FSTRM_MAX_CONTROL_FRAME_LENGTH</a>];</div>
+<div class="line">uint8_t control_frame[<a class="code" href="group__fstrm__control.html#ga4e67dcc80e7190fef15b35f85c596e8d" title="The maximum length in bytes of an &quot;Accept&quot;, &quot;Start&quot;, or &quot;Stop&quot; control frame payload. ">FSTRM_CONTROL_FRAME_LENGTH_MAX</a>];</div>
 <div class="line"><span class="keywordtype">size_t</span> len_control_frame = <span class="keyword">sizeof</span>(control_frame);</div>
 <div class="line"></div>
 <div class="line">c = <a class="code" href="group__fstrm__control.html#ga32839f6d4dd5e9c5554c9d6cbd4e69e1" title="Initialize an fstrm_control object. ">fstrm_control_init</a>();</div>
@@ -780,7 +928,7 @@ fstrm_res_failure </dd></dl>
 <div class="line">}</div>
 <div class="line"></div>
 <div class="line"><span class="comment">// Serialize the control frame.</span></div>
-<div class="line">res = <a class="code" href="group__fstrm__control.html#ga27ea01561e578fada59e136d4928347f" title="Encode a control frame into a buffer. ">fstrm_control_encode</a>(c, control_frame, &amp;len_control_frame, 0);</div>
+<div class="line">res = <a class="code" href="group__fstrm__control.html#ga4ae9c09cb17525cdf4cec4a17ce3017f" title="Encode a control frame into a buffer. ">fstrm_control_encode</a>(c, control_frame, &amp;len_control_frame, 0);</div>
 <div class="line"><span class="keywordflow">if</span> (res != <a class="code" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a>) {</div>
 <div class="line">        <span class="comment">// Error handling goes here.</span></div>
 <div class="line">}</div>
@@ -794,13 +942,17 @@ fstrm_res_failure </dd></dl>
     <tr><td class="paramdir"></td><td class="paramname">c</td><td><code>fstrm_control</code> object. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">control_frame</td><td>The buffer in which to serialize the control frame. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">len_control_frame</td><td>The size in bytes of <code>control_frame</code>. On a successful return, contains the number of bytes actually written into <code>control_frame</code>. </td></tr>
-    <tr><td class="paramdir"></td><td class="paramname">flags</td><td>Flags controlling the encoding process. See <a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d" title="Flags for controlling the behavior of fstrm_control_encode() and fstrm_control_decode(). ">fstrm_control_flag</a>.</td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">flags</td><td>Flags controlling the encoding process. See <a class="el" href="group__fstrm__control.html#gabeea197ecccbc24933fecb30aa90826d" title="Flags for controlling the behavior of the encoding and decoding functions. ">fstrm_control_flag</a>.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>fstrm_res_success </dd>
-<dd>
-fstrm_res_failure </dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329a89de17ab416590c6c61b2b5f7dd7844a" title="Success. ">fstrm_res_success</a></td><td></td></tr>
+    <tr><td class="paramname"><a class="el" href="group__fstrm__res.html#ggad3cb32b083ff99d02ccfbc1a69823329ab519f1b47be22d4f1b3ebe799a1c805b" title="Failure. ">fstrm_res_failure</a></td><td></td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
