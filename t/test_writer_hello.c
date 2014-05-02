@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fstrm.h"
+#include <fstrm.h>
 
 #include "libmy/my_alloc.h"
 #include "libmy/print_string.h"
@@ -51,76 +51,57 @@ static int			num_control_frames = 0;
 static int			num_iovecs = 0;
 
 static fstrm_res
-fs_test_writer_create(struct fstrm_io *io,
-		      const struct fstrm_writer_options *opt,
-		      void **data)
+test_rdwr_destroy(void *obj)
 {
-	//fprintf(stderr, "%s: called\n", __func__);
+	fprintf(stderr, "%s: called\n", __func__);
 	return fstrm_res_success;
 }
 
 static fstrm_res
-fs_test_writer_destroy(void *data)
+test_rdwr_open(void *obj)
 {
-	//fprintf(stderr, "%s: called\n", __func__);
+	fprintf(stderr, "%s: called\n", __func__);
 	return fstrm_res_success;
 }
 
 static fstrm_res
-fs_test_writer_open(void *data)
+test_rdwr_close(void *obj)
 {
-	//fprintf(stderr, "%s: called\n", __func__);
+	fprintf(stderr, "%s: called\n", __func__);
 	return fstrm_res_success;
 }
 
 static fstrm_res
-fs_test_writer_close(void *data)
+test_rdwr_write(void *obj, const struct iovec *iov, int iovcnt)
 {
-	//fprintf(stderr, "%s: called\n", __func__);
-	return fstrm_res_success;
-}
+	size_t nbytes = 0;
 
-static fstrm_res
-fs_test_writer_write_control(void *data,
-			     struct iovec *iov, int iovcnt,
-			     unsigned nbytes)
-{
-	//fprintf(stderr, "%s: called\n", __func__);
-	num_control_frames++;
+	fprintf(stderr, "%s: called, iov= %p, iovcnt= %d\n",
+		__func__, iov, iovcnt);
 
-	for (int i = 0; i < iovcnt; i++) {
-		/*
-		fprintf(stderr, "print_string: (%zd) ", iov[i].iov_len);
-		print_string(iov[i].iov_base, iov[i].iov_len, stderr);
+	assert(iovcnt > 0);
+
+	assert(iov[0].iov_len >= 4);
+	if (memcmp(iov[0].iov_base, "\x00\x00\x00\x00", 4) == 0) {
+		fprintf(stderr, "%s: got a control frame (%zd bytes): ",
+			__func__, iov[0].iov_len);
+		print_string(iov[0].iov_base, iov[0].iov_len, stderr);
 		fputc('\n', stderr);
-		*/
+		num_control_frames++;
+		return fstrm_res_success;
 	}
-	return fstrm_res_success;
-}
-
-static fstrm_res
-fs_test_writer_write_data(void *data,
-			  struct iovec *iov, int iovcnt,
-			  unsigned nbytes)
-{
-	/*
-	fprintf(stderr, "%s: called with iovcnt= %d, nbytes= %u\n",
-		__func__, iovcnt, nbytes);
-	*/
 
 	for (int i = 0; i < iovcnt; i++) {
-		/*
-		fprintf(stderr, "write_data: [%d] (%zd) ", i, iov[i].iov_len);
-		print_string(iov[i].iov_base, iov[i].iov_len, stderr);
-		fputc('\n', stderr);
-		*/
 		t_cur->next = my_calloc(1, sizeof(struct test_buf));
 		t_cur = t_cur->next;
 		t_cur->len = iov[i].iov_len;
 		t_cur->data = my_calloc(1, t_cur->len);
 		memmove(t_cur->data, iov[i].iov_base, iov[i].iov_len);
+		nbytes += iov[i].iov_len;
 	}
 	num_iovecs += iovcnt;
+
+	fprintf(stderr, "%s: got %zd bytes\n", __func__, nbytes);
 	return fstrm_res_success;
 }
 
@@ -156,16 +137,6 @@ do_checks(void)
 		assert(h != NULL);
 		assert(t != NULL);
 
-		/*
-		fprintf(stderr, "%s: h->data = (%zd) ", __func__, h->len);
-		print_string(h->data, h->len, stderr);
-		fputc('\n', stderr);
-
-		fprintf(stderr, "%s: t->data = (%zd) ", __func__, t->len);
-		print_string(t->data, t->len, stderr);
-		fputc('\n', stderr);
-		*/
-
 		uint32_t len_wire, len;
 
 		assert(t->len == sizeof(len_wire));
@@ -174,11 +145,6 @@ do_checks(void)
 
 		assert(t->next != NULL);
 		t = t->next;
-		/*
-		fprintf(stderr, "%s: t->data = (%zd) ", __func__, t->len);
-		print_string(t->data, t->len, stderr);
-		fputc('\n', stderr);
-		*/
 
 		assert(len == t->len);
 		assert(memcmp(h->data, t->data, len) == 0);
@@ -187,6 +153,9 @@ do_checks(void)
 		h = h->next;
 	}
 
+	fprintf(stderr, "%s: all checks succeeded\n", __func__);
+
+	/* cleanup */
 
 	h = h_head.next;
 	for (;;) {
@@ -214,39 +183,45 @@ do_checks(void)
 int
 main(void)
 {
-	char *err = NULL;
-	struct fstrm_io *io = NULL;
-	struct fstrm_io_options *io_opt = NULL;
-	struct fstrm_queue *fq = NULL;
+	fstrm_res res;
+	struct fstrm_iothr *iothr = NULL;
+	struct fstrm_iothr_options *iothr_opt = NULL;
+	struct fstrm_iothr_queue *ioq = NULL;
+	struct fstrm_rdwr *rdwr = NULL;
 	struct fstrm_writer *w = NULL;
+	struct fstrm_writer_options *wopt = NULL;
 
-	w = fstrm_writer_init();
+	rdwr = fstrm_rdwr_init(NULL);
+	fstrm_rdwr_set_destroy(rdwr, test_rdwr_destroy);
+	fstrm_rdwr_set_open(rdwr, test_rdwr_open);
+	fstrm_rdwr_set_close(rdwr, test_rdwr_close);
+	fstrm_rdwr_set_write(rdwr, test_rdwr_write);
 
-	fstrm_writer_set_create(w, fs_test_writer_create);
-	fstrm_writer_set_destroy(w, fs_test_writer_destroy);
-	fstrm_writer_set_open(w, fs_test_writer_open);
-	fstrm_writer_set_close(w, fs_test_writer_close);
-	fstrm_writer_set_write_control(w, fs_test_writer_write_control);
-	fstrm_writer_set_write_data(w, fs_test_writer_write_data);
+	wopt = fstrm_writer_options_init();
+	res = fstrm_writer_options_add_content_type(wopt,
+						    test_content_type,
+						    strlen(test_content_type));
+	assert(res == fstrm_res_success);
 
-	io_opt = fstrm_io_options_init();
-	fstrm_io_options_set_writer(io_opt, w, NULL);
-	fstrm_io_options_set_content_type(io_opt,
-					  test_content_type,
-					  strlen(test_content_type));
+	w = fstrm_writer_init(wopt, &rdwr);
+	// 'rdwr' is now owned by 'w'.
 
-	io = fstrm_io_init(io_opt, &err);
-	if (io == NULL) {
-		fprintf(stderr, "fstrm_io_init() failed: %s\n", err);
+	fstrm_writer_options_destroy(&wopt);
+
+	iothr = fstrm_iothr_init(iothr_opt, &w);
+	if (iothr == NULL) {
+		fprintf(stderr, "fstrm_io_init() failed.\n");
+		fstrm_writer_destroy(&w);
 		return EXIT_FAILURE;
 	}
+	// 'w' is now owned by 'iothr'.
 
-	fstrm_io_options_destroy(&io_opt);
-	fstrm_writer_destroy(&w);
+	fstrm_iothr_options_destroy(&iothr_opt);
 
-	fq = fstrm_io_get_queue(io);
-	if (fq == NULL) {
-		fprintf(stderr, "fstrm_io_get_queue() failed\n");
+	ioq = fstrm_iothr_get_input_queue(iothr);
+	if (ioq == NULL) {
+		fprintf(stderr, "fstrm_iothr_get_input_queue() failed\n");
+		fstrm_iothr_destroy(&iothr);
 		return EXIT_FAILURE;
 	}
 
@@ -265,10 +240,8 @@ main(void)
 		bytes = my_strdup(buf);
 
 		for (;;) {
-			fstrm_res res;
-
-			res = fstrm_io_submit(io, fq, bytes, strlen(bytes),
-					      fstrm_free_wrapper, NULL);
+			res = fstrm_iothr_submit(iothr, ioq, bytes, strlen(bytes),
+						 fstrm_free_wrapper, NULL);
 			if (res == fstrm_res_success) {
 				break;
 			} else if (res == fstrm_res_again) {
@@ -276,13 +249,16 @@ main(void)
 				continue;
 			} else {
 				free(bytes);
-				fprintf(stderr, "fstrm_io_submit() failed\n");
+				fprintf(stderr, "fstrm_iothr_submit() failed\n");
+				fstrm_iothr_destroy(&iothr);
 				return EXIT_FAILURE;
 			}
 		}
 	}
 
-	fstrm_io_destroy(&io);
+	fstrm_iothr_destroy(&iothr);
+
+	fprintf(stderr, "num_control_frames = %d\n", num_control_frames);
 
 	return do_checks();
 }

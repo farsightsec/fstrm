@@ -26,6 +26,7 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -123,53 +124,53 @@ fs_store_bytes(uint8_t **buf, size_t *len,
 	return true;
 }
 
-/* writer */
+/* rdwr */
 
-struct fstrm_writer {
-	fstrm_writer_create_func	create;
-	fstrm_writer_destroy_func	destroy;
-	fstrm_writer_open_func		open;
-	fstrm_writer_close_func		close;
-	fstrm_writer_read_func		read_control;
-	fstrm_writer_write_func		write_control;
-	fstrm_writer_write_func		write_data;
+struct fstrm_rdwr_ops {
+	fstrm_rdwr_destroy_func		destroy;
+	fstrm_rdwr_open_func		open;
+	fstrm_rdwr_close_func		close;
+	fstrm_rdwr_read_func		read;
+	fstrm_rdwr_write_func		write;
 };
 
-/* options */
-
-struct fstrm_io_options {
-	void			*content_type;
-	size_t			len_content_type;
-
-	unsigned		buffer_hint;
-	unsigned		flush_timeout;
-	unsigned		iovec_size;
-	unsigned		num_queues;
-	unsigned		queue_length;
-	unsigned		queue_notify_threshold;
-	unsigned		reconnect_interval;
-
-	struct fstrm_writer	*writer;
-	const void		*writer_options;
-
-	fstrm_queue_model	queue_model;
+struct fstrm_rdwr {
+	struct fstrm_rdwr_ops		ops;
+	void				*obj;
+	bool				opened;
 };
 
-void fs_io_options_dup(struct fstrm_io_options *, const struct fstrm_io_options *);
+fstrm_res
+fstrm__rdwr_read_control_frame(struct fstrm_rdwr *,
+			       struct fstrm_control *,
+			       fstrm_control_type *,
+			       const bool with_escape);
 
-bool fs_io_options_validate(const struct fstrm_io_options *, char **errstr_out);
+fstrm_res
+fstrm__rdwr_read_control(struct fstrm_rdwr *,
+			 struct fstrm_control **,
+			 fstrm_control_type wanted_type);
+
+fstrm_res
+fstrm__rdwr_write_control_frame(struct fstrm_rdwr *,
+				const struct fstrm_control *);
+
+fstrm_res
+fstrm__rdwr_write_control(struct fstrm_rdwr *,
+			  fstrm_control_type type,
+			  const fs_buf *content_type);
 
 /* time */
 
-bool fs_get_best_monotonic_clock_gettime(clockid_t *);
+bool fstrm__get_best_monotonic_clock_gettime(clockid_t *);
 
-bool fs_get_best_monotonic_clock_pthread(clockid_t *);
+bool fstrm__get_best_monotonic_clock_pthread(clockid_t *);
 
-bool fs_get_best_monotonic_clocks(clockid_t *clkid_gettime,
-				  clockid_t *clkid_pthread,
-				  char **errstr_out);
+bool fstrm__get_best_monotonic_clocks(clockid_t *clkid_gettime,
+				      clockid_t *clkid_pthread,
+				      char **errstr_out);
 
-int fs_pthread_cond_timedwait(clockid_t, pthread_cond_t *, pthread_mutex_t *, unsigned);
+int fstrm__pthread_cond_timedwait(clockid_t, pthread_cond_t *, pthread_mutex_t *, unsigned);
 
 /* queue */
 

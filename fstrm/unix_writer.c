@@ -22,23 +22,45 @@
 
 #include "fstrm-private.h"
 
-#define FS_UNIX_WRITER_OPTIONS_MAGIC	0xAC681DE98E858D12
-
 struct fstrm_unix_writer_options {
-	uint64_t		magic;
 	char			*socket_path;
 };
 
-struct fs_unix_writer {
+struct fstrm__unix_writer {
 	bool			connected;
 	int			fd;
 	struct sockaddr_un	sa;
 };
 
-static fstrm_res
-fs_unix_writer_open(void *data)
+struct fstrm_unix_writer_options *
+fstrm_unix_writer_options_init(void)
 {
-	struct fs_unix_writer *w = data;
+	return my_calloc(1, sizeof(struct fstrm_unix_writer_options));
+}
+
+void
+fstrm_unix_writer_options_destroy(struct fstrm_unix_writer_options **uwopt)
+{
+	if (*uwopt != NULL) {
+		my_free((*uwopt)->socket_path);
+		my_free(*uwopt);
+	}
+}
+
+void
+fstrm_unix_writer_options_set_socket_path(
+	struct fstrm_unix_writer_options *uwopt,
+	const char *socket_path)
+{
+	my_free(uwopt->socket_path);
+	if (socket_path != NULL)
+		uwopt->socket_path = my_strdup(socket_path);
+}
+
+static fstrm_res
+fstrm__unix_writer_op_open(void *obj)
+{
+	struct fstrm__unix_writer *w = obj;
 
 	/* Nothing to do if the socket is already connected. */
 	if (w->connected)
@@ -96,43 +118,47 @@ fs_unix_writer_open(void *data)
 }
 
 static fstrm_res
-fs_unix_writer_close(void *data)
+fstrm__unix_writer_op_close(void *obj)
 {
-	struct fs_unix_writer *w = data;
-
-	if (w->connected)
-		close(w->fd);
-	w->connected = false;
-
-	return fstrm_res_success;
-}
-
-static fstrm_res
-fs_unix_writer_read(void *data, void *buf, size_t nbytes)
-{
-	struct fs_unix_writer *w = data;
-
-	if (read_bytes(w->fd, buf, nbytes))
+	struct fstrm__unix_writer *w = obj;
+	if (w->connected) {
+		w->connected = false;
+		if (close(w->fd) != 0)
+			return fstrm_res_failure;
 		return fstrm_res_success;
-
+	}
 	return fstrm_res_failure;
 }
 
 static fstrm_res
-fs_unix_writer_write(void *data,
-		     struct iovec *iov, int iovcnt,
-		     unsigned nbytes)
+fstrm__unix_writer_op_read(void *obj, void *buf, size_t nbytes)
 {
-	struct fs_unix_writer *w = data;
+	struct fstrm__unix_writer *w = obj;
+	if (likely(w->connected)) {
+		if (read_bytes(w->fd, buf, nbytes))
+			return fstrm_res_success;
+	}
+	return fstrm_res_failure;
+}
+
+static fstrm_res
+fstrm__unix_writer_op_write(void *obj, const struct iovec *iov, int iovcnt)
+{
+	struct fstrm__unix_writer *w = obj;
+
+	size_t nbytes = 0;
 	ssize_t written = 0;
 	int cur = 0;
 	struct msghdr msg = {
-		.msg_iov = iov,
+		.msg_iov = (struct iovec *) /* Grr! */ iov,
 		.msg_iovlen = iovcnt,
 	};
 
 	if (unlikely(!w->connected))
 		return fstrm_res_failure;
+
+	for (int i = 0; i < iovcnt; i++)
+		nbytes += iov[i].iov_len;
 
 	for (;;) {
 		do {
@@ -156,86 +182,35 @@ fs_unix_writer_write(void *data,
 }
 
 static fstrm_res
-fs_unix_writer_create(struct fstrm_io *io __attribute__((__unused__)),
-		      const struct fstrm_writer_options *opt,
-		      void **data)
+fstrm__unix_writer_op_destroy(void *obj)
 {
-	struct fs_unix_writer *w;
-	const struct fstrm_unix_writer_options *wopt = 
-		(const struct fstrm_unix_writer_options *) opt;
-
-	if (wopt->magic != FS_UNIX_WRITER_OPTIONS_MAGIC)
-		return fstrm_res_failure;
-
-	if (wopt->socket_path == NULL)
-		return fstrm_res_failure;
-
-	if (strlen(wopt->socket_path) + 1 > sizeof(w->sa.sun_path))
-		return fstrm_res_failure;
-
-	w = my_calloc(1, sizeof(*w));
-	w->sa.sun_family = AF_UNIX;
-	strncpy(w->sa.sun_path, wopt->socket_path, sizeof(w->sa.sun_path) - 1);
-
-	(void) fs_unix_writer_open(w);
-
-	*data = w;
-	return fstrm_res_success;
-}
-
-static fstrm_res
-fs_unix_writer_destroy(void *data)
-{
-	struct fs_unix_writer *w = data;
-	(void) fs_unix_writer_close(w);
+	struct fstrm__unix_writer *w = obj;
 	my_free(w);
 	return fstrm_res_success;
 }
 
-struct fstrm_unix_writer_options *
-fstrm_unix_writer_options_init(void)
+struct fstrm_writer *
+fstrm_unix_writer_init(const struct fstrm_unix_writer_options *uwopt,
+		       const struct fstrm_writer_options *wopt)
 {
-	struct fstrm_unix_writer_options *wopt;
-	wopt = my_calloc(1, sizeof(*wopt));
-	wopt->magic = FS_UNIX_WRITER_OPTIONS_MAGIC;
-	return wopt;
-}
+	struct fstrm_rdwr *rdwr;
+	struct fstrm__unix_writer *uw;
 
-void
-fstrm_unix_writer_options_destroy(struct fstrm_unix_writer_options **wopt)
-{
-	if (*wopt != NULL) {
-		my_free((*wopt)->socket_path);
-		my_free(*wopt);
-	}
-}
+	if (uwopt->socket_path == NULL)
+		return NULL;
 
-void
-fstrm_unix_writer_options_set_socket_path(
-	struct fstrm_unix_writer_options *wopt,
-	const char *socket_path)
-{
-	if (socket_path != NULL) {
-		if (wopt->socket_path != NULL)
-			my_free(wopt->socket_path);
-		wopt->socket_path = my_strdup(socket_path);
-	}
-}
+	if (strlen(uwopt->socket_path) + 1 > sizeof(uw->sa.sun_path))
+		return NULL;
 
-static const struct fstrm_writer fs_writer_impl_unix = {
-	.create =
-		fs_unix_writer_create,
-	.destroy =
-		fs_unix_writer_destroy,
-	.open =
-		fs_unix_writer_open,
-	.close =
-		fs_unix_writer_close,
-	.read_control =
-		fs_unix_writer_read,
-	.write_control =
-		fs_unix_writer_write,
-	.write_data =
-		fs_unix_writer_write,
-};
-const struct fstrm_writer *fstrm_unix_writer = &fs_writer_impl_unix;
+	uw = my_calloc(1, sizeof(*uw));
+	uw->sa.sun_family = AF_UNIX;
+	strncpy(uw->sa.sun_path, uwopt->socket_path, sizeof(uw->sa.sun_path) - 1);
+
+	rdwr = fstrm_rdwr_init(uw);
+	fstrm_rdwr_set_destroy(rdwr, fstrm__unix_writer_op_destroy);
+	fstrm_rdwr_set_open(rdwr, fstrm__unix_writer_op_open);
+	fstrm_rdwr_set_close(rdwr, fstrm__unix_writer_op_close);
+	fstrm_rdwr_set_read(rdwr, fstrm__unix_writer_op_read);
+	fstrm_rdwr_set_write(rdwr, fstrm__unix_writer_op_write);
+	return fstrm_writer_init(wopt, &rdwr);
+}

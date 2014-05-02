@@ -38,33 +38,31 @@
 
 #define MAX_MESSAGE_SIZE	4096
 
+static const char *test_string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 struct producer_stats {
-	uint64_t		count_generated;
-	uint64_t		count_submitted;
-	uint64_t		bytes_generated;
-	uint64_t		bytes_submitted;
+	uint64_t			count_generated;
+	uint64_t			count_submitted;
+	uint64_t			bytes_generated;
+	uint64_t			bytes_submitted;
 };
 
 struct producer {
-	pthread_t		thr;
-	struct producer_stats	pstat;
-	struct fstrm_queue	*fq;
+	pthread_t			thr;
+	struct producer_stats		pstat;
+	struct fstrm_iothr		*iothr;
+	struct fstrm_iothr_queue	*ioq;
+	unsigned			num_messages;
 };
 
 struct consumer_stats {
-	uint64_t		count_received;
-	uint64_t		bytes_received;
+	uint64_t			count_received;
+	uint64_t			bytes_received;
 };
 
 struct consumer {
-	struct consumer_stats	cstat;
+	struct consumer_stats		cstat;
 };
-
-static unsigned num_messages;
-
-static struct fstrm_io *fio;
-
-static const char *test_string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 static void *
 thr_producer(void *arg)
@@ -73,7 +71,7 @@ thr_producer(void *arg)
 
 	memset(&p->pstat, 0, sizeof(p->pstat));
 
-	for (unsigned i = 0; i < num_messages; i++) {
+	for (unsigned i = 0; i < p->num_messages; i++) {
 		fstrm_res res;
 		size_t len = 0;
 		uint8_t *message = NULL;
@@ -86,7 +84,8 @@ thr_producer(void *arg)
 		ubuf_detach(u, &message, &len);
 		ubuf_destroy(&u);
 
-		res = fstrm_io_submit(fio, p->fq, message, len, fstrm_free_wrapper, NULL);
+		res = fstrm_iothr_submit(p->iothr, p->ioq,
+			message, len, fstrm_free_wrapper, NULL);
 		if (res == fstrm_res_success) {
 			p->pstat.count_submitted++;
 			p->pstat.bytes_submitted += len;
@@ -100,7 +99,7 @@ thr_producer(void *arg)
 			poll(NULL, 0, 1);
 	}
 
-	return (NULL);
+	return NULL;
 }
 
 static void
@@ -187,8 +186,9 @@ main(int argc, char **argv)
 	double elapsed;
 	char *file_path;
 	char *queue_model_str;
+	unsigned num_messages;
 	unsigned num_threads;
-	fstrm_queue_model queue_model;
+	fstrm_iothr_queue_model queue_model;
 
 	if (argc != 5) {
 		fprintf(stderr, "Usage: %s <FILE> <QUEUE MODEL> <NUM THREADS> <NUM MESSAGES>\n", argv[0]);
@@ -197,7 +197,7 @@ main(int argc, char **argv)
 		fprintf(stderr, "QUEUE MODEL is the string 'SPSC' or 'MPSC'.\n");
 		fprintf(stderr, "NUM THREADS is an integer.\n");
 		fprintf(stderr, "NUM MESSAGES is an integer.\n");
-		return (EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	file_path = argv[1];
 	queue_model_str = argv[2];
@@ -205,68 +205,69 @@ main(int argc, char **argv)
 	num_messages = atoi(argv[4]);
 	if (num_threads < 1) {
 		fprintf(stderr, "%s: Error: invalid number of threads\n", argv[0]);
-		return (EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 	if (num_messages < 1) {
 		fprintf(stderr, "%s: Error: invalid number of messages\n", argv[0]);
-		return (EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	if (strcasecmp(queue_model_str, "SPSC") == 0) {
-		queue_model = FSTRM_QUEUE_MODEL_SPSC;
+		queue_model = FSTRM_IOTHR_QUEUE_MODEL_SPSC;
 	} else if (strcasecmp(queue_model_str, "MPSC") == 0) {
-		queue_model = FSTRM_QUEUE_MODEL_MPSC;
+		queue_model = FSTRM_IOTHR_QUEUE_MODEL_MPSC;
 	} else {
 		fprintf(stderr, "%s: Error: invalid queue model\n", argv[0]);
-		return (EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
-	printf("testing fstrm_io with file= %s "
+	printf("testing fstrm_iothr with file= %s "
 	       "queue_model= %s "
 	       "num_threads= %u "
 	       "num_messages= %u\n",
 	       file_path, queue_model_str, num_threads, num_messages);
 
-	struct producer test_producers[num_threads];
-	struct consumer test_consumer;
+	struct fstrm_file_options *fopt;
+	fopt = fstrm_file_options_init();
+	fstrm_file_options_set_file_path(fopt, file_path);
+	struct fstrm_writer *w = fstrm_file_writer_init(fopt, NULL);
+	assert(w != NULL);
+	fstrm_file_options_destroy(&fopt);
 
-	struct fstrm_file_writer_options *wopt;
-	wopt = fstrm_file_writer_options_init();
-	fstrm_file_writer_options_set_file_path(wopt, file_path);
+	struct fstrm_iothr_options *iothr_opt;
+	iothr_opt = fstrm_iothr_options_init();
 
-	struct fstrm_io_options *fopt;
-	fopt = fstrm_io_options_init();
-
-	if (queue_model == FSTRM_QUEUE_MODEL_SPSC) {
-		fstrm_io_options_set_num_queues(fopt, num_threads);
-	} else if (queue_model == FSTRM_QUEUE_MODEL_MPSC) {
-		fstrm_io_options_set_num_queues(fopt, 1);
+	if (queue_model == FSTRM_IOTHR_QUEUE_MODEL_SPSC) {
+		fstrm_iothr_options_set_num_input_queues(iothr_opt, num_threads);
+	} else if (queue_model == FSTRM_IOTHR_QUEUE_MODEL_MPSC) {
+		fstrm_iothr_options_set_num_input_queues(iothr_opt, 1);
 	} else {
 		assert(0); /* not reached */
 	}
-	fstrm_io_options_set_queue_model(fopt, queue_model);
-	fstrm_io_options_set_writer(fopt, fstrm_file_writer, wopt);
+	fstrm_iothr_options_set_queue_model(iothr_opt, queue_model);
 
-	char *errstr = NULL;
-	fio = fstrm_io_init(fopt, &errstr);
-	if (fio == NULL) {
-		fprintf(stderr, "%s: Error: fstrm_io_init() failed: %s\n", argv[0], errstr);
-		free(errstr);
-		return (EXIT_FAILURE);
+	struct fstrm_iothr *iothr = fstrm_iothr_init(iothr_opt, &w);
+	assert(iothr != NULL);
+	fstrm_iothr_options_destroy(&iothr_opt);
+
+	struct consumer test_consumer;
+	struct producer test_producers[num_threads];
+
+	for (unsigned i = 0; i < num_threads; i++) {
+		test_producers[i].iothr = iothr;
+		test_producers[i].num_messages = num_messages;
 	}
-	fstrm_io_options_destroy(&fopt);
-	fstrm_file_writer_options_destroy(&wopt);
 
-	if (queue_model == FSTRM_QUEUE_MODEL_SPSC) {
+	if (queue_model == FSTRM_IOTHR_QUEUE_MODEL_SPSC) {
 		for (unsigned i = 0; i < num_threads; i++) {
-			test_producers[i].fq = fstrm_io_get_queue(fio);
-			assert(test_producers[i].fq != NULL);
+			test_producers[i].ioq = fstrm_iothr_get_input_queue(iothr);
+			assert(test_producers[i].ioq != NULL);
 		}
-	} else if (queue_model == FSTRM_QUEUE_MODEL_MPSC) {
-		struct fstrm_queue *fq = fstrm_io_get_queue(fio);
-		assert(fq != NULL);
+	} else if (queue_model == FSTRM_IOTHR_QUEUE_MODEL_MPSC) {
+		struct fstrm_iothr_queue *ioq = fstrm_iothr_get_input_queue(iothr);
+		assert(ioq != NULL);
 		for (unsigned i = 0; i < num_threads; i++)
-			test_producers[i].fq = fq;
+			test_producers[i].ioq = ioq;
 	} else {
 		assert(0); /* not reached */
 	}
@@ -281,8 +282,8 @@ main(int argc, char **argv)
 	for (unsigned i = 0; i < num_threads; i++)
 		pthread_join(test_producers[i].thr, (void **) NULL);
 
-	printf("destroying fstrm_io object\n");
-	fstrm_io_destroy(&fio);
+	printf("destroying fstrm_iothr object\n");
+	fstrm_iothr_destroy(&iothr);
 
 	my_gettime(CLOCK_MONOTONIC, &ts_b);
 	my_timespec_sub(&ts_a, &ts_b);

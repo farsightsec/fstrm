@@ -17,7 +17,7 @@
 #include "fstrm-private.h"
 
 bool
-fs_get_best_monotonic_clock_pthread(clockid_t *c)
+fstrm__get_best_monotonic_clock_pthread(clockid_t *c)
 {
 	bool res = false;
 	int rc;
@@ -74,7 +74,7 @@ out:
 }
 
 bool
-fs_get_best_monotonic_clock_gettime(clockid_t *c)
+fstrm__get_best_monotonic_clock_gettime(clockid_t *c)
 {
 	struct timespec ts;
 
@@ -102,12 +102,12 @@ fs_get_best_monotonic_clock_gettime(clockid_t *c)
 }
 
 bool
-fs_get_best_monotonic_clocks(clockid_t *clkid_gettime,
-			     clockid_t *clkid_pthread,
-			     char **err)
+fstrm__get_best_monotonic_clocks(clockid_t *clkid_gettime,
+				 clockid_t *clkid_pthread,
+				 char **err)
 {
 	if (clkid_gettime != NULL && 
-	    !fs_get_best_monotonic_clock_gettime(clkid_gettime))
+	    !fstrm__get_best_monotonic_clock_gettime(clkid_gettime))
 	{
 		if (err != NULL)
 			*err = my_strdup("no clock available for clock_gettime()");
@@ -115,7 +115,7 @@ fs_get_best_monotonic_clocks(clockid_t *clkid_gettime,
 	}
 
 	if (clkid_pthread != NULL &&
-	    !fs_get_best_monotonic_clock_pthread(clkid_pthread))
+	    !fstrm__get_best_monotonic_clock_pthread(clkid_pthread))
 	{
 		if (err != NULL)
 			*err = my_strdup("no clock available for pthread_cond_timedwait()");
@@ -126,10 +126,10 @@ fs_get_best_monotonic_clocks(clockid_t *clkid_gettime,
 }
 
 int
-fs_pthread_cond_timedwait(clockid_t clock_id,
-			  pthread_cond_t *cond,
-			  pthread_mutex_t *mutex,
-			  unsigned seconds)
+fstrm__pthread_cond_timedwait(clockid_t clock_id,
+			      pthread_cond_t *cond,
+			      pthread_mutex_t *mutex,
+			      unsigned seconds)
 {
 	int res;
 	struct timespec ts;

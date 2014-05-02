@@ -34,8 +34,8 @@ AM_CONDITIONAL([HAVE_DOXYGEN],
                [test -n "$DOXYGEN"])
 AM_COND_IF([HAVE_DOXYGEN],
            [AC_CONFIG_FILES([Doxyfile])
-            DOXYGEN_INPUT_FILES="${srcdir}/fstrm/fstrm.h"
-            AC_SUBST(DOXYGEN_INPUT_FILES)
+            DOXYGEN_INPUT="${srcdir}/fstrm"
+            AC_SUBST(DOXYGEN_INPUT)
            ])
 
 my_PKG_CONFIG_FILES([LIBFSTRM_PC], [fstrm/libfstrm.pc])

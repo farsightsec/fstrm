@@ -82,7 +82,7 @@ fstrm_control_reset(struct fstrm_control *c)
 }
 
 fstrm_res
-fstrm_control_get_type(struct fstrm_control *c, fstrm_control_type *type)
+fstrm_control_get_type(const struct fstrm_control *c, fstrm_control_type *type)
 {
 	switch (c->type) {
 	case FSTRM_CONTROL_ACCEPT:	/* FALLTHROUGH */
@@ -114,7 +114,7 @@ fstrm_control_set_type(struct fstrm_control *c, fstrm_control_type type)
 }
 
 fstrm_res
-fstrm_control_get_num_field_content_type(struct fstrm_control *c,
+fstrm_control_get_num_field_content_type(const struct fstrm_control *c,
 					 size_t *n_content_type)
 {
 	*n_content_type = fs_bufvec_size(c->content_types);
@@ -140,7 +140,7 @@ fstrm_control_get_num_field_content_type(struct fstrm_control *c,
 }
 
 fstrm_res
-fstrm_control_get_field_content_type(struct fstrm_control *c,
+fstrm_control_get_field_content_type(const struct fstrm_control *c,
 				     const size_t idx,
 				     const uint8_t **content_type,
 				     size_t *len_content_type)
@@ -169,9 +169,9 @@ fstrm_control_add_field_content_type(struct fstrm_control *c,
 }
 
 fstrm_res
-fstrm_control_match_field_content_type(struct fstrm_control *c,
+fstrm_control_match_field_content_type(const struct fstrm_control *c,
 				       const uint8_t *match,
-				       size_t len_match)
+				       const size_t len_match)
 {
 	fstrm_res res;
 	size_t n_ctype = 0;
@@ -254,7 +254,7 @@ fstrm_control_decode(struct fstrm_control *c,
 			return fstrm_res_failure;
 
 		/* Enforce maximum control frame size. */
-		if (val > FSTRM_MAX_CONTROL_FRAME_LENGTH)
+		if (val > FSTRM_CONTROL_FRAME_LENGTH_MAX)
 			return fstrm_res_failure;
 
 		/*
@@ -265,7 +265,7 @@ fstrm_control_decode(struct fstrm_control *c,
 			return fstrm_res_failure;
 	} else {
 		/* Enforce maximum control frame size. */
-		if (len_control_frame > FSTRM_MAX_CONTROL_FRAME_LENGTH)
+		if (len_control_frame > FSTRM_CONTROL_FRAME_LENGTH_MAX)
 			return fstrm_res_failure;
 	}
 
@@ -307,7 +307,7 @@ fstrm_control_decode(struct fstrm_control *c,
 				return fstrm_res_failure;
 
 			/* Enforce limit on "Content Type" payload length. */
-			if (c_type.len > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
+			if (c_type.len > FSTRM_CONTROL_FIELD_CONTENT_TYPE_LENGTH_MAX)
 				return fstrm_res_failure;
 
 			/* Read the "Content Type" payload. */
@@ -353,7 +353,7 @@ fstrm_control_decode(struct fstrm_control *c,
 }
 
 fstrm_res
-fstrm_control_encoded_size(struct fstrm_control *c,
+fstrm_control_encoded_size(const struct fstrm_control *c,
 			   size_t *len_control_frame,
 			   const uint32_t flags)
 {
@@ -388,7 +388,7 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 		len += sizeof(uint32_t);
 
 		/* Enforce limit on "Content Type" payload length. */
-		if (c_type.len > FSTRM_MAX_CONTROL_FIELD_CONTENT_TYPE_LENGTH)
+		if (c_type.len > FSTRM_CONTROL_FIELD_CONTENT_TYPE_LENGTH_MAX)
 			return fstrm_res_failure;
 
 		/* The "Content Type" payload. */
@@ -400,7 +400,7 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 	}
 
 	/* Sanity check the overall length. */
-	if (len > FSTRM_MAX_CONTROL_FRAME_LENGTH)
+	if (len > FSTRM_CONTROL_FRAME_LENGTH_MAX)
 		return fstrm_res_failure;
 
 	*len_control_frame = len;
@@ -408,7 +408,7 @@ fstrm_control_encoded_size(struct fstrm_control *c,
 }
 
 fstrm_res
-fstrm_control_encode(struct fstrm_control *c,
+fstrm_control_encode(const struct fstrm_control *c,
 		     void *control_frame,
 		     size_t *len_control_frame,
 		     const uint32_t flags)

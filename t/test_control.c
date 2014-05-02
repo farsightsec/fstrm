@@ -358,7 +358,7 @@ static const struct control_test control_tests[] = {
 		.flags		= FSTRM_CONTROL_FLAG_WITH_HEADER,
 		.match_res	= fstrm_res_failure,
 	},
-		
+
 	{ .frame = NULL },
 };
 
@@ -544,7 +544,7 @@ test_reencode_frame(struct fstrm_control *c,
 	res = fstrm_control_encoded_size(c, &len_new_frame, flags);
 	assert(res == fstrm_res_success);
 	printf("Need %zd bytes for new frame.\n", len_new_frame);
-	assert(len_new_frame <= FSTRM_MAX_CONTROL_FRAME_LENGTH);
+	assert(len_new_frame <= FSTRM_CONTROL_FRAME_LENGTH_MAX);
 	uint8_t new_frame[len_new_frame];
 
 	len_new_frame_2 = len_new_frame;
@@ -572,12 +572,12 @@ test_reencode_frame_static(struct fstrm_control *c,
 
 	fstrm_res res;
 	int cmp;
-	uint8_t new_frame[FSTRM_MAX_CONTROL_FRAME_LENGTH];
+	uint8_t new_frame[FSTRM_CONTROL_FRAME_LENGTH_MAX];
 	size_t len_new_frame = sizeof(new_frame);
 
 	res = fstrm_control_encode(c, new_frame, &len_new_frame, flags);
 	assert(res == fstrm_res_success);
-	assert(len_new_frame <= FSTRM_MAX_CONTROL_FRAME_LENGTH);
+	assert(len_new_frame <= FSTRM_CONTROL_FRAME_LENGTH_MAX);
 	printf("Successfully encoded a new frame (%zd bytes):\n  ", len_new_frame);
 	print_string(new_frame, len_new_frame, stdout);
 	putchar('\n');
