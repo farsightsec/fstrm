@@ -382,6 +382,17 @@ fstrm_iothr_get_input_queue(struct fstrm_iothr *iothr)
 	return q;
 }
 
+struct fstrm_iothr_queue *
+fstrm_iothr_get_input_queue_idx(struct fstrm_iothr *iothr, size_t idx)
+{
+	struct fstrm_iothr_queue *q = NULL;
+
+	if (idx < iothr->opt.num_input_queues)
+		q = &iothr->queues[idx];
+
+	return q;
+}
+
 void
 fstrm_free_wrapper(void *data,
 		   void *free_data __attribute__((__unused__)))

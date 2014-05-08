@@ -364,6 +364,25 @@ struct fstrm_iothr_queue *
 fstrm_iothr_get_input_queue(struct fstrm_iothr *iothr);
 
 /**
+ * Obtain an `fstrm_iothr_queue` object for submitting data frames to the
+ * `fstrm_iothr` object. This function is like fstrm_iothr_get_input_queue()
+ * except it indexes into the `fstrm_iothr_queue`'s array of input queues.
+ *
+ * \param iothr
+ *	`fstrm_iothr` object.
+ * \param idx
+ *	Index of the `fstrm_iothr_queue` object to retrieve. This value is
+ *	limited by the **num_input_queues** option.
+ *
+ * \return
+ *	`fstrm_iothr_queue` object.
+ * \retval
+ *	NULL on failure.
+ */
+struct fstrm_iothr_queue *
+fstrm_iothr_get_input_queue_idx(struct fstrm_iothr *iothr, size_t idx);
+
+/**
  * Submit a data frame to the background I/O thread. If successfully queued and
  * the I/O thread has an active output stream opened, the data frame will be
  * asynchronously written to the output stream.
