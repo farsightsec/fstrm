@@ -22,6 +22,7 @@ global:
         fstrm_free_wrapper;
         fstrm_iothr_destroy;
         fstrm_iothr_get_input_queue;
+        fstrm_iothr_get_input_queue_idx;
         fstrm_iothr_init;
         fstrm_iothr_options_destroy;
         fstrm_iothr_options_init;
