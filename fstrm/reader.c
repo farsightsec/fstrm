@@ -303,6 +303,7 @@ fstrm__reader_next_data(struct fstrm_reader *r,
 
 			/* Read the data frame. */
 			ubuf_clip(r->buf, 0);
+			ubuf_reserve(r->buf, len);
 			res = fstrm_rdwr_read(r->rdwr, ubuf_ptr(r->buf), len);
 			if (unlikely(res != fstrm_res_success))
 				goto fail;
