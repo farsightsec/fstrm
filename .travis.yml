@@ -4,7 +4,7 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get -q install valgrind
+  - sudo apt-get -q install valgrind lcov
   - sudo pip install cpp-coveralls
 
 script:
