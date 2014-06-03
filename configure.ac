@@ -2,7 +2,7 @@ AC_PREREQ(2.64)
 
 AC_INIT([fstrm],
         [0.2.0-pre],
-        [software@farsightsecurity.com],
+        [https://github.com/farsightsec/fstrm/issues],
         [fstrm],
         [https://github.com/farsightsec/fstrm])
 PACKAGE_DESCRIPTION="Frame Streams implementation in C"
