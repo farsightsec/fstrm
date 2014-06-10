@@ -22,7 +22,7 @@
  *
  * `fstrm_writer` is an interface for writing Frame Streams data into a byte
  * stream. The underlying byte stream I/O operations are abstracted by the
- * \ref fstrm_rdwr interface. THus, the `fstrm_writer` interface can be used to
+ * \ref fstrm_rdwr interface. Thus, the `fstrm_writer` interface can be used to
  * write Frame Streams data to any type of output whose read/write operations
  * are wrapped by an `fstrm_rdwr` object.
  *
