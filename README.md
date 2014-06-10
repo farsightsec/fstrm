@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/farsightsec/fstrm.png?branch=master)](https://travis-ci.org/farsightsec/fstrm)
+[![Build Status](https://travis-ci.org/farsightsec/fstrm.png?branch=master)](https://travis-ci.org/farsightsec/fstrm) [![Coverage Status](https://coveralls.io/repos/farsightsec/fstrm/badge.png?branch=master)](https://coveralls.io/r/farsightsec/fstrm?branch=master)
 
 ## Overview
 
