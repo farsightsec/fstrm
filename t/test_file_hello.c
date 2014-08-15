@@ -123,6 +123,14 @@ main(void)
 		goto fail;
 	}
 
+	/* Double open. */
+	printf("Doing a double open.\n");
+	res = fstrm_writer_open(w);
+	if (res != fstrm_res_success) {
+		printf("Error: fstrm_writer_open() failed.\n");
+		goto fail;
+	}
+
 	/* Write hello messages. */
 	for (int i = 0; i < num_iterations; i++) {
 		res = write_message(w, i);
