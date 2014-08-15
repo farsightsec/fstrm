@@ -258,7 +258,7 @@ fstrm_writer_open(struct fstrm_writer *w)
 	fstrm_res res;
 
 	if (w->state == fstrm_writer_state_opened)
-		return fstrm_res_failure;
+		return fstrm_res_success;
 
 	res = fstrm_rdwr_open(w->rdwr);
 	if (res != fstrm_res_success)
