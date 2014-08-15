@@ -18,6 +18,11 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_SILENT_RULES([yes])
 LT_INIT
 
+AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_FILES([Makefile fstrm/libfstrm.pc])
+
+my_PKG_CONFIG_FILES([LIBFSTRM_PC], [fstrm/libfstrm.pc])
+
 my_CFLAGS="-Wall \
 -Wmissing-declarations -Wmissing-prototypes \
 -Wnested-externs -Wpointer-arith \
@@ -25,9 +30,6 @@ my_CFLAGS="-Wall \
 -Wstrict-prototypes -Wshadow \
 -Wformat-security"
 AC_SUBST([my_CFLAGS])
-
-AC_CONFIG_HEADERS(config.h)
-AC_CONFIG_FILES([Makefile fstrm/libfstrm.pc])
 
 AC_CHECK_PROGS([DOXYGEN], [doxygen])
 AM_CONDITIONAL([HAVE_DOXYGEN],
@@ -37,8 +39,6 @@ AM_COND_IF([HAVE_DOXYGEN],
             DOXYGEN_INPUT="${srcdir}/fstrm"
             AC_SUBST(DOXYGEN_INPUT)
            ])
-
-my_PKG_CONFIG_FILES([LIBFSTRM_PC], [fstrm/libfstrm.pc])
 
 AX_PTHREAD([
     LIBS="$PTHREAD_LIBS $LIBS"
