@@ -136,5 +136,8 @@ fstrm__pthread_cond_timedwait(clockid_t clock_id,
 	res = clock_gettime(clock_id, &ts);
 	assert(res == 0);
 	ts.tv_sec += seconds;
-	return pthread_cond_timedwait(cond, mutex, &ts);
+	pthread_mutex_lock(mutex);
+	res = pthread_cond_timedwait(cond, mutex, &ts);
+	pthread_mutex_unlock(mutex);
+	return res;
 }
