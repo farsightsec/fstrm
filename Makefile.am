@@ -185,7 +185,7 @@ src_fstrm_capture_CFLAGS = \
 	$(libevent_CFLAGS)
 src_fstrm_capture_SOURCES = \
 	src/fstrm_capture.c \
-	libmy/argv.c libmy/argv.h
+	libmy/argv.c libmy/argv.h libmy/argv_loc.h
 src_fstrm_capture_LDADD = \
 	fstrm/libfstrm.la \
 	$(libevent_LIBS)
