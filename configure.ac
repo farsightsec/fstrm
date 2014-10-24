@@ -49,13 +49,20 @@ AX_PTHREAD([
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([socket], [socket])
 
-AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked])
+AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked, fflush_unlocked])
 
 gl_LD_VERSION_SCRIPT
 
 gl_VALGRIND_TESTS
 
 MY_CODE_COVERAGE
+
+AC_ARG_ENABLE([programs],
+    AS_HELP_STRING([--disable-programs], [Disable building fstrm utility programs]))
+AS_IF([test "x$enable_programs" != "xno"], [
+    PKG_CHECK_MODULES([libevent], [libevent >= 2])
+])
+AM_CONDITIONAL([BUILD_PROGRAMS], [test "x$enable_programs" != "xno"])
 
 AC_OUTPUT
 AC_MSG_RESULT([

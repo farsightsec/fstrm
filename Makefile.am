@@ -171,12 +171,25 @@ TESTS += t/test_file_hello
 ##
 #
 
+if BUILD_PROGRAMS
 bin_PROGRAMS += src/fstrm_dump
 src_fstrm_dump_SOURCES = \
 	src/fstrm_dump.c \
 	libmy/print_string.h
 src_fstrm_dump_LDADD = \
 	fstrm/libfstrm.la
+
+bin_PROGRAMS += src/fstrm_capture
+src_fstrm_capture_CFLAGS = \
+	$(AM_CFLAGS) \
+	$(libevent_CFLAGS)
+src_fstrm_capture_SOURCES = \
+	src/fstrm_capture.c \
+	libmy/argv.c libmy/argv.h
+src_fstrm_capture_LDADD = \
+	fstrm/libfstrm.la \
+	$(libevent_LIBS)
+endif
 
 #
 ##
