@@ -144,8 +144,11 @@ fstrm_reader_destroy(struct fstrm_reader **r)
 {
 	fstrm_res res = fstrm_res_failure;
 	if (*r != NULL) {
-		if ((*r)->state == fstrm_reader_state_opened)
+		if ((*r)->state == fstrm_reader_state_opened ||
+		    (*r)->state == fstrm_reader_state_closing)
+		{
 			res = fstrm_reader_close(*r);
+		}
 
 		fstrm_control_destroy(&(*r)->control_tmp);
 		fstrm_control_destroy(&(*r)->control_accept);
@@ -361,8 +364,11 @@ fstrm_reader_close(struct fstrm_reader *r)
 {
 	fstrm_res res;
 
-	if (r->state != fstrm_reader_state_closing)
+	if (r->state != fstrm_reader_state_opened &&
+	    r->state != fstrm_reader_state_closing)
+	{
 		return fstrm_res_failure;
+	}
 
 	r->state = fstrm_reader_state_closed;
 
