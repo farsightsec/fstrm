@@ -1,3 +1,17 @@
+fstrm (0.2.0)
+
+  * Fix fstrm_writer_open() to allow multiple opens (Issue #1).
+
+  * New utility 'fstrm_capture', which requires libevent >= 2 (Issue #4).
+
+  * Fix incorrect pthread_cond_timedwait() usage (Issue #5).
+
+  * Backwards incompatible library API and protocol changes.
+
+  * Doxygen documentation.
+
+ -- Robert Edmonds <edmonds@fsi.io>  Thu, 06 Nov 2014 19:19:44 -0500
+
 fstrm (0.1.0)
 
   * Initial release.
