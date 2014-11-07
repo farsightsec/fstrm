@@ -37,6 +37,7 @@ var group__fstrm__iothr =
     [ "fstrm_iothr_init", "group__fstrm__iothr.html#gaaff915df783dcf02866ea8b41e54d701", null ],
     [ "fstrm_iothr_destroy", "group__fstrm__iothr.html#ga464c4256012684ec71653fb52624870d", null ],
     [ "fstrm_iothr_get_input_queue", "group__fstrm__iothr.html#ga18eebf6363c1d1f0f3d7b7428bf21d32", null ],
+    [ "fstrm_iothr_get_input_queue_idx", "group__fstrm__iothr.html#ga411c819309cb26cf6dff4326a94d3a9b", null ],
     [ "fstrm_iothr_submit", "group__fstrm__iothr.html#ga1c00c9adb179885e7cf2dc05e940f67d", null ],
     [ "fstrm_free_wrapper", "group__fstrm__iothr.html#ga34e96f0ef194f71d68b6354743128a74", null ]
 ];
