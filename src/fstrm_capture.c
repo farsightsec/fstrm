@@ -848,6 +848,15 @@ cb_accept_error(struct evconnlistener *listener, void *arg)
 		evutil_socket_error_to_string(err));
 }
 
+static void
+dosighup(evutil_socket_t sig, short events, void *user_data) {
+	struct capture *ctx = user_data;
+	if (ctx->output_file) {
+		fflush(ctx->output_file);
+		fprintf(stderr, "recieved SIGHUP: flushing output\n");
+	}
+}
+
 static bool
 setup_event_loop(struct capture *ctx)
 {
@@ -870,6 +879,10 @@ setup_event_loop(struct capture *ctx)
 		return false;
 	}
 	evconnlistener_set_error_cb(ctx->ev_connlistener, cb_accept_error);
+
+	struct event *hup = evsignal_new(ctx->ev_base, SIGHUP, &dosighup,
+					 &g_program_ctx);
+	evsignal_add(hup, NULL);
 
 	/* Success. */
 	return true;
