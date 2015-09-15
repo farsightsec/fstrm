@@ -95,6 +95,7 @@ struct capture {
 	evutil_socket_t		listen_fd;
 	struct event_base	*ev_base;
 	struct evconnlistener	*ev_connlistener;
+	struct event		*ev_sighup;
 
 	FILE			*output_file;
 
@@ -849,11 +850,12 @@ cb_accept_error(struct evconnlistener *listener, void *arg)
 }
 
 static void
-dosighup(evutil_socket_t sig, short events, void *user_data) {
+do_sighup(evutil_socket_t sig, short events, void *user_data)
+{
 	struct capture *ctx = user_data;
 	if (ctx->output_file) {
 		fflush(ctx->output_file);
-		fprintf(stderr, "recieved SIGHUP: flushing output\n");
+		fprintf(stderr, "%s: received SIGHUP, flushing output\n", argv_program);
 	}
 }
 
@@ -880,9 +882,10 @@ setup_event_loop(struct capture *ctx)
 	}
 	evconnlistener_set_error_cb(ctx->ev_connlistener, cb_accept_error);
 
-	struct event *hup = evsignal_new(ctx->ev_base, SIGHUP, &dosighup,
-					 &g_program_ctx);
-	evsignal_add(hup, NULL);
+	/* Register our SIGHUP handler. */
+	ctx->ev_sighup = evsignal_new(ctx->ev_base, SIGHUP, &do_sighup,
+				      &g_program_ctx);
+	evsignal_add(ctx->ev_sighup, NULL);
 
 	/* Success. */
 	return true;
@@ -916,6 +919,8 @@ static void
 cleanup(struct capture *ctx)
 {
 	argv_cleanup(g_args);
+	if (ctx->ev_sighup != NULL)
+		event_free(ctx->ev_sighup);
 	if (ctx->ev_connlistener != NULL)
 		evconnlistener_free(ctx->ev_connlistener);
 	if (ctx->ev_base != NULL)
