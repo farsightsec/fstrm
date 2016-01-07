@@ -459,7 +459,7 @@ close_write_file(struct capture *ctx)
 
 		/* For split output, rename newly closed file */
 		if (ctx->args->split_s > 0) {
-			fn_len = strlen(fname) + 7;
+			fn_len = strlen(fname) + 6;
 			fn_buf = (char*)calloc(fn_len, 1);
 			(void)snprintf(fn_buf, fn_len, "%s.fstrm", fname);
 			(void)rename(fname, fn_buf);
