@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -97,6 +98,8 @@ struct capture {
 	struct evconnlistener	*ev_connlistener;
 
 	FILE			*output_file;
+	char			*output_filename;
+	time_t			output_open_ts;
 
 	size_t			bytes_written;
 	size_t			count_written;
@@ -108,6 +111,7 @@ struct capture_args {
 	char			*str_content_type;
 	char			*str_read_unix;
 	char			*str_write_fname;
+	int			split_s;
 };
 
 static struct capture		g_program_ctx;
@@ -143,6 +147,12 @@ static argv_t g_args[] = {
 		&g_program_args.str_write_fname,
 		"<FILENAME>",
 		"file path to write Frame Streams data to" },
+
+	{ 's', "split",
+		ARGV_INT,
+		&g_program_args.split_s,
+		"<SECONDS>",
+		"amount of seconds to capture into each output file" },
 
 	{ ARGV_LAST },
 };
@@ -240,6 +250,7 @@ parse_args(const int argc, char **argv)
 {
 	argv_version_string = PACKAGE_VERSION;
 
+	g_program_args.split_s = 0;
 	if (argv_process(g_args, argc, argv) != 0)
 		return false;
 
@@ -373,11 +384,27 @@ static bool
 open_write_file(struct capture *ctx)
 {
 	const char *fname = ctx->args->str_write_fname;
+	size_t fn_len;
+	char *fn_buf = NULL;
 	mode_t open_mode = S_IRUSR  | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 	int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
 #if defined(O_CLOEXEC)
 	open_flags |= O_CLOEXEC;
 #endif
+
+	/* Filename manipulation for splitting output */
+	fn_len = strlen(fname) + 2 + 3*sizeof(unsigned);
+	fn_buf = (char*)calloc(fn_len, 1);
+	if (ctx->args->split_s > 0) {
+		(void)snprintf(fn_buf, fn_len, "%s.%u",
+			      fname, (unsigned)time(NULL));
+	}
+	else {
+		strncpy(fn_buf, fname, fn_len);
+	}
+	fn_buf[fn_len-1] = '\0'; /* My name is Case, Justin Case */
+	ctx->output_filename = fn_buf;
+	fname = fn_buf;
 
 	/* Open the file descriptor. */
 	int fd = open(fname, open_flags, open_mode);
@@ -396,6 +423,10 @@ open_write_file(struct capture *ctx)
 		return false;
 	}
 
+	ctx->count_written = 0;
+	ctx->bytes_written = 0;
+	ctx->output_open_ts = time(NULL);
+
 	/* Write the START frame. */
 	if (!open_write_start(ctx)) {
 		fclose(ctx->output_file);
@@ -413,6 +444,10 @@ open_write_file(struct capture *ctx)
 static bool
 close_write_file(struct capture *ctx)
 {
+	size_t fn_len;
+	char *fn_buf = NULL;
+	const char *fname = ctx->output_filename;
+
 	if (ctx->output_file != NULL) {
 		/* Write the STOP frame. */
 		if (!close_write_stop(ctx))
@@ -421,12 +456,27 @@ close_write_file(struct capture *ctx)
 		/* Close the FILE object. */
 		fclose(ctx->output_file);
 		ctx->output_file = NULL;
+
+		/* For split output, rename newly closed file */
+		if (ctx->args->split_s > 0) {
+			fn_len = strlen(fname) + 7;
+			fn_buf = (char*)calloc(fn_len, 1);
+			(void)snprintf(fn_buf, fn_len, "%s.fstrm", fname);
+			(void)rename(fname, fn_buf);
+			free(fn_buf);
+		}
 	}
 
 	/* Success. */
 	fprintf(stderr, "%s: closed output file %s (wrote %zd frames, %zd bytes)\n",
-		argv_program, ctx->args->str_write_fname,
+		argv_program, fname,
 		ctx->count_written, ctx->bytes_written);
+
+	if (ctx->output_filename != NULL) {
+		free(ctx->output_filename);
+		ctx->output_filename = NULL;
+	}
+
 	return true;
 }
 
@@ -481,6 +531,22 @@ process_data_frame(struct conn *conn)
 	conn->bytes_read += bytes_read;
 	conn->ctx->count_written += 1;
 	conn->ctx->bytes_written += bytes_read;
+
+	/* Output file rotation requested? */
+	if (conn->ctx->args->split_s > 0) {
+		time_t now = time(NULL);
+		/* Is it time to rotate? */
+		if (now >=
+		    conn->ctx->output_open_ts + conn->ctx->args->split_s) {
+			/* Rotate output file, fail hard if unsuccessful */
+			if(!close_write_file(conn->ctx)) {
+				exit(EXIT_FAILURE);
+			}
+			if (!open_write_file(conn->ctx)) {
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 }
 
 static bool
@@ -955,3 +1021,5 @@ main(int argc, char **argv)
 	/* Success. */
 	return EXIT_SUCCESS;
 }
+
+/* EOF */
