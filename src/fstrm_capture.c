@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -39,6 +40,7 @@
 #include "libmy/argv.h"
 #include "libmy/my_alloc.h"
 #include "libmy/print_string.h"
+#include "libmy/ubuf.h"
 
 #if HAVE_DECL_FFLUSH_UNLOCKED
 # define fflush fflush_unlocked
@@ -53,6 +55,7 @@
 #endif
 
 #define CAPTURE_HIGH_WATERMARK	262144
+#define FNAME_MAXLEN 1024
 
 struct capture;
 struct capture_args;
@@ -97,6 +100,8 @@ struct capture {
 	struct evconnlistener	*ev_connlistener;
 
 	FILE			*output_file;
+	char			*output_filename;
+	time_t			output_open_ts;
 
 	size_t			bytes_written;
 	size_t			count_written;
@@ -108,6 +113,8 @@ struct capture_args {
 	char			*str_content_type;
 	char			*str_read_unix;
 	char			*str_write_fname;
+	int			split_s;
+	char			*str_suffix;
 };
 
 static struct capture		g_program_ctx;
@@ -142,7 +149,19 @@ static argv_t g_args[] = {
 		ARGV_CHAR_P,
 		&g_program_args.str_write_fname,
 		"<FILENAME>",
-		"file path to write Frame Streams data to" },
+		"filename to write, as a strftime(3) string" },
+
+	{ 'x', "suffix",
+		ARGV_CHAR_P,
+		&g_program_args.str_suffix,
+		"<STRING>",
+		"output filename suffix to add after closing" },
+
+	{ 's', "split",
+		ARGV_INT,
+		&g_program_args.split_s,
+		"<SECONDS>",
+		"Amount of seconds to capture into each file" },
 
 	{ ARGV_LAST },
 };
@@ -240,6 +259,10 @@ parse_args(const int argc, char **argv)
 {
 	argv_version_string = PACKAGE_VERSION;
 
+	/* These are non-mandatory options */
+	g_program_args.split_s = 0;
+	g_program_args.str_suffix = NULL;
+
 	if (argv_process(g_args, argc, argv) != 0)
 		return false;
 
@@ -252,7 +275,15 @@ parse_args(const int argc, char **argv)
 		usage("Unix socket path to read from (--unix) is not set");
 	if (g_program_args.str_write_fname == NULL)
 		usage("file path to write Frame Streams data to (--write) is not set");
-
+	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
+		int fd = fileno(stdout);
+		if (isatty(fd) == 1)
+			usage("refusing binary output to terminal (stdout)");
+		if (g_program_args.split_s != 0)
+			usage("cannot use output splitting with stdout");
+		if (g_program_args.str_suffix != NULL)
+			usage("cannot use output suffix renaming with stdout");
+	}
 	return true;
 }
 
@@ -372,29 +403,60 @@ fail:
 static bool
 open_write_file(struct capture *ctx)
 {
-	const char *fname = ctx->args->str_write_fname;
+	char *fstr = ctx->args->str_write_fname;
+	char *fname, *fn_buf;
+	time_t t;
+	struct tm the_time;
+	size_t fn_len;
+	int fd;
 	mode_t open_mode = S_IRUSR  | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 	int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
 #if defined(O_CLOEXEC)
 	open_flags |= O_CLOEXEC;
 #endif
 
-	/* Open the file descriptor. */
-	int fd = open(fname, open_flags, open_mode);
-	if (fd == -1) {
-		fprintf(stderr, "%s: failed to open output file %s\n",
-			argv_program, fname);
-		return false;
+	if (strcmp(fstr, "-") == 0) {
+		fd = fileno(stdout);
+		ctx->output_file = stdout;
+		fname = fstr;
+	}
+	else {
+		/* Filename strftime expansion, useful when splitting output */
+		t = time(NULL);
+		localtime_r(&t, &the_time);
+		fn_buf = (char*)my_calloc(FNAME_MAXLEN, 1);
+		fn_len = strftime(fn_buf, FNAME_MAXLEN, fstr, &the_time);
+		if (!fn_len) {
+			fprintf(stderr, "%s: strftime failed on filename \"%s\"\n",
+				argv_program, fstr);
+			return false;
+		}
+		fname = my_malloc(fn_len);
+		strcpy(fname, fn_buf);
+		my_free(fn_buf);
+
+		/* Open the file descriptor. */
+		fd = open(fname, open_flags, open_mode);
+		if (fd == -1) {
+			fprintf(stderr, "%s: failed to open output file %s\n",
+				argv_program, fname);
+			return false;
+		}
+
+		/* Open the FILE object. */
+		ctx->output_file = fdopen(fd, "w");
+		if (!ctx->output_file) {
+			close(fd);
+			fprintf(stderr, "%s: failed to fdopen output file %s\n",
+				argv_program, fname);
+			return false;
+		}
 	}
 
-	/* Open the FILE object. */
-	ctx->output_file = fdopen(fd, "w");
-	if (!ctx->output_file) {
-		close(fd);
-		fprintf(stderr, "%s: failed to fdopen output file %s\n",
-			argv_program, fname);
-		return false;
-	}
+	ctx->count_written = 0;
+	ctx->bytes_written = 0;
+	ctx->output_open_ts = t;
+	ctx->output_filename = fname;
 
 	/* Write the START frame. */
 	if (!open_write_start(ctx)) {
@@ -406,13 +468,16 @@ open_write_file(struct capture *ctx)
 	}
 
 	/* Success. */
-	fprintf(stderr, "%s: opened output file %s\n", argv_program, fname);
+	fprintf(stderr, "%s: opened output file %s (fd=%d)\n", argv_program, fname, fd);
 	return true;
 }
 
 static bool
 close_write_file(struct capture *ctx)
 {
+	char *fname = ctx->output_filename;
+	const char *suffix = ctx->args->str_suffix;
+
 	if (ctx->output_file != NULL) {
 		/* Write the STOP frame. */
 		if (!close_write_stop(ctx))
@@ -423,10 +488,26 @@ close_write_file(struct capture *ctx)
 		ctx->output_file = NULL;
 	}
 
+	if (fname != NULL) {
+		/* Rename newly closed file if suffix is desired */
+		if (suffix != NULL) {
+			ubuf *fn_buf = ubuf_dup_cstr(fname);
+			ubuf_add_cstr(fn_buf, suffix);
+			(void)rename(fname, (char*)fn_buf->_v);
+			ubuf_destroy(&fn_buf);
+		}
+	}
+
 	/* Success. */
-	fprintf(stderr, "%s: closed output file %s (wrote %zd frames, %zd bytes)\n",
-		argv_program, ctx->args->str_write_fname,
+	fprintf(stderr, "%s: closed output file %s (suffix %s, wrote %zd frames, %zd bytes)\n",
+		argv_program, fname, suffix ? suffix : "(none)",
 		ctx->count_written, ctx->bytes_written);
+
+	if (fname != NULL) {
+		my_free(fname);
+		ctx->output_filename = NULL;
+	}
+
 	return true;
 }
 
@@ -481,6 +562,21 @@ process_data_frame(struct conn *conn)
 	conn->bytes_read += bytes_read;
 	conn->ctx->count_written += 1;
 	conn->ctx->bytes_written += bytes_read;
+
+	/* Output file rotation requested? */
+	if (conn->ctx->args->split_s > 0) {
+		time_t t_now = time(NULL);
+		/* Is it time to rotate? */
+		if (t_now >= conn->ctx->output_open_ts + conn->ctx->args->split_s) {
+			/* Rotate output file, fail hard if unsuccessful */
+			if (!close_write_file(conn->ctx)) {
+				exit(EXIT_FAILURE);
+			}
+			if (!open_write_file(conn->ctx)) {
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 }
 
 static bool
