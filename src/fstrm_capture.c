@@ -275,7 +275,15 @@ parse_args(const int argc, char **argv)
 		usage("Unix socket path to read from (--unix) is not set");
 	if (g_program_args.str_write_fname == NULL)
 		usage("file path to write Frame Streams data to (--write) is not set");
-
+	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
+		int fd = fileno(stdout);
+		if (isatty(fd) == 1)
+			usage("refusing binary output to terminal (stdout)");
+		if (g_program_args.split_s != 0)
+			usage("cannot use output splitting with stdout");
+		if (g_program_args.str_suffix != NULL)
+			usage("cannot use output suffix renaming with stdout");
+	}
 	return true;
 }
 
@@ -395,52 +403,60 @@ fail:
 static bool
 open_write_file(struct capture *ctx)
 {
-	const char *fstr = ctx->args->str_write_fname;
+	char *fstr = ctx->args->str_write_fname;
 	char *fname, *fn_buf;
 	time_t t;
 	struct tm the_time;
 	size_t fn_len;
+	int fd;
 	mode_t open_mode = S_IRUSR  | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 	int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
 #if defined(O_CLOEXEC)
 	open_flags |= O_CLOEXEC;
 #endif
 
-	/* Filename strftime expansion, useful when splitting output */
-	t = time(NULL);
-	localtime_r(&t, &the_time);
-	fn_buf = (char*)my_calloc(FNAME_MAXLEN, 1);
-	fn_len = strftime(fn_buf, FNAME_MAXLEN, fstr, &the_time);
-	if (!fn_len) {
-		fprintf(stderr, "%s: strftime failed on filename \"%s\"\n",
-			argv_program, fstr);
-		return false;
+	if (strcmp(fstr, "-") == 0) {
+		fd = fileno(stdout);
+		ctx->output_file = stdout;
+		fname = fstr;
 	}
-	fname = my_malloc(fn_len);
-	strcpy(fname, fn_buf);
-	my_free(fn_buf);
-	ctx->output_filename = fname;
+	else {
+		/* Filename strftime expansion, useful when splitting output */
+		t = time(NULL);
+		localtime_r(&t, &the_time);
+		fn_buf = (char*)my_calloc(FNAME_MAXLEN, 1);
+		fn_len = strftime(fn_buf, FNAME_MAXLEN, fstr, &the_time);
+		if (!fn_len) {
+			fprintf(stderr, "%s: strftime failed on filename \"%s\"\n",
+				argv_program, fstr);
+			return false;
+		}
+		fname = my_malloc(fn_len);
+		strcpy(fname, fn_buf);
+		my_free(fn_buf);
 
-	/* Open the file descriptor. */
-	int fd = open(fname, open_flags, open_mode);
-	if (fd == -1) {
-		fprintf(stderr, "%s: failed to open output file %s\n",
-			argv_program, fname);
-		return false;
-	}
+		/* Open the file descriptor. */
+		fd = open(fname, open_flags, open_mode);
+		if (fd == -1) {
+			fprintf(stderr, "%s: failed to open output file %s\n",
+				argv_program, fname);
+			return false;
+		}
 
-	/* Open the FILE object. */
-	ctx->output_file = fdopen(fd, "w");
-	if (!ctx->output_file) {
-		close(fd);
-		fprintf(stderr, "%s: failed to fdopen output file %s\n",
-			argv_program, fname);
-		return false;
+		/* Open the FILE object. */
+		ctx->output_file = fdopen(fd, "w");
+		if (!ctx->output_file) {
+			close(fd);
+			fprintf(stderr, "%s: failed to fdopen output file %s\n",
+				argv_program, fname);
+			return false;
+		}
 	}
 
 	ctx->count_written = 0;
 	ctx->bytes_written = 0;
 	ctx->output_open_ts = t;
+	ctx->output_filename = fname;
 
 	/* Write the START frame. */
 	if (!open_write_start(ctx)) {
@@ -452,7 +468,7 @@ open_write_file(struct capture *ctx)
 	}
 
 	/* Success. */
-	fprintf(stderr, "%s: opened output file %s\n", argv_program, fname);
+	fprintf(stderr, "%s: opened output file %s (fd=%d)\n", argv_program, fname, fd);
 	return true;
 }
 
