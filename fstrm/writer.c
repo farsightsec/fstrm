@@ -302,6 +302,8 @@ fstrm_writer_close(struct fstrm_writer *w)
 	if (w->state != fstrm_writer_state_opened)
 		return fstrm_res_failure;
 
+	w->state = fstrm_writer_state_closed;
+
 	/* Write the STOP frame. */
 	res = fstrm__rdwr_write_control(w->rdwr, FSTRM_CONTROL_STOP, NULL);
 	if (res != fstrm_res_success) {
@@ -320,7 +322,6 @@ fstrm_writer_close(struct fstrm_writer *w)
 	}
 
 	res = fstrm_rdwr_close(w->rdwr);
-	w->state = fstrm_writer_state_closed;
 	return res;
 }
 
