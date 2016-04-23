@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 by Farsight Security, Inc.
+ * Copyright (c) 2013-2016 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 #include "fstrm-private.h"
+
+#if HAVE_CLOCK_GETTIME
 
 bool
 fstrm__get_best_monotonic_clock_pthread(clockid_t *c)
@@ -125,19 +127,4 @@ fstrm__get_best_monotonic_clocks(clockid_t *clkid_gettime,
 	return true;
 }
 
-int
-fstrm__pthread_cond_timedwait(clockid_t clock_id,
-			      pthread_cond_t *cond,
-			      pthread_mutex_t *mutex,
-			      unsigned seconds)
-{
-	int res;
-	struct timespec ts;
-	res = clock_gettime(clock_id, &ts);
-	assert(res == 0);
-	ts.tv_sec += seconds;
-	pthread_mutex_lock(mutex);
-	res = pthread_cond_timedwait(cond, mutex, &ts);
-	pthread_mutex_unlock(mutex);
-	return res;
-}
+#endif /* HAVE_CLOCK_GETTIME */
