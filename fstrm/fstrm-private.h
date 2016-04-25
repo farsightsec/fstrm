@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 by Farsight Security, Inc.
+ * Copyright (c) 2013-2016 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@
 #include "libmy/my_alloc.h"
 #include "libmy/my_memory_barrier.h"
 #include "libmy/my_queue.h"
+#include "libmy/my_time.h"
 #include "libmy/read_bytes.h"
 #include "libmy/vector.h"
 
@@ -162,6 +163,7 @@ fstrm__rdwr_write_control(struct fstrm_rdwr *,
 
 /* time */
 
+#if HAVE_CLOCK_GETTIME
 bool fstrm__get_best_monotonic_clock_gettime(clockid_t *);
 
 bool fstrm__get_best_monotonic_clock_pthread(clockid_t *);
@@ -169,8 +171,7 @@ bool fstrm__get_best_monotonic_clock_pthread(clockid_t *);
 bool fstrm__get_best_monotonic_clocks(clockid_t *clkid_gettime,
 				      clockid_t *clkid_pthread,
 				      char **errstr_out);
-
-int fstrm__pthread_cond_timedwait(clockid_t, pthread_cond_t *, pthread_mutex_t *, unsigned);
+#endif
 
 /* queue */
 
