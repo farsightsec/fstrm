@@ -1,3 +1,15 @@
+fstrm (0.3.0)
+
+  * Output file rotation (Issue #22).
+
+  * Build on OS X (Issue #21).
+
+  * Change state properly in fstrm_writer_close() (Issue #18).
+
+  * force output flush on sighup (Issue #12).
+ 
+ -- Ben April <bapril@fsi.io>  Fri, 24 Jun 2016 22:29:56 -0500
+
 fstrm (0.2.0)
 
   * Fix fstrm_writer_open() to allow multiple opens (Issue #1).

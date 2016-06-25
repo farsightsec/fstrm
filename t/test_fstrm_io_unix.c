@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 by Farsight Security, Inc.
+ * Copyright (c) 2013-2016 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -443,7 +443,12 @@ main(int argc, char **argv)
 		assert(0); /* not reached */
 	}
 
-	my_gettime(CLOCK_MONOTONIC, &ts_a);
+#if HAVE_CLOCK_GETTIME
+	const clockid_t clock = CLOCK_MONOTONIC;
+#else
+	const int clock = -1;
+#endif
+	my_gettime(clock, &ts_a);
 
 	printf("creating %u producer threads\n", num_threads);
 	for (unsigned i = 0; i < num_threads; i++)
@@ -459,7 +464,7 @@ main(int argc, char **argv)
 	printf("joining consumer thread\n");
 	pthread_join(test_consumer.thr, (void **) NULL);
 
-	my_gettime(CLOCK_MONOTONIC, &ts_b);
+	my_gettime(clock, &ts_b);
 	my_timespec_sub(&ts_a, &ts_b);
 	elapsed = my_timespec_to_double(&ts_b);
 	printf("completed in %.2f seconds\n", elapsed);

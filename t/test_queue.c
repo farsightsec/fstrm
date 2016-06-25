@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 by Farsight Security, Inc.
+ * Copyright (c) 2013-2016 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -235,7 +235,12 @@ run_test(void)
 	pthread_t thr_p;
 	pthread_t thr_c;
 
-	my_gettime(CLOCK_MONOTONIC, &ts_a);
+#if HAVE_CLOCK_GETTIME
+	const clockid_t clock = CLOCK_MONOTONIC;
+#else
+	const int clock = -1;
+#endif
+	my_gettime(clock, &ts_a);
 
 	pthread_create(&thr_p, NULL, thr_producer, NULL);
 	pthread_create(&thr_c, NULL, thr_consumer, NULL);
@@ -247,7 +252,7 @@ run_test(void)
 	send_shutdown_message(q);
 	pthread_join(thr_c, (void **) &cs);
 
-	my_gettime(CLOCK_MONOTONIC, &ts_b);
+	my_gettime(clock, &ts_b);
 
 	res = check_stats(ps, cs);
 	print_stats(&ts_a, &ts_b, ps, cs);

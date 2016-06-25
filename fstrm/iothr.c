@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 by Farsight Security, Inc.
+ * Copyright (c) 2013-2016 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,9 +81,11 @@ struct fstrm_iothr {
 	/* Whether the I/O thread is shutting down. */
 	volatile bool			shutting_down;
 
+#if HAVE_CLOCK_GETTIME
 	/* Optimal clockid_t's. */
 	clockid_t			clkid_gettime;
 	clockid_t			clkid_pthread;
+#endif
 
 	/*
 	 * Conditional variable and lock, used by producer thread
@@ -262,6 +264,7 @@ fstrm_iothr_init(const struct fstrm_iothr_options *opt,
 		iothr->queue_ops = &my_queue_mutex_ops;
 	}
 
+#if HAVE_CLOCK_GETTIME
 	/* Detect best clocks. */
 	if (!fstrm__get_best_monotonic_clocks(&iothr->clkid_gettime,
 					      &iothr->clkid_pthread,
@@ -269,6 +272,7 @@ fstrm_iothr_init(const struct fstrm_iothr_options *opt,
 	{
 		goto fail;
 	}
+#endif
 
 	/* Initialize the input queues. */
 	iothr->queues = my_calloc(iothr->opt.num_input_queues,
@@ -290,8 +294,10 @@ fstrm_iothr_init(const struct fstrm_iothr_options *opt,
 	res = pthread_condattr_init(&ca);
 	assert(res == 0);
 
+#if HAVE_CLOCK_GETTIME
 	res = pthread_condattr_setclock(&ca, iothr->clkid_pthread);
 	assert(res == 0);
+#endif
 
 	res = pthread_cond_init(&iothr->cv, &ca);
 	assert(res == 0);
@@ -544,13 +550,16 @@ fstrm__iothr_maybe_open(struct fstrm_iothr *iothr)
 	if (likely(iothr->opened))
 		return;
 
-	int rv;
 	time_t since;
 	struct timespec ts;
 
 	/* Check if the reopen interval has expired yet. */
-	rv = clock_gettime(iothr->clkid_gettime, &ts);
+#if HAVE_CLOCK_GETTIME
+	int rv = clock_gettime(iothr->clkid_gettime, &ts);
 	assert(rv == 0);
+#else
+	my_gettime(-1, &ts);
+#endif
 	since = ts.tv_sec - iothr->last_open_attempt;
 	if (since < (time_t) iothr->opt.reopen_interval)
 		return;
@@ -598,9 +607,19 @@ fstrm__iothr_thr(void *arg)
 		if (count != 0)
 			continue;
 
-		res = fstrm__pthread_cond_timedwait(iothr->clkid_pthread,
-						    &iothr->cv, &iothr->cv_lock,
-						    iothr->opt.flush_timeout);
+		struct timespec ts;
+#if HAVE_CLOCK_GETTIME
+		int rv = clock_gettime(iothr->clkid_pthread, &ts);
+		assert(rv == 0);
+#else
+		my_gettime(-1, &ts);
+#endif
+		ts.tv_sec += iothr->opt.flush_timeout;
+
+		pthread_mutex_lock(&iothr->cv_lock);
+		res = pthread_cond_timedwait(&iothr->cv, &iothr->cv_lock, &ts);
+		pthread_mutex_unlock(&iothr->cv_lock);
+
 		if (res == ETIMEDOUT)
 			fstrm__iothr_flush_output(iothr);
 	}

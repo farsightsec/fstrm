@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <event2/buffer.h>
@@ -95,19 +96,27 @@ struct capture {
 	evutil_socket_t		listen_fd;
 	struct event_base	*ev_base;
 	struct evconnlistener	*ev_connlistener;
+	struct event		*ev_sighup;
 
 	FILE			*output_file;
+	char			*output_fname;
+	time_t			output_open_timestamp;
 
 	size_t			bytes_written;
 	size_t			count_written;
+
+	struct tm *(*calendar_fn)(const time_t *, struct tm *);
 };
 
 struct capture_args {
 	bool			help;
 	int			debug;
+	bool			localtime;
+	bool			gmtime;
 	char			*str_content_type;
 	char			*str_read_unix;
 	char			*str_write_fname;
+	int			split_seconds;
 };
 
 static struct capture		g_program_ctx;
@@ -120,29 +129,47 @@ static argv_t g_args[] = {
 		NULL,
 		"display this help text and exit" },
 
-	{ 'd', "debug",
+	{ 'd',	"debug",
 		ARGV_INCR,
 		&g_program_args.debug,
 		NULL,
 		"increment debugging level" },
 
-	{ 't', "type",
+	{ 't',	"type",
 		ARGV_CHAR_P,
 		&g_program_args.str_content_type,
 		"<STRING>",
 		"Frame Streams content type" },
 
-	{ 'u', "unix",
+	{ 'u',	"unix",
 		ARGV_CHAR_P,
 		&g_program_args.str_read_unix,
 		"<FILENAME>",
 		"Unix socket path to read from" },
 
-	{ 'w', "write",
+	{ 'w',	"write",
 		ARGV_CHAR_P,
 		&g_program_args.str_write_fname,
 		"<FILENAME>",
 		"file path to write Frame Streams data to" },
+
+	{ 's',	"split",
+		ARGV_INT,
+		&g_program_args.split_seconds,
+		"<SECONDS>",
+		"seconds before rotating output file" },
+
+	{ '\0',	"localtime",
+		ARGV_BOOL,
+		&g_program_args.localtime,
+		NULL,
+		"filter -w path with strftime (local time)" },
+
+	{ '\0',	"gmtime",
+		ARGV_BOOL,
+		&g_program_args.gmtime,
+		NULL,
+		"filter -w path with strftime (UTC)" },
 
 	{ ARGV_LAST },
 };
@@ -236,7 +263,7 @@ usage(const char *msg)
 }
 
 static bool
-parse_args(const int argc, char **argv)
+parse_args(const int argc, char **argv, struct capture *ctx)
 {
 	argv_version_string = PACKAGE_VERSION;
 
@@ -251,7 +278,23 @@ parse_args(const int argc, char **argv)
 	if (g_program_args.str_read_unix == NULL)
 		usage("Unix socket path to read from (--unix) is not set");
 	if (g_program_args.str_write_fname == NULL)
-		usage("file path to write Frame Streams data to (--write) is not set");
+		usage("File path to write Frame Streams data to (--write) is not set");
+	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
+		if (isatty(STDOUT_FILENO) == 1)
+			usage("Refusing to write binary output to a terminal");
+		if (g_program_args.split_seconds != 0)
+			usage("Cannot use output splitting when writing to stdout");
+	}
+	if (g_program_args.localtime && g_program_args.gmtime)
+		usage("--localtime and --gmtime are mutually exclusive");
+	if (g_program_args.split_seconds && !g_program_args.localtime && !g_program_args.gmtime)
+		usage("--split requires either --localtime or --gmtime");
+
+	/* Set calendar function, if needed. */
+	if (g_program_args.localtime)
+		ctx->calendar_fn = localtime_r;
+	else if (g_program_args.gmtime)
+		ctx->calendar_fn = gmtime_r;
 
 	return true;
 }
@@ -369,32 +412,85 @@ fail:
 	return false;
 }
 
+static const char *
+update_output_fname(struct capture *ctx)
+{
+	time_t time_now = {0};
+	struct tm tm_now = {0};
+
+	/* Get current broken-down time representation. */
+	tzset();
+	time_now = time(NULL);
+	ctx->calendar_fn(&time_now, &tm_now);
+
+	/* Save current time. */
+	ctx->output_open_timestamp = time_now;
+
+	/*
+	 * Filter ctx->args->str_write_fname with strftime(), store output in
+	 * ctx->output_fname. Assume strftime() lengthens the string by no more
+	 * than 256 bytes.
+	 */
+	if (ctx->output_fname != NULL)
+		my_free(ctx->output_fname);
+	const size_t len_output_fname = strlen(ctx->args->str_write_fname) + 256;
+	ctx->output_fname = my_calloc(1, len_output_fname);
+
+	if (strftime(ctx->output_fname, len_output_fname,
+		     ctx->args->str_write_fname, &tm_now) <= 0)
+	{
+		my_free(ctx->output_fname);
+		fprintf(stderr, "%s: strftime() failed on format string \"%s\"\n",
+			argv_program, ctx->args->str_write_fname);
+		return NULL;
+	}
+
+	return ctx->output_fname;
+}
+
 static bool
 open_write_file(struct capture *ctx)
 {
 	const char *fname = ctx->args->str_write_fname;
-	mode_t open_mode = S_IRUSR  | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-	int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
+
+	if (strcmp(fname, "-") == 0) {
+		/* Use already opened FILE* for stdout. */
+		ctx->output_file = stdout;
+	} else {
+		mode_t open_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+		int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
 #if defined(O_CLOEXEC)
-	open_flags |= O_CLOEXEC;
+		open_flags |= O_CLOEXEC;
 #endif
 
-	/* Open the file descriptor. */
-	int fd = open(fname, open_flags, open_mode);
-	if (fd == -1) {
-		fprintf(stderr, "%s: failed to open output file %s\n",
-			argv_program, fname);
-		return false;
+		/* Rewrite the output filename if needed. */
+		if (ctx->calendar_fn) {
+			fname = update_output_fname(ctx);
+			if (fname == NULL)
+				return false;
+		}
+
+		/* Open the file descriptor. */
+		int fd = open(fname, open_flags, open_mode);
+		if (fd == -1) {
+			fprintf(stderr, "%s: failed to open output file %s\n",
+				argv_program, fname);
+			return false;
+		}
+
+		/* Open the FILE object. */
+		ctx->output_file = fdopen(fd, "w");
+		if (!ctx->output_file) {
+			close(fd);
+			fprintf(stderr, "%s: failed to fdopen output file %s\n",
+				argv_program, fname);
+			return false;
+		}
 	}
 
-	/* Open the FILE object. */
-	ctx->output_file = fdopen(fd, "w");
-	if (!ctx->output_file) {
-		close(fd);
-		fprintf(stderr, "%s: failed to fdopen output file %s\n",
-			argv_program, fname);
-		return false;
-	}
+	/* Reset output statistics. */
+	ctx->count_written = 0;
+	ctx->bytes_written = 0;
 
 	/* Write the START frame. */
 	if (!open_write_start(ctx)) {
@@ -425,7 +521,7 @@ close_write_file(struct capture *ctx)
 
 	/* Success. */
 	fprintf(stderr, "%s: closed output file %s (wrote %zd frames, %zd bytes)\n",
-		argv_program, ctx->args->str_write_fname,
+		argv_program, ctx->output_fname ? : ctx->args->str_write_fname,
 		ctx->count_written, ctx->bytes_written);
 	return true;
 }
@@ -481,6 +577,30 @@ process_data_frame(struct conn *conn)
 	conn->bytes_read += bytes_read;
 	conn->ctx->count_written += 1;
 	conn->ctx->bytes_written += bytes_read;
+}
+
+static void
+maybe_rotate_output(struct conn *conn)
+{
+	/* Output file rotation requested? */
+	if (conn->ctx->args->split_seconds > 0) {
+		time_t t_now = time(NULL);
+
+		/* Is it time to rotate? */
+		if (t_now >= conn->ctx->output_open_timestamp + conn->ctx->args->split_seconds) {
+			/* Rotate output file, fail hard if unsuccessful. */
+			if (!close_write_file(conn->ctx)) {
+				fprintf(stderr, "%s: %s: close_write_file() failed\n",
+					argv_program, __func__);
+				exit(EXIT_FAILURE);
+			}
+			if (!open_write_file(conn->ctx)) {
+				fprintf(stderr, "%s: %s: open_write_file() failed\n",
+					argv_program, __func__);
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 }
 
 static bool
@@ -794,6 +914,9 @@ cb_read(struct bufferevent *bev, void *arg)
 		if (conn->len_frame_payload > 0) {
 			/* This is a data frame. */
 			process_data_frame(conn);
+
+			/* Check if it's time to rotate the output file. */
+			maybe_rotate_output(conn);
 		} else {
 			/* This is a control frame. */
 			if (!load_control_frame(conn)) {
@@ -848,6 +971,16 @@ cb_accept_error(struct evconnlistener *listener, void *arg)
 		evutil_socket_error_to_string(err));
 }
 
+static void
+do_sighup(evutil_socket_t sig, short events, void *user_data)
+{
+	struct capture *ctx = user_data;
+	if (ctx->output_file) {
+		fflush(ctx->output_file);
+		fprintf(stderr, "%s: received SIGHUP, flushing output\n", argv_program);
+	}
+}
+
 static bool
 setup_event_loop(struct capture *ctx)
 {
@@ -870,6 +1003,11 @@ setup_event_loop(struct capture *ctx)
 		return false;
 	}
 	evconnlistener_set_error_cb(ctx->ev_connlistener, cb_accept_error);
+
+	/* Register our SIGHUP handler. */
+	ctx->ev_sighup = evsignal_new(ctx->ev_base, SIGHUP, &do_sighup,
+				      &g_program_ctx);
+	evsignal_add(ctx->ev_sighup, NULL);
 
 	/* Success. */
 	return true;
@@ -903,17 +1041,20 @@ static void
 cleanup(struct capture *ctx)
 {
 	argv_cleanup(g_args);
+	if (ctx->ev_sighup != NULL)
+		event_free(ctx->ev_sighup);
 	if (ctx->ev_connlistener != NULL)
 		evconnlistener_free(ctx->ev_connlistener);
 	if (ctx->ev_base != NULL)
 		event_base_free(ctx->ev_base);
+	my_free(ctx->output_fname);
 }
 
 int
 main(int argc, char **argv)
 {
 	/* Parse arguments. */
-	if (!parse_args(argc, argv)) {
+	if (!parse_args(argc, argv, &g_program_ctx)) {
 		usage(NULL);
 		return EXIT_FAILURE;
 	}
