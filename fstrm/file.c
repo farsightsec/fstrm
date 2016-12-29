@@ -55,7 +55,10 @@ fstrm__file_op_open(void *obj)
 {
 	struct fstrm__file *f = obj;
 	if (f->fp == NULL && f->file_path != NULL) {
-		f->fp = fopen(f->file_path, f->file_mode);
+		if (!strcmp(f->file_path, "-"))
+			f->fp = f->file_mode[0] == 'r' ? stdin : stdout;
+		else
+			f->fp = fopen(f->file_path, f->file_mode);
 		if (f->fp == NULL)
 			return fstrm_res_failure;
 		return fstrm_res_success;
