@@ -361,6 +361,9 @@ fstrm_iothr_destroy(struct fstrm_iothr **iothr)
 		(*iothr)->shutting_down = true;
 		pthread_cond_signal(&(*iothr)->cv);
 		pthread_join((*iothr)->thr, NULL);
+		pthread_cond_destroy(&(*iothr)->cv);
+		pthread_mutex_destroy(&(*iothr)->cv_lock);
+		pthread_mutex_destroy(&(*iothr)->get_queue_lock);
 
 		/* Destroy the writer by calling its 'destroy' method. */
 		(void)fstrm_writer_destroy(&(*iothr)->writer);
