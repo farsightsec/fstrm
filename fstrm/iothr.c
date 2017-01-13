@@ -239,7 +239,7 @@ fstrm_iothr_init(const struct fstrm_iothr_options *opt,
 	/*
 	 * Some platforms have a ridiculously low IOV_MAX, literally the lowest
 	 * value even allowed by POSIX, which is lower than our conservative
-	 * FSTRM_IOTHR_OUTPUT_QUEUE_SIZE_DEFAULT. Accomodate these platforms by
+	 * FSTRM_IOTHR_OUTPUT_QUEUE_SIZE_DEFAULT. Accommodate these platforms by
 	 * silently clamping output_queue_size to IOV_MAX.
 	 */
 	if (iothr->opt.output_queue_size > IOV_MAX)
