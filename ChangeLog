@@ -1,3 +1,11 @@
+fstrm (0.3.1)
+
+  * Add support for '-' as a filename for stdin/stdout (PR #28)
+
+  * destroy condition variable and mutexes in fstrm_iothr_destroy() (PR #25)
+
+ -- Chris Mikkelson <cmikk@fsi.io>  Thu, 26 Jan 2017 16:05:06 -0600
+
 fstrm (0.3.0)
 
   * Output file rotation (Issue #22).
