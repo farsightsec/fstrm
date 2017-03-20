@@ -47,7 +47,7 @@ AX_PTHREAD([
 ])
 
 AC_SEARCH_LIBS([clock_gettime], [rt])
-AC_CHECK_FUNCS([clock_gettime])
+AC_CHECK_FUNCS([clock_gettime pthread_condattr_setclock])
 
 AC_SEARCH_LIBS([socket], [socket])
 

@@ -18,6 +18,7 @@
 
 #if HAVE_CLOCK_GETTIME
 
+#if HAVE_PTHREAD_CONDATTR_SETCLOCK
 bool
 fstrm__get_best_monotonic_clock_pthread(clockid_t *c)
 {
@@ -74,6 +75,7 @@ out:
 	assert(rc == 0);
 	return res;
 }
+#endif /* HAVE_PTHREAD_CONDATTR_SETCLOCK */
 
 bool
 fstrm__get_best_monotonic_clock_gettime(clockid_t *c)
@@ -116,6 +118,7 @@ fstrm__get_best_monotonic_clocks(clockid_t *clkid_gettime,
 		return false;
 	}
 
+#if HAVE_PTHREAD_CONDATTR_SETCLOCK
 	if (clkid_pthread != NULL &&
 	    !fstrm__get_best_monotonic_clock_pthread(clkid_pthread))
 	{
@@ -123,6 +126,7 @@ fstrm__get_best_monotonic_clocks(clockid_t *clkid_gettime,
 			*err = my_strdup("no clock available for pthread_cond_timedwait()");
 		return false;
 	}
+#endif
 
 	return true;
 }
