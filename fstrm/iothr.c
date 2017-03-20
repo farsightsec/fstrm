@@ -294,7 +294,7 @@ fstrm_iothr_init(const struct fstrm_iothr_options *opt,
 	res = pthread_condattr_init(&ca);
 	assert(res == 0);
 
-#if HAVE_CLOCK_GETTIME
+#if HAVE_CLOCK_GETTIME && HAVE_PTHREAD_CONDATTR_SETCLOCK
 	res = pthread_condattr_setclock(&ca, iothr->clkid_pthread);
 	assert(res == 0);
 #endif
