@@ -612,7 +612,11 @@ fstrm__iothr_thr(void *arg)
 
 		struct timespec ts;
 #if HAVE_CLOCK_GETTIME
+#if HAVE_PTHREAD_CONDATTR_SETCLOCK
 		int rv = clock_gettime(iothr->clkid_pthread, &ts);
+#else
+		int rv = clock_gettime(CLOCK_REALTIME, &ts);
+#endif
 		assert(rv == 0);
 #else
 		my_gettime(-1, &ts);
