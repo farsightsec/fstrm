@@ -1,3 +1,9 @@
+fstrm (0.3.2)
+
+  * Accomodate systems without pthread_condattr_setclock (Issue #34)
+
+ -- Chris Mikkelson <cmikk@fsi.io>  Tue, 21 Mar 2017 19:15:11 -0500
+
 fstrm (0.3.1)
 
   * Add support for '-' as a filename for stdin/stdout (PR #28)
