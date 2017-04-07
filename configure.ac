@@ -1,7 +1,7 @@
 AC_PREREQ(2.64)
 
 AC_INIT([fstrm],
-        [0.3.1],
+        [0.3.2],
         [https://github.com/farsightsec/fstrm/issues],
         [fstrm],
         [https://github.com/farsightsec/fstrm])
