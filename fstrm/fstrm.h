@@ -44,7 +44,7 @@
  *
  * \authors Farsight Security, Inc. and the `fstrm` authors.
  *
- * \copyright 2013-2014. Licensed under the terms of the [Apache-2.0] license.
+ * \copyright 2013-2017. Licensed under the terms of the [Apache-2.0] license.
  *
  * [Protocol Buffers]: https://developers.google.com/protocol-buffers/
  * [XML]:              http://www.w3.org/TR/xml11/
