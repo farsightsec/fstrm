@@ -1,6 +1,6 @@
 fstrm (0.3.2)
 
-  * Accomodate systems without pthread_condattr_setclock (Issue #34)
+  * Accommodate systems without pthread_condattr_setclock (Issue #34)
 
  -- Chris Mikkelson <cmikk@fsi.io>  Tue, 21 Mar 2017 19:15:11 -0500
 
