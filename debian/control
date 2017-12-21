@@ -1,0 +1,70 @@
+Source: fstrm
+Section: libs
+Priority: optional
+Maintainer: Farsight Security, Inc. <software@farsightsecurity.com>
+Build-Depends:
+ debhelper (>= 9~),
+ dh-autoreconf (>= 5~),
+ libevent-dev,
+ pkg-config
+Standards-Version: 3.9.8
+Homepage: https://github.com/farsightsec/fstrm
+
+Package: libfstrm0
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Multi-Arch: same
+Description: Frame Streams (fstrm) library
+ Frame Streams is a light weight, binary clean protocol that allows for the
+ transport of arbitrarily encoded data payload sequences with minimal framing
+ overhead -- just four bytes per data frame. Frame Streams does not specify an
+ encoding format for data frames and can be used with any data serialization
+ format that produces byte sequences, such as Protocol Buffers, XML, JSON,
+ MessagePack, YAML, etc. Frame Streams can be used as both a streaming
+ transport over a reliable byte stream socket (TCP sockets, TLS connections,
+ AF_UNIX sockets, etc.) for data in motion as well as a file format for data
+ at rest. A "Content Type" header identifies the type of payload being carried
+ over an individual Frame Stream and allows cooperating programs to determine
+ how to interpret a given sequence of data payloads.
+ .
+ This is the "fstrm" implementation of Frame Streams in C.
+ .
+ This package contains the shared library.
+
+Package: libfstrm0-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends: ${misc:Depends}, libfstrm0 (= ${binary:Version})
+Multi-Arch: same
+Description: Frame Streams (fstrm) library (debug symbols)
+ This package contains detached debugging symbols for the Frame Streams
+ shared library.
+
+Package: libfstrm-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libfstrm0 (= ${binary:Version})
+Description: Frame Streams (fstrm) library (development files)
+ This package contains the static library and development headers of the
+ the "fstrm" implementation of Frame Streams in C.
+
+Package: fstrm-bin
+Section: utils
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Frame Streams (fstrm) utilities
+ Frame Streams is a light weight, binary clean protocol that allows for the
+ transport of arbitrarily encoded data payload sequences with minimal framing
+ overhead -- just four bytes per data frame. Frame Streams does not specify an
+ encoding format for data frames and can be used with any data serialization
+ format that produces byte sequences, such as Protocol Buffers, XML, JSON,
+ MessagePack, YAML, etc. Frame Streams can be used as both a streaming
+ transport over a reliable byte stream socket (TCP sockets, TLS connections,
+ AF_UNIX sockets, etc.) for data in motion as well as a file format for data
+ at rest. A "Content Type" header identifies the type of payload being carried
+ over an individual Frame Stream and allows cooperating programs to determine
+ how to interpret a given sequence of data payloads.
+ .
+ This package contains the "fstrm" command-line utilities.

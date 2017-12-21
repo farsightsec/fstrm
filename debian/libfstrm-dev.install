@@ -1,0 +1,5 @@
+usr/include/fstrm.h
+usr/include/fstrm
+usr/lib/*/*.a
+usr/lib/*/*.so
+usr/lib/*/pkgconfig/libfstrm.pc
