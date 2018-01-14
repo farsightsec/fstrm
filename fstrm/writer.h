@@ -28,7 +28,8 @@
  *
  * Some basic `fstrm_writer` implementations are already provided in the `fstrm`
  * library. See fstrm_file_writer_init() for an implementation that writes to
- * a regular file and fstrm_unix_writer_init() for an implementation that writes
+ * a regular file, fstrm_tcp_writer_init() for an implementation that writes to
+ * a TCP socket, and fstrm_unix_writer_init() for an implementation that writes
  * to a Unix socket.
  *
  * @{
