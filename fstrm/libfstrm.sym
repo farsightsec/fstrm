@@ -73,3 +73,12 @@ global:
 local:
         *;
 };
+
+LIBFSTRM_0.4.0 {
+global:
+        fstrm_tcp_writer_options_init;
+        fstrm_tcp_writer_options_destroy;
+        fstrm_tcp_writer_options_set_socket_address;
+        fstrm_tcp_writer_options_set_socket_port;
+        fstrm_tcp_writer_init;
+} LIBFSTRM_0.2.0;
