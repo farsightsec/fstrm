@@ -49,6 +49,7 @@ nobase_include_HEADERS = \
 	fstrm/file.h		\
 	fstrm/rdwr.h		\
 	fstrm/reader.h		\
+	fstrm/tcp_writer.h	\
 	fstrm/unix_writer.h	\
 	fstrm/writer.h
 
@@ -59,6 +60,7 @@ fstrm_libfstrm_la_SOURCES = \
 	fstrm/iothr.c fstrm/iothr.h		\
 	fstrm/rdwr.c fstrm/rdwr.h		\
 	fstrm/reader.c fstrm/reader.h		\
+	fstrm/tcp_writer.c fstrm/tcp_writer.h	\
 	fstrm/time.c				\
 	fstrm/unix_writer.c fstrm/unix_writer.h	\
 	fstrm/writer.c fstrm/writer.h		\
