@@ -120,7 +120,7 @@ fstrm__tcp_writer_op_open(void *obj)
 	}
 #endif
 
-	/* Connect the AF_UNIX socket. */
+	/* Connect the TCP socket. */
 	if (connect(w->fd, (struct sockaddr *) &w->ss, sizeof(w->ss)) < 0) {
 		close(w->fd);
 		return fstrm_res_failure;
