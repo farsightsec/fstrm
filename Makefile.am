@@ -49,6 +49,7 @@ nobase_include_HEADERS = \
 	fstrm/file.h		\
 	fstrm/rdwr.h		\
 	fstrm/reader.h		\
+	fstrm/tcp_writer.h	\
 	fstrm/unix_writer.h	\
 	fstrm/writer.h
 
@@ -59,6 +60,7 @@ fstrm_libfstrm_la_SOURCES = \
 	fstrm/iothr.c fstrm/iothr.h		\
 	fstrm/rdwr.c fstrm/rdwr.h		\
 	fstrm/reader.c fstrm/reader.h		\
+	fstrm/tcp_writer.c fstrm/tcp_writer.h	\
 	fstrm/time.c				\
 	fstrm/unix_writer.c fstrm/unix_writer.h	\
 	fstrm/writer.c fstrm/writer.h		\
@@ -134,19 +136,24 @@ t/run_test_fstrm_io_file.sh: t/test_fstrm_io_file
 TESTS += t/run_test_fstrm_io_file.sh
 EXTRA_DIST += t/run_test_fstrm_io_file.sh
 
-check_PROGRAMS += t/test_fstrm_io_unix
-t_test_fstrm_io_unix_SOURCES = \
-	t/test_fstrm_io_unix.c \
+check_PROGRAMS += t/test_fstrm_io_sock
+t_test_fstrm_io_sock_SOURCES = \
+	t/test_fstrm_io_sock.c \
 	libmy/my_alloc.h \
 	libmy/my_time.h \
 	libmy/print_string.h \
 	libmy/ubuf.h \
 	libmy/vector.h
-t_test_fstrm_io_unix_LDADD = \
+t_test_fstrm_io_sock_LDADD = \
 	fstrm/libfstrm.la
-t/run_test_fstrm_io_unix.sh: t/test_fstrm_io_unix
+
+t/run_test_fstrm_io_unix.sh: t/test_fstrm_io_sock
 TESTS += t/run_test_fstrm_io_unix.sh
 EXTRA_DIST += t/run_test_fstrm_io_unix.sh
+
+t/run_test_fstrm_io_tcp.sh: t/test_fstrm_io_sock
+TESTS += t/run_test_fstrm_io_tcp.sh
+EXTRA_DIST += t/run_test_fstrm_io_tcp.sh
 
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \

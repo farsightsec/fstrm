@@ -92,7 +92,7 @@ struct conn {
 struct capture {
 	struct capture_args	*args;
 
-	struct sockaddr_un	sa;
+	struct sockaddr_storage	ss;
 	evutil_socket_t		listen_fd;
 	struct event_base	*ev_base;
 	struct evconnlistener	*ev_connlistener;
@@ -115,6 +115,8 @@ struct capture_args {
 	bool			gmtime;
 	char			*str_content_type;
 	char			*str_read_unix;
+	char			*str_read_tcp_address;
+	char			*str_read_tcp_port;
 	char			*str_write_fname;
 	int			split_seconds;
 };
@@ -146,6 +148,18 @@ static argv_t g_args[] = {
 		&g_program_args.str_read_unix,
 		"<FILENAME>",
 		"Unix socket path to read from" },
+
+	{ 'a',	"tcp",
+		ARGV_CHAR_P,
+		&g_program_args.str_read_tcp_address,
+		"<ADDRESS>",
+		"TCP socket address to read from" },
+
+	{ 'p',	"port",
+		ARGV_CHAR_P,
+		&g_program_args.str_read_tcp_port,
+		"<PORT>",
+		"TCP socket port to read from" },
 
 	{ 'w',	"write",
 		ARGV_CHAR_P,
@@ -275,8 +289,12 @@ parse_args(const int argc, char **argv, struct capture *ctx)
 		return false;
 	if (g_program_args.str_content_type == NULL)
 		usage("Frame Streams content type (--type) is not set");
-	if (g_program_args.str_read_unix == NULL)
-		usage("Unix socket path to read from (--unix) is not set");
+	if (g_program_args.str_read_unix == NULL &&
+	    g_program_args.str_read_tcp_address == NULL)
+		usage("One of --unix or --tcp must be set");
+	if (g_program_args.str_read_tcp_address != NULL &&
+	    g_program_args.str_read_tcp_port == NULL)
+		usage("If --tcp is set, --port must also be set");
 	if (g_program_args.str_write_fname == NULL)
 		usage("File path to write Frame Streams data to (--write) is not set");
 	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
@@ -303,30 +321,63 @@ static bool
 open_read_unix(struct capture *ctx)
 {
 	int ret;
+	struct sockaddr_un *sa = (struct sockaddr_un *) &ctx->ss;
 
 	/* Construct sockaddr_un structure. */
 	if (strlen(ctx->args->str_read_unix) + 1 >
-	    sizeof(ctx->sa.sun_path))
+	    sizeof(sa->sun_path))
 	{
 		usage("Unix socket path is too long");
 		return false;
 	}
-	ctx->sa.sun_family = AF_UNIX;
-	strncpy(ctx->sa.sun_path,
+	sa->sun_family = AF_UNIX;
+	strncpy(sa->sun_path,
 		ctx->args->str_read_unix,
-		sizeof(ctx->sa.sun_path) - 1);
+		sizeof(sa->sun_path) - 1);
 
 	/* Remove a previously bound socket existing on the filesystem. */
-	ret = remove(ctx->sa.sun_path);
+	ret = remove(sa->sun_path);
 	if (ret != 0 && errno != ENOENT) {
 		fprintf(stderr, "%s: failed to remove existing socket path %s\n",
-			argv_program, ctx->sa.sun_path);
+			argv_program, sa->sun_path);
 		return false;
 	}
 
 	/* Success. */
-	fprintf(stderr, "%s: listening on socket path %s\n",
-		argv_program, ctx->sa.sun_path);
+	fprintf(stderr, "%s: opening Unix socket path %s\n",
+		argv_program, sa->sun_path);
+	return true;
+}
+
+static bool
+open_read_tcp(struct capture *ctx)
+{
+	struct sockaddr_in *sai = (struct sockaddr_in *) &ctx->ss;
+	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *) &ctx->ss;
+	uint64_t port = 0;
+	char *endptr = NULL;
+
+	/* Parse TCP listen port. */
+	port = strtoul(ctx->args->str_read_tcp_port, &endptr, 0);
+	if (*endptr != '\0' || port > UINT16_MAX) {
+		usage("Failed to parse TCP listen port");
+		return false;
+	}
+
+	if (inet_pton(AF_INET, ctx->args->str_read_tcp_address, &sai->sin_addr) == 1) {
+		sai->sin_family = AF_INET;
+		sai->sin_port = htons(port);
+	} else if (inet_pton(AF_INET6, ctx->args->str_read_tcp_address, &sai6->sin6_addr) == 1) {
+		sai6->sin6_family = AF_INET6;
+		sai6->sin6_port = htons(port);
+	} else {
+		usage("Failed to parse TCP listen address");
+		return false;
+	}
+
+	/* Success. */
+	fprintf(stderr, "%s: opening TCP socket [%s]:%s\n",
+		argv_program, ctx->args->str_read_tcp_address, ctx->args->str_read_tcp_port);
 	return true;
 }
 
@@ -996,7 +1047,7 @@ setup_event_loop(struct capture *ctx)
 	flags |= LEV_OPT_REUSEABLE; /* Sets SO_REUSEADDR on listener. */
 	ctx->ev_connlistener = evconnlistener_new_bind(ctx->ev_base,
 		cb_accept_conn, (void *) ctx, flags, -1,
-		(struct sockaddr *) &ctx->sa, sizeof(ctx->sa));
+		(struct sockaddr *) &ctx->ss, sizeof(ctx->ss));
 	if (!ctx->ev_connlistener) {
 		event_base_free(ctx->ev_base);
 		ctx->ev_base = NULL;
@@ -1060,9 +1111,19 @@ main(int argc, char **argv)
 	}
 	g_program_ctx.args = &g_program_args;
 
-	/* Open the Unix socket input. */
-	if (!open_read_unix(&g_program_ctx))
+	/* Open the Unix socket input, if specified. */
+	if (g_program_ctx.args->str_read_unix != NULL) {
+		if (!open_read_unix(&g_program_ctx))
+			return EXIT_FAILURE;
+	} else if (g_program_ctx.args->str_read_tcp_address != NULL &&
+		   g_program_ctx.args->str_read_tcp_port != NULL) {
+		/* Otherwise, open the TCP socket input. */
+		if (!open_read_tcp(&g_program_ctx))
+			return EXIT_FAILURE;
+	} else {
+		fprintf(stderr, "%s: failed to setup a listening socket\n", argv_program);
 		return EXIT_FAILURE;
+	}
 
 	/* Open the file output. */
 	if (!open_write_file(&g_program_ctx))

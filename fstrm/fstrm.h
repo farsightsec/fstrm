@@ -285,6 +285,7 @@ struct fstrm_writer_options;
 #include <fstrm/iothr.h>
 #include <fstrm/rdwr.h>
 #include <fstrm/reader.h>
+#include <fstrm/tcp_writer.h>
 #include <fstrm/unix_writer.h>
 #include <fstrm/writer.h>
 
