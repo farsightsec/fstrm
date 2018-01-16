@@ -175,6 +175,7 @@ TESTS += t/test_file_hello
 # program tests
 EXTRA_DIST += \
 	t/program_tests/test_fstrm_dump.sh.in \
+	t/program_tests/test_fstrm_replay.sh.in \
 	t/program_tests/test.fstrm \
 	t/program_tests/test-fstrm.txt
 
@@ -210,7 +211,8 @@ src_fstrm_capture_LDADD = \
 	fstrm/libfstrm.la \
 	$(libevent_LIBS)
 
-TESTS += t/program_tests/test_fstrm_dump.sh
+TESTS += t/program_tests/test_fstrm_dump.sh \
+	 t/program_tests/test_fstrm_replay.sh
 endif
 
 #
