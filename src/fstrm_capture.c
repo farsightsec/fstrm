@@ -784,8 +784,6 @@ process_control_frame_stop(struct conn *conn)
 {
 	fstrm_res res;
 
-	conn->state = CONN_STATE_STOPPED;
-
 	/* Setup the FINISH frame. */
 	fstrm_control_reset(conn->control);
 	res = fstrm_control_set_type(conn->control, FSTRM_CONTROL_FINISH);
@@ -796,8 +794,15 @@ process_control_frame_stop(struct conn *conn)
 	if (!write_control_frame(conn))
 		return false;
 	
-	/* Success, though we return false in order to shut down the connection. */
-	return false;
+	conn->state = CONN_STATE_STOPPED;
+
+	/* We return true here, which prevents the caller from closing
+	 * the connection directly (with the FINISH frame still in our
+	 * write buffer). The connection will be closed after the FINISH
+	 * frame is written and the write callback (cb_write) is called
+	 * to refill the write buffer.
+	 */
+	return true;
 }
 
 static bool
@@ -947,6 +952,17 @@ can_read_full_frame(struct conn *conn)
 }
 
 static void
+cb_write(struct bufferevent *bev, void *arg)
+{
+	struct conn *conn = (struct conn *) arg;
+
+	if (conn->state != CONN_STATE_STOPPED)
+		return;
+
+	cb_close_conn(bev, 0, arg);
+}
+
+static void
 cb_read(struct bufferevent *bev, void *arg)
 {
 	struct conn *conn = (struct conn *) arg;
@@ -1011,7 +1027,7 @@ cb_accept_conn(struct evconnlistener *listener, evutil_socket_t fd,
 		return;
 	}
 	struct conn *conn = conn_init(ctx);
-	bufferevent_setcb(bev, cb_read, NULL, cb_close_conn, (void *) conn);
+	bufferevent_setcb(bev, cb_read, cb_write, cb_close_conn, (void *) conn);
 	bufferevent_setwatermark(bev, EV_READ, 0, CAPTURE_HIGH_WATERMARK);
 	bufferevent_enable(bev, EV_READ | EV_WRITE);
 
