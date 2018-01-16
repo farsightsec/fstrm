@@ -348,12 +348,15 @@ get_tcp_server_socket(const char *socket_address, uint16_t *socket_port)
 	struct sockaddr_storage ss = {0};
 	struct sockaddr_in *sai = (struct sockaddr_in *) &ss;
 	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *) &ss;
+	socklen_t ss_len = sizeof(ss);
 	int sfd;
 
 	if (inet_pton(AF_INET, socket_address, &sai->sin_addr) == 1) {
 		ss.ss_family = AF_INET;
+		ss_len = sizeof(*sai);
 	} else if (inet_pton(AF_INET6, socket_address, &sai6->sin6_addr) == 1) {
 		ss.ss_family = AF_INET6;
+		ss_len = sizeof(*sai6);
 	} else {
 		perror("inet_pton");
 		abort();
@@ -365,7 +368,7 @@ get_tcp_server_socket(const char *socket_address, uint16_t *socket_port)
 		abort();
 	}
 
-	if (bind(sfd, (struct sockaddr *) &ss, sizeof(ss)) == -1) {
+	if (bind(sfd, (struct sockaddr *) &ss, ss_len) == -1) {
 		perror("bind");
 		abort();
 	}
@@ -376,8 +379,7 @@ get_tcp_server_socket(const char *socket_address, uint16_t *socket_port)
 	}
 
 	if (socket_port != NULL) {
-		socklen_t len_ss = sizeof(ss);
-		if (getsockname(sfd, (struct sockaddr *) &ss, &len_ss) == -1) {
+		if (getsockname(sfd, (struct sockaddr *) &ss, &ss_len) == -1) {
 			perror("getsockname");
 			abort();
 		}

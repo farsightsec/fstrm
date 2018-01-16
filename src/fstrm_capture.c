@@ -94,6 +94,7 @@ struct capture {
 	struct capture_args	*args;
 
 	struct sockaddr_storage	ss;
+	socklen_t		ss_len;
 	evutil_socket_t		listen_fd;
 	struct event_base	*ev_base;
 	struct evconnlistener	*ev_connlistener;
@@ -335,6 +336,7 @@ open_read_unix(struct capture *ctx)
 	strncpy(sa->sun_path,
 		ctx->args->str_read_unix,
 		sizeof(sa->sun_path) - 1);
+	ctx->ss_len = SUN_LEN(sa);
 
 	/* Remove a previously bound socket existing on the filesystem. */
 	ret = remove(sa->sun_path);
@@ -368,9 +370,11 @@ open_read_tcp(struct capture *ctx)
 	if (inet_pton(AF_INET, ctx->args->str_read_tcp_address, &sai->sin_addr) == 1) {
 		sai->sin_family = AF_INET;
 		sai->sin_port = htons(port);
+		ctx->ss_len = sizeof(*sai);
 	} else if (inet_pton(AF_INET6, ctx->args->str_read_tcp_address, &sai6->sin6_addr) == 1) {
 		sai6->sin6_family = AF_INET6;
 		sai6->sin6_port = htons(port);
+		ctx->ss_len = sizeof(*sai6);
 	} else {
 		usage("Failed to parse TCP listen address");
 		return false;
@@ -1046,9 +1050,10 @@ setup_event_loop(struct capture *ctx)
 	flags |= LEV_OPT_CLOSE_ON_FREE; /* Closes underlying sockets. */
 	flags |= LEV_OPT_CLOSE_ON_EXEC; /* Sets FD_CLOEXEC on underlying fd's. */
 	flags |= LEV_OPT_REUSEABLE; /* Sets SO_REUSEADDR on listener. */
+
 	ctx->ev_connlistener = evconnlistener_new_bind(ctx->ev_base,
 		cb_accept_conn, (void *) ctx, flags, -1,
-		(struct sockaddr *) &ctx->ss, sizeof(ctx->ss));
+		(struct sockaddr *) &ctx->ss, ctx->ss_len);
 	if (!ctx->ev_connlistener) {
 		event_base_free(ctx->ev_base);
 		ctx->ev_base = NULL;

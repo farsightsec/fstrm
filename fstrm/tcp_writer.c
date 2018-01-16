@@ -32,6 +32,7 @@ struct fstrm__tcp_writer {
 	bool			connected;
 	int			fd;
 	struct sockaddr_storage	ss;
+	socklen_t		ss_len;
 };
 
 struct fstrm_tcp_writer_options *
@@ -121,7 +122,7 @@ fstrm__tcp_writer_op_open(void *obj)
 #endif
 
 	/* Connect the TCP socket. */
-	if (connect(w->fd, (struct sockaddr *) &w->ss, sizeof(w->ss)) < 0) {
+	if (connect(w->fd, (struct sockaddr *) &w->ss, w->ss_len) < 0) {
 		close(w->fd);
 		return fstrm_res_failure;
 	}
@@ -236,9 +237,11 @@ fstrm__tcp_writer_fill_socket_address(struct fstrm__tcp_writer *w,
 
 	if (inet_pton(AF_INET, twopt->socket_address, &sai->sin_addr) == 1) {
 		w->ss.ss_family = AF_INET;
+		w->ss_len = sizeof(*sai);
 		return fstrm_res_success;
 	} else if (inet_pton(AF_INET6, twopt->socket_address, &sai6->sin6_addr) == 1) {
 		w->ss.ss_family = AF_INET6;
+		w->ss_len = sizeof(*sai6);
 		return fstrm_res_success;
 	}
 
