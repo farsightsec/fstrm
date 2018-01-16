@@ -186,6 +186,12 @@ src_fstrm_dump_SOURCES = \
 src_fstrm_dump_LDADD = \
 	fstrm/libfstrm.la
 
+bin_PROGRAMS += src/fstrm_replay
+src_fstrm_replay_SOURCES = \
+	src/fstrm_replay.c
+src_fstrm_replay_LDADD = \
+	fstrm/libfstrm.la
+
 bin_PROGRAMS += src/fstrm_capture
 src_fstrm_capture_CFLAGS = \
 	$(AM_CFLAGS) \
