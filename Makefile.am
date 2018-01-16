@@ -172,6 +172,13 @@ t_test_file_hello_LDADD = \
 	fstrm/libfstrm.la
 TESTS += t/test_file_hello
 
+# program tests
+EXTRA_DIST += \
+	t/program_tests/test_fstrm_dump.sh.in \
+	t/program_tests/test.fstrm \
+	t/program_tests/test-fstrm.txt
+
+
 #
 ##
 ### programs
@@ -202,6 +209,8 @@ src_fstrm_capture_SOURCES = \
 src_fstrm_capture_LDADD = \
 	fstrm/libfstrm.la \
 	$(libevent_LIBS)
+
+TESTS += t/program_tests/test_fstrm_dump.sh
 endif
 
 #
