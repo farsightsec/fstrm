@@ -172,6 +172,14 @@ t_test_file_hello_LDADD = \
 	fstrm/libfstrm.la
 TESTS += t/test_file_hello
 
+# program tests
+EXTRA_DIST += \
+	t/program_tests/test_fstrm_dump.sh.in \
+	t/program_tests/test_fstrm_replay.sh.in \
+	t/program_tests/test.fstrm \
+	t/program_tests/test-fstrm.txt
+
+
 #
 ##
 ### programs
@@ -186,6 +194,12 @@ src_fstrm_dump_SOURCES = \
 src_fstrm_dump_LDADD = \
 	fstrm/libfstrm.la
 
+bin_PROGRAMS += src/fstrm_replay
+src_fstrm_replay_SOURCES = \
+	src/fstrm_replay.c
+src_fstrm_replay_LDADD = \
+	fstrm/libfstrm.la
+
 bin_PROGRAMS += src/fstrm_capture
 src_fstrm_capture_CFLAGS = \
 	$(AM_CFLAGS) \
@@ -196,6 +210,9 @@ src_fstrm_capture_SOURCES = \
 src_fstrm_capture_LDADD = \
 	fstrm/libfstrm.la \
 	$(libevent_LIBS)
+
+TESTS += t/program_tests/test_fstrm_dump.sh \
+	 t/program_tests/test_fstrm_replay.sh
 endif
 
 #

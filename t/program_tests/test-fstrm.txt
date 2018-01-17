@@ -1,0 +1,24 @@
+FSTRM_CONTROL_START.
+FSTRM_CONTROL_FIELD_CONTENT_TYPE (10 bytes).
+ "test:hello"
+Data frame (16) bytes.
+ "Hello, world #0\x0a"
+Data frame (16) bytes.
+ "Hello, world #1\x0a"
+Data frame (16) bytes.
+ "Hello, world #2\x0a"
+Data frame (16) bytes.
+ "Hello, world #3\x0a"
+Data frame (16) bytes.
+ "Hello, world #4\x0a"
+Data frame (16) bytes.
+ "Hello, world #5\x0a"
+Data frame (16) bytes.
+ "Hello, world #6\x0a"
+Data frame (16) bytes.
+ "Hello, world #7\x0a"
+Data frame (16) bytes.
+ "Hello, world #8\x0a"
+Data frame (16) bytes.
+ "Hello, world #9\x0a"
+FSTRM_CONTROL_STOP.
