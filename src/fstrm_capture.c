@@ -54,8 +54,6 @@
 # define fwrite fwrite_unlocked
 #endif
 
-#define CAPTURE_HIGH_WATERMARK	262144
-
 struct capture;
 struct capture_args;
 struct conn;
@@ -106,6 +104,7 @@ struct capture {
 
 	size_t			bytes_written;
 	size_t			count_written;
+	size_t			capture_highwater;
 
 	struct tm *(*calendar_fn)(const time_t *, struct tm *);
 };
@@ -121,6 +120,7 @@ struct capture_args {
 	char			*str_read_tcp_port;
 	char			*str_write_fname;
 	int			split_seconds;
+	int			buffer_size;
 };
 
 static struct capture		g_program_ctx;
@@ -162,6 +162,12 @@ static argv_t g_args[] = {
 		&g_program_args.str_read_tcp_port,
 		"<PORT>",
 		"TCP socket port to read from" },
+
+	{ 'b',	"buffer_size",
+		ARGV_INT,
+		&g_program_args.buffer_size,
+		"<SIZE>",
+		"Frame streams read buffer size, in bytes (default 262144)" },
 
 	{ 'w',	"write",
 		ARGV_CHAR_P,
@@ -297,6 +303,9 @@ parse_args(const int argc, char **argv, struct capture *ctx)
 	if (g_program_args.str_read_tcp_address != NULL &&
 	    g_program_args.str_read_tcp_port == NULL)
 		usage("If --tcp is set, --port must also be set");
+	g_program_ctx.capture_highwater = 262144;
+	if (g_program_args.buffer_size > 0)
+		g_program_ctx.capture_highwater = (size_t)g_program_args.buffer_size;
 	if (g_program_args.str_write_fname == NULL)
 		usage("File path to write Frame Streams data to (--write) is not set");
 	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
@@ -1028,7 +1037,7 @@ cb_accept_conn(struct evconnlistener *listener, evutil_socket_t fd,
 	}
 	struct conn *conn = conn_init(ctx);
 	bufferevent_setcb(bev, cb_read, cb_write, cb_close_conn, (void *) conn);
-	bufferevent_setwatermark(bev, EV_READ, 0, CAPTURE_HIGH_WATERMARK);
+	bufferevent_setwatermark(bev, EV_READ, 0, ctx->capture_highwater);
 	bufferevent_enable(bev, EV_READ | EV_WRITE);
 
 	if (ctx->args->debug >= CONN_INFO)
