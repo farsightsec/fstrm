@@ -105,6 +105,7 @@ struct capture {
 	size_t			bytes_written;
 	size_t			count_written;
 	size_t			capture_highwater;
+	int			remaining_connections;
 
 	struct tm *(*calendar_fn)(const time_t *, struct tm *);
 };
@@ -121,6 +122,7 @@ struct capture_args {
 	char			*str_write_fname;
 	int			split_seconds;
 	int			buffer_size;
+	int			count_connections;
 };
 
 static struct capture		g_program_ctx;
@@ -168,6 +170,12 @@ static argv_t g_args[] = {
 		&g_program_args.buffer_size,
 		"<SIZE>",
 		"Frame streams read buffer size, in bytes (default 262144)" },
+
+	{ 'c', "connections",
+		ARGV_INT,
+		&g_program_args.count_connections,
+		"<COUNT>",
+		"Maximum number of concurrent connections allowed (default: 128)." },
 
 	{ 'w',	"write",
 		ARGV_CHAR_P,
@@ -257,6 +265,7 @@ static void
 cb_close_conn(struct bufferevent *bev, short error, void *arg)
 {
 	struct conn *conn = (struct conn *) arg;
+	struct capture *ctx = conn->ctx;
 
 	if (error & BEV_EVENT_ERROR)
 		conn_log(CONN_CRITICAL, conn, "libevent error: %s (%d)",
@@ -272,6 +281,10 @@ cb_close_conn(struct bufferevent *bev, short error, void *arg)
 	 */
 	bufferevent_free(bev);
 	conn_destroy(&conn);
+
+	ctx->remaining_connections++;
+	if (ctx->remaining_connections == 1)
+		evconnlistener_enable(ctx->ev_connlistener);
 }
 
 static bool
@@ -306,6 +319,9 @@ parse_args(const int argc, char **argv, struct capture *ctx)
 	g_program_ctx.capture_highwater = 262144;
 	if (g_program_args.buffer_size > 0)
 		g_program_ctx.capture_highwater = (size_t)g_program_args.buffer_size;
+	g_program_ctx.remaining_connections = -1; /* unlimited connections. */
+	if (g_program_args.count_connections > 0)
+		g_program_ctx.remaining_connections = (unsigned)g_program_args.count_connections;
 	if (g_program_args.str_write_fname == NULL)
 		usage("File path to write Frame Streams data to (--write) is not set");
 	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
@@ -1042,6 +1058,10 @@ cb_accept_conn(struct evconnlistener *listener, evutil_socket_t fd,
 
 	if (ctx->args->debug >= CONN_INFO)
 		fprintf(stderr, "%s: accepted new connection fd %d\n", argv_program, fd);
+
+	ctx->remaining_connections--;
+	if (ctx->remaining_connections == 0)
+		evconnlistener_disable(listener);
 }
 
 static void
