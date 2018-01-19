@@ -12,11 +12,12 @@ output=$(mktemp)
 sockpath=$(mktemp)
 
 test="fstrm_replay unix socket"
-$exedir/fstrm_capture -u $sockpath -w $output -t test:hello &
+args="-t test:hello -u $sockpath"
+$exedir/fstrm_capture -w $output $args &
 cappid=$!
 sleep 1
 
-if $exedir/fstrm_replay unix $sockpath $input; then
+if $exedir/fstrm_replay -r $input $args; then
 	kill $cappid
 	wait $cappid
 	if cmp $input $output; then
@@ -35,11 +36,12 @@ rm -f $output
 output=$(mktemp)
 
 test="fstrm_replay tcp socket"
-$exedir/fstrm_capture -a 127.0.0.1 -p 15532 -w $output -t test:hello &
+args="-a 127.0.0.1 -p 15532 -t test:hello"
+$exedir/fstrm_capture -w $output $args &
 cappid=$!
 sleep 1
 
-if $exedir/fstrm_replay tcp 127.0.0.1:15532 $input; then
+if $exedir/fstrm_replay -r $input $args; then
 	kill $cappid
 	wait $cappid
 	if cmp $input $output; then

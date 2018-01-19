@@ -196,7 +196,8 @@ src_fstrm_dump_LDADD = \
 
 bin_PROGRAMS += src/fstrm_replay
 src_fstrm_replay_SOURCES = \
-	src/fstrm_replay.c
+	src/fstrm_replay.c \
+	libmy/argv.c libmy/argv.h libmy/argv_loc.h
 src_fstrm_replay_LDADD = \
 	fstrm/libfstrm.la
 
