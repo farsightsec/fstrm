@@ -10,6 +10,8 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 EXTRA_DIST += COPYRIGHT
 EXTRA_DIST += LICENSE
 EXTRA_DIST += README.md
+EXTRA_DIST += man/fstrm_capture.1
+EXTRA_DIST += man/fstrm_replay.1
 
 AM_CPPFLAGS = \
 	-include $(top_builddir)/config.h \
@@ -211,6 +213,8 @@ src_fstrm_capture_SOURCES = \
 src_fstrm_capture_LDADD = \
 	fstrm/libfstrm.la \
 	$(libevent_LIBS)
+
+man_MANS=man/fstrm_capture.1 man/fstrm_replay.1
 
 TESTS += t/program_tests/test_fstrm_dump.sh \
 	 t/program_tests/test_fstrm_replay.sh
