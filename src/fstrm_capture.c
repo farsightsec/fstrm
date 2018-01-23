@@ -169,7 +169,7 @@ static argv_t g_args[] = {
 		ARGV_INT,
 		&g_program_args.buffer_size,
 		"<SIZE>",
-		"Frame streams read buffer size, in bytes (default 262144)" },
+		"Frame Streams read buffer size, in bytes (default 262144)" },
 
 	{ 'c', "connections",
 		ARGV_INT,
