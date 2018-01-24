@@ -81,6 +81,7 @@ struct conn {
 	uint32_t		len_frame_total;
 	size_t			len_buf;
 	size_t			bytes_read;
+	size_t			bytes_skip;
 	size_t			count_read;
 	struct bufferevent	*bev;
 	struct evbuffer		*ev_input;
@@ -969,6 +970,13 @@ can_read_full_frame(struct conn *conn)
 	if (conn->len_buf < conn->len_frame_total) {
 		conn_log(CONN_TRACE, conn, "incomplete message (have %zd bytes, want %u)",
 			 conn->len_buf, conn->len_frame_total);
+		if (conn->len_frame_total > conn->ctx->capture_highwater) {
+			conn_log(CONN_WARNING, conn,
+				"Skipping %zd byte message (%zd buffer)",
+				conn->len_frame_total,
+				conn->ctx->capture_highwater);
+			conn->bytes_skip = conn->len_frame_total;
+		}
 		return false;
 	}
 
@@ -1004,8 +1012,21 @@ cb_read(struct bufferevent *bev, void *arg)
 			return;
 
 		/* Check if the full frame has arrived. */
-		if (!can_read_full_frame(conn))
+		if ((conn->bytes_skip == 0) && !can_read_full_frame(conn))
 			return;
+
+		/* Skip bytes of oversized frames. */
+		if (conn->bytes_skip > 0) {
+			size_t skip = conn->bytes_skip;
+
+			if (skip > conn->len_buf)
+				skip = conn->len_buf;
+
+			conn_log(CONN_TRACE, conn, "Skipping %zd bytes", skip);
+			evbuffer_drain(conn->ev_input, skip);
+			conn->bytes_skip -= skip;
+			continue;
+		}
 
 		/* Process the frame. */
 		if (conn->len_frame_payload > 0) {
