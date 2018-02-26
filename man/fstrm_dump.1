@@ -6,7 +6,7 @@ fstrm_dump \- Display metadata and contents of Frame Streams file.
 
 .SH SYNOPSIS
 
-.B fstrm_dump \fIinput-file\fB [ \fIoutput-file\fB]
+.B fstrm_dump \fIinput-file\fB [\fIoutput-file\fB]
 
 .SH DESCRIPTION
 
@@ -22,18 +22,18 @@ a frame containing "Hello, world\\n" would have its data printed as:
 	 "Hello, world\\x0a"
 
 The only framing metadata expected in a Frame Streams file are the
-Start frame with a content type field, the data frame lengths, and
+start frame with a content type field, the data frame lengths, and
 the stop frame. These are printed, respectively, as:
 
 	FSTRM_CONTROL_START
 
-	FSTRM_CONTROL_FIELD_CONTENT_TYPE (\fIN\fR bytes).
+	FSTRM_CONTROL_FIELD_CONTENT_TYPE (\fIN\fR bytes)
 .br
 	 "\fIcontent-type\fR"
 
-	Data frame (\fIN\fR) bytes.
+	Data frame (\fIN\fR) bytes
 
-	FSTRM_CONTROL_STOP.
+	FSTRM_CONTROL_STOP
 
 If
 .B fstrm_dump
