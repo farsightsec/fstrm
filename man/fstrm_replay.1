@@ -13,10 +13,10 @@ fstrm_replay \- Replay saved Frame Streams data to a socket connection.
 .SH DESCRIPTION
 
 .B fstrm_replay
-connects to a Frame Streams receive on either the given UNIX domain
+connects to a Frame Streams receiver on either the given UNIX domain
 \fIsocket-path\fR or TCP \fIaddress\fR and \fIport\fR, then reads
 and sends data of the supplied \fIcontent-type\fR from the given
-\fIfiles\fR.
+\fIfile(s)\fR.
 
 .SH OPTIONS
 
@@ -25,7 +25,8 @@ and sends data of the supplied \fIcontent-type\fR from the given
 Specify the \fIcontent-type\fR to read from files and send to the
 Frame Streams socket. Files whose content-type differs are skipped.
 If the socket server does not accept the \fIcontent-type\fR,
-fIfstrm_replay\fR will fail.
+.B fstrm_replay
+will fail.
 
 .TP
 .B -r \fIfile\fB
