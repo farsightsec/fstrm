@@ -18,123 +18,146 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include <fstrm.h>
 
-static fstrm_res
-process_start_frame(struct fstrm_reader *r, struct fstrm_writer_options *wopt)
+#include "libmy/argv.h"
+
+struct replay {
+	struct replay_args 	*args;
+	uint8_t 		*content_type;
+	size_t			len_content_type;
+};
+
+struct replay_args {
+	bool			help;
+	char			*content_type;
+	char			*unix_address;
+	char			*tcp_address;
+	char			*tcp_port;
+	argv_array_t		files;
+};
+
+static struct replay		g_program_ctx;
+static struct replay_args	g_program_args;
+
+static argv_t g_args[] = {
+	{ 'h',  "help",
+		ARGV_BOOL,
+		&g_program_args.help,
+		NULL,
+		"display this help text and exit" },
+
+	{ 't',  "type",
+		ARGV_CHAR_P | ARGV_FLAG_MAND,
+		&g_program_args.content_type,
+		"<STRING>",
+		"Frame Streams content type" },
+
+	{ 'u',  "unix",
+		ARGV_CHAR_P,
+		&g_program_args.unix_address,
+		"<FILENAME>",
+		"Unix socket path to write to" },
+
+	/* ARGV_ONE_OF indicates that the user must specify the
+	 * previous option (-u) or next option (-a), but not both.
+	 */
+	{ ARGV_ONE_OF },
+
+	{ 'a',  "tcp",
+		ARGV_CHAR_P,
+		&g_program_args.tcp_address,
+		"<ADDRESS>",
+		"TCP socket address to write to" },
+
+	{ 'p',  "port",
+		ARGV_CHAR_P,
+		&g_program_args.tcp_port,
+		"<PORT>",
+		"TCP socket port to write to" },
+
+	{ 'r', "read-file",
+		ARGV_CHAR_P | ARGV_FLAG_ARRAY | ARGV_FLAG_MAND,
+		&g_program_args.files,
+		"<FILE>",
+		"Files to read Frame Streams data from" },
+
+	{ ARGV_LAST },
+};
+
+static void
+usage(const char *msg)
 {
-	fstrm_res res;
-	const struct fstrm_control *control = NULL;
-	size_t n_content_type = 0;
-	const uint8_t *content_type = NULL;
-	size_t len_content_type = 0;
-
-	res = fstrm_reader_get_control(r, FSTRM_CONTROL_START, &control);
-	if (res != fstrm_res_success)
-		return res;
-
-	res = fstrm_control_get_num_field_content_type(control, &n_content_type);
-	if (res != fstrm_res_success)
-		return res;
-	if (n_content_type > 0) {
-		res = fstrm_control_get_field_content_type(control, 0,
-			&content_type, &len_content_type);
-		if (res != fstrm_res_success)
-			return res;
-	}
-
-	if (wopt != NULL && content_type != NULL) {
-		res = fstrm_writer_options_add_content_type(wopt,
-			content_type, len_content_type);
-		if (res != fstrm_res_success)
-			return res;
-	}
-
-	return fstrm_res_success;
+	if(msg)
+		fprintf(stderr, "%s: Usage error: %s\n", argv_program, msg);
+	argv_usage(g_args, ARGV_USAGE_DEFAULT);
+	argv_cleanup(g_args);
+	exit(EXIT_FAILURE);
 }
 
-int main(int argc, char **argv)
+static bool
+parse_args(int argc, char **argv, struct replay *ctx)
 {
-	const char *output_type = NULL;
-	const char *output_addr = NULL;
-	const char *input_fname = NULL;
+	if (argv_process(g_args, argc, argv) != 0)
+		return false;
 
-	fstrm_res res = fstrm_res_failure;
-	struct fstrm_file_options *fopt = NULL;
-	struct fstrm_writer_options *wopt = NULL;
-	struct fstrm_reader *r = NULL;
-	struct fstrm_writer *w = NULL;
+	if (g_program_args.help)
+		return false;
 
-	int rv = EXIT_FAILURE;
+	if ((g_program_args.tcp_address != NULL) &&
+		(g_program_args.tcp_port == NULL))
+		usage("--tcp requires --port");
 
-	/* Args. */
-	if (argc != 4 || (strcmp(argv[1], "tcp") && strcmp(argv[1], "unix")))  {
-		fprintf(stderr, "Usage: %s (tcp|unix) (address:port|path) <INPUT FILE>\n", argv[0]);
-		fprintf(stderr, "Replays a Frame Streams formatted input file.\n\n");
-		return EXIT_FAILURE;
-	}
-	output_type = argv[1];
-	output_addr = argv[2];
-	input_fname = argv[3];
+	ctx->content_type = (uint8_t *)g_program_args.content_type;
+	ctx->len_content_type = strlen(g_program_args.content_type);
+	return true;
+}
 
-	/* Setup file reader options. */
-	fopt = fstrm_file_options_init();
-	fstrm_file_options_set_file_path(fopt, input_fname);
-
-	/* Initialize file reader. */
-	r = fstrm_file_reader_init(fopt, NULL);
-	if (r == NULL) {
-		fputs("Error: fstrm_file_reader_init() failed.\n", stderr);
-		goto out;
-	}
-	res = fstrm_reader_open(r);
-	if (res != fstrm_res_success) {
-		fputs("Error: fstrm_reader_open() failed.\n", stderr);
-		goto out;
-	}
+static struct fstrm_writer *
+init_writer()
+{
+	struct fstrm_writer *w;
+	struct fstrm_writer_options *wopt;
+	fstrm_res res;
 
 	/* Setup writer options. */
 	wopt = fstrm_writer_options_init();
-
-	/* Copy "content type" from the reader's START frame. */
-	res = process_start_frame(r, wopt);
+	res = fstrm_writer_options_add_content_type(wopt,
+				g_program_ctx.content_type,
+				g_program_ctx.len_content_type);
 	if (res != fstrm_res_success) {
-		fputs("Error: process_start_frame() failed.\n", stderr);
-		goto out;
+		fstrm_writer_options_destroy(&wopt);
+		return NULL;
 	}
 
-	if (!strcmp(output_type, "unix")) {
+	if (g_program_args.unix_address != NULL) {
 		struct fstrm_unix_writer_options *uwopt;
 
 		uwopt  = fstrm_unix_writer_options_init();
-		fstrm_unix_writer_options_set_socket_path(uwopt, output_addr);
+		fstrm_unix_writer_options_set_socket_path(uwopt, g_program_args.unix_address);
 		w = fstrm_unix_writer_init(uwopt, wopt);
 		fstrm_unix_writer_options_destroy(&uwopt);
+		fstrm_writer_options_destroy(&wopt);
 		if (w == NULL) {
 			fputs("Error: fstrm_unix_writer_init() failed.\n", stderr);
-			goto out;
+			return NULL;
 		}
 	} else {
 		struct fstrm_tcp_writer_options *twopt;
-		char *addr, *port;
-
-		addr = strdup(output_addr);
-
-		addr = strtok(addr, ":");
-		port = strtok(NULL, ":");
 
 		twopt = fstrm_tcp_writer_options_init();
-		fstrm_tcp_writer_options_set_socket_address(twopt, addr);
-		fstrm_tcp_writer_options_set_socket_port(twopt, port);
+		fstrm_tcp_writer_options_set_socket_address(twopt, g_program_args.tcp_address);
+		fstrm_tcp_writer_options_set_socket_port(twopt, g_program_args.tcp_port);
 
 		w = fstrm_tcp_writer_init(twopt, wopt);
 		fstrm_tcp_writer_options_destroy(&twopt);
-		free(addr);
+		fstrm_writer_options_destroy(&wopt);
 
 		if (w == NULL) {
 			fputs("Error: fstrm_tcp_writer_init() failed.\n", stderr);
-			goto out;
+			return NULL;
 		}
 	}
 
@@ -142,10 +165,49 @@ int main(int argc, char **argv)
 	if (res != fstrm_res_success) {
 		fstrm_writer_destroy(&w);
 		fputs("Error: fstrm_writer_open() failed.\n", stderr);
-		goto out;
+		return NULL;
 	}
 
-	/* Loop over data frames. */
+	return w;
+}
+
+static void
+process_file(const char *fname, struct fstrm_writer *w)
+{
+	struct fstrm_reader *r = NULL;
+	struct fstrm_file_options *fopt = NULL;
+	const struct fstrm_control *control = NULL;
+	fstrm_res res;
+
+	fopt = fstrm_file_options_init();
+	fstrm_file_options_set_file_path(fopt, fname);
+
+	/* Initialize file reader. */
+	r = fstrm_file_reader_init(fopt, NULL);
+	fstrm_file_options_destroy(&fopt);
+	if (r == NULL) {
+		fprintf(stderr, "Warning: failed to open %s, skipping\n", fname);
+		return;
+	}
+
+	/* Check file content type. */
+	res = fstrm_reader_get_control(r, FSTRM_CONTROL_START, &control);
+	if (res != fstrm_res_success) {
+		fprintf(stderr, "Warning: failed to read control frame from %s, skipping\n", fname);
+		fstrm_reader_destroy(&r);
+		return;
+	}
+
+	res = fstrm_control_match_field_content_type(control,
+				g_program_ctx.content_type,
+				g_program_ctx.len_content_type);
+	if (res != fstrm_res_success) {
+		fprintf(stderr, "Warning: content type mismatch for %s, skipping\n", fname);
+		fstrm_reader_destroy(&r);
+		return;
+	}
+
+	/* Loop over file data. */
 	for (;;) {
 		const uint8_t *data;
 		size_t len_data;
@@ -155,42 +217,46 @@ int main(int argc, char **argv)
 			/* Write the data frame. */
 			res = fstrm_writer_write(w, data, len_data);
 			if (res != fstrm_res_success) {
-				fprintf(stderr, "Error: write_data_frame() failed.\n");
-				goto out;
+				fputs("Error: write_data_frame() failed", stderr);
+				exit(EXIT_FAILURE);
 			}
 		} else if (res == fstrm_res_stop) {
-			const struct fstrm_control *control = NULL;
 			/* Normal end of data stream. */
 			res = fstrm_reader_get_control(r, FSTRM_CONTROL_STOP, &control);
 			if (res != fstrm_res_success) {
-				fprintf(stderr, "Error: unable to read STOP frame.\n");
-				goto out;
+				fprintf(stderr, "Error: unable to read STOP frame from %s.\n", fname);
 			}
-			rv = EXIT_SUCCESS;
 			break;
 		} else {
 			/* Abnormal end. */
 			fprintf(stderr, "Error: fstrm_reader_read() failed.\n");
-			goto out;
+			break;
 		}
 	}
-
-out:
-	/* Cleanup options. */
-	fstrm_writer_options_destroy(&wopt);
-
-	/* Cleanup reader. */
 	fstrm_reader_destroy(&r);
+}
 
-	/* Cleanup writer. */
-	if (w != NULL) {
-		res = fstrm_writer_close(w);
-		if (res != fstrm_res_success) {
-			fprintf(stderr, "Error: fstrm_writer_close() failed.\n");
-			rv = EXIT_FAILURE;
-		}
-		fstrm_writer_destroy(&w);
+int main(int argc, char **argv)
+{
+	int i;
+	fstrm_res res;
+	struct fstrm_writer *w = NULL;
+
+	if (!parse_args(argc, argv, &g_program_ctx))
+		usage(NULL);
+
+	w = init_writer();
+
+	for (i = 0; i < ARGV_ARRAY_COUNT(g_program_args.files); i++) {
+		const char *in_fname;
+		in_fname = ARGV_ARRAY_ENTRY(g_program_args.files, char *, i);
+		process_file(in_fname, w);
 	}
 
-	return rv;
+	res = fstrm_writer_close(w);
+	if (res != fstrm_res_success)
+		fputs("Error: fstrm_writer_close() failed", stderr);
+
+	fstrm_writer_destroy(&w);
+	return 0;
 }

@@ -1,0 +1,68 @@
+.TH fstrm_capture 1
+
+.SH NAME
+
+fstrm_capture \- Receive and save Frame Streams data from a socket.
+
+.SH SYNOPSIS
+
+.B fstrm_capture -t \fIcontent-type\fB -w \fIfilename\fB
+.br
+.B "	[ -u \fIsocket-path\fB ] [ -a \fIIP\fB -p \fIport\fB ]"
+.br
+.B "	[ -s \fIseconds\fB ] [ --gmtime ] [ --localtime ]"
+
+.SH DESCRIPTION
+
+.B fstrm_capture
+listens on a UNIX domain or TCP socket, receives Frame Streams data,
+and writes the data to a file.
+
+.SH OPTIONS
+
+.TP
+.B -w \fIfilename\fB
+Write data to the file \fIfilename\fR.
+
+.TP
+.B -t \fIcontent-type\fB
+Specify the \fIcontent-type\fR to receive from the socket and write
+to the output \fIfilename\fR.
+
+.TP
+.B -u \fIsocket-path\fB
+Listen on \fIsocket-path\fR to receive Frame Streams data. Only one of
+\fB-u\fR or \fB-a\fR may be given.
+
+.TP
+.B -a \fIIP\fB
+Listen on address \fIIP\fR to receive Frame Streams data. Only one of
+\fB-u\fR or \fB-a\fR may be given. Use of \fB-a\fR requires a port
+given with \fB-p\fR.
+
+.TP
+.B -p \fIport\fB
+If \fB-a\fR is given, listen on TCP port \fIport\fR to receive Frame
+Streams data.
+
+.TP
+.B -s \fIinterval\fB
+Rotate output file every \fIinterval\fR seconds. Requires specifying
+either the \fB--gmtime\fR or \fB--localtime\fR options. If given,
+the filename is processed with \fIstrftime()\fR before opening the
+output file, using either the system local time zone (if \fB--localtime\fR
+is given) or GMT (if \fB--gmtime\fR is given).
+
+.SH EXAMPLES
+
+Receive dnstap data and save to hourly rotating files
+
+.nf
+	fstrm_capture -t protobuf:dnstap.Dnstap \\
+		-u /var/run/named/dnstap.sock -s 3600 \\
+		-w /var/log/dnstap/dnstap-%F-%T.fstrm
+.fi
+
+.SH SEE ALSO
+
+.B strftime(3)
