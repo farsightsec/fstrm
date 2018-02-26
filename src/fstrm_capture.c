@@ -166,17 +166,17 @@ static argv_t g_args[] = {
 		"<PORT>",
 		"TCP socket port to read from" },
 
-	{ 'b',	"buffer_size",
+	{ 'b',	"buffersize",
 		ARGV_INT,
 		&g_program_args.buffer_size,
 		"<SIZE>",
-		"Frame Streams read buffer size, in bytes (default 262144)" },
+		"read buffer size, in bytes (default 262144)" },
 
-	{ 'c', "connections",
+	{ 'c', "maxconns",
 		ARGV_INT,
 		&g_program_args.count_connections,
 		"<COUNT>",
-		"Maximum number of concurrent connections allowed (default: 128)." },
+		"maximum concurrent connections allowed" },
 
 	{ 'w',	"write",
 		ARGV_CHAR_P,
