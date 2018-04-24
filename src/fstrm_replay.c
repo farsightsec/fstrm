@@ -116,7 +116,7 @@ parse_args(int argc, char **argv, struct replay *ctx)
 }
 
 static struct fstrm_writer *
-init_writer()
+init_writer(void)
 {
 	struct fstrm_writer *w;
 	struct fstrm_writer_options *wopt;
