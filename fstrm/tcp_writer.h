@@ -66,8 +66,9 @@ fstrm_tcp_writer_options_set_socket_address(
  *
  * \param twopt
  *	`fstrm_tcp_writer_options` object.
- * \param socket_address
- *	The socket address.
+ * \param socket_port
+ *	The TCP socket port number provided as a character string.
+ *	(When converted, the maximum allowed unsigned integer is 65535.)
  */
 void
 fstrm_tcp_writer_options_set_socket_port(
