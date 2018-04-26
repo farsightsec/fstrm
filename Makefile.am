@@ -38,7 +38,7 @@ CODE_COVERAGE_IGNORE_PATTERN = "$(abs_top_builddir)/t/*"
 ##
 #
 
-LIBFSTRM_VERSION_INFO=0:0:0
+LIBFSTRM_VERSION_INFO=1:0:1
 
 fstrm_libfstrm_la_DEPENDENCIES = \
 	$(top_srcdir)/fstrm/libfstrm.sym
