@@ -39,8 +39,18 @@ If
 .B fstrm_dump
 is given the second
 .I output-file
-parameter, the data is written to
-.I output-file
-as it is printed. This is mainly useful for regression testing of the
+parameter, input frames are additionally written to
+.I output-file.
+This is mainly useful for regression testing of the
 .I fstrm_file_writer
 code.
+
+.I input-file
+may be "-", to read Frame Streams data from standard input.
+
+.SH SEE ALSO
+
+.B fstrm_capture(1)
+.B fstrm_replay(1)
+
+Frame Streams C Library \fBhttps://farsightsec.github.io/fstrm\fR
