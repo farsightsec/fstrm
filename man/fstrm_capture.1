@@ -86,11 +86,24 @@ The default \fIbuffersize\fR is 256KiB.
 
 .TP
 .B -s \fIinterval\fB | --split \fIinterval\fB
-Rotate output file every \fIinterval\fR seconds. Requires specifying
-either the \fB--gmtime\fR or \fB--localtime\fR options. If given,
-the filename is processed with \fBstrftime()\fR before opening the
-output file, using either the system local time zone (if \fB--localtime\fR
-is given) or GMT (if \fB--gmtime\fR is given).
+Reopen output file every \fIinterval\fR seconds. Requires the use of
+either the \fB--gmtime\fR or \fB--localtime\fR options.
+
+.TP
+.B --gmtime
+Process the \fB--write\fR filename through \fBstrftime()\fR with the current
+time in GMT.
+The \fB--gmtime\fR option may be used with \fB--split\fR to provide
+file rotation, or by itself to provide a timestamped output file for each
+start or restart of \fBfstrm_capture\fR.
+
+.TP
+.B --localtime
+Process the \fB--write\fR filename through \fBstrftime()\fR with the current
+time in the system local time zone.
+The \fB--localtime\fR option may be used with \fB--split\fR to provide
+file rotation, or by itself to provide a timestamped output file for each
+start or restart of \fBfstrm_capture\fR.
 
 .TP
 .B -d [ -d ... ] | --debug [ --debug ]
