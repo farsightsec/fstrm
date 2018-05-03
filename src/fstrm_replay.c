@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <arpa/inet.h>
 #include <sys/uio.h>
 #include <string.h>
 #include <stdio.h>
@@ -149,6 +150,20 @@ init_writer(void)
 		}
 	} else {
 		struct fstrm_tcp_writer_options *twopt;
+		unsigned long port;
+		char *endptr;
+		struct sockaddr_in sin;
+		struct sockaddr_in6 sin6;
+
+	        /* Parse TCP listen port. */
+	        port = strtoul(g_program_args.tcp_port, &endptr, 0);
+	        if (*endptr != '\0' || port > UINT16_MAX)
+	                usage("Failed to parse TCP listen port");
+
+		/* Parse TCP listen address. */
+		if ((inet_pton(AF_INET, g_program_args.tcp_address, &sin) != 1) &&
+		    (inet_pton(AF_INET6, g_program_args.tcp_address, &sin6) != 1))
+			usage("Failed to parse TCP listen address");
 
 		twopt = fstrm_tcp_writer_options_init();
 		fstrm_tcp_writer_options_set_socket_address(twopt, g_program_args.tcp_address);
