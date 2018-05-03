@@ -44,6 +44,10 @@ Write data to the file \fIfilename\fR.
 If the \fB-s\fR or \fB--split\fR option is given, \fIfilename\fR is
 preprocessed with \fBstrftime()\fR.
 
+If \fIfilename\fR is "-" and standard output is not connected to a
+terminal, \fBfstrm_capture\fR will write to standard output. Output
+splitting may not be used with a \fIfilename\fR of "-".
+
 .TP
 .B -t \fIcontent-type\fB | --type \fIcontent-type\fB
 Specify the \fIcontent-type\fR to receive from the socket and write
