@@ -264,6 +264,8 @@ int main(int argc, char **argv)
 		usage(NULL);
 
 	w = init_writer();
+	if (w == NULL)
+		exit(EXIT_FAILURE);
 
 	for (i = 0; i < ARGV_ARRAY_COUNT(g_program_args.files); i++) {
 		const char *in_fname;
