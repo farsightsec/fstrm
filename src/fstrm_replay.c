@@ -135,6 +135,9 @@ init_writer(void)
 	if (g_program_args.unix_address != NULL) {
 		struct fstrm_unix_writer_options *uwopt;
 
+		if (g_program_args.tcp_port != NULL)
+			fputs("Warning: Ignoring --port with --unix.\n", stderr);
+
 		uwopt  = fstrm_unix_writer_options_init();
 		fstrm_unix_writer_options_set_socket_path(uwopt, g_program_args.unix_address);
 		w = fstrm_unix_writer_init(uwopt, wopt);
