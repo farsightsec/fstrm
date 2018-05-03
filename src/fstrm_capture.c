@@ -351,6 +351,9 @@ open_read_unix(struct capture *ctx)
 	int ret;
 	struct sockaddr_un *sa = (struct sockaddr_un *) &ctx->ss;
 
+	if (ctx->args->str_read_tcp_port != NULL)
+		fputs("Warning: Ignoring --port with --unix\n", stderr);
+
 	/* Construct sockaddr_un structure. */
 	if (strlen(ctx->args->str_read_unix) + 1 >
 	    sizeof(sa->sun_path))
