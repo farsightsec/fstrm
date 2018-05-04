@@ -41,12 +41,14 @@ and writes the data to a file.
 .B -w \fIfilename\fB | --write \fIfilename \fB
 Write data to the file \fIfilename\fR.
 
-If the \fB-s\fR or \fB--split\fR option is given, \fIfilename\fR is
+If the \fB--gmtime\fR or \fB--localtime\fR option is given, \fIfilename\fR is
 preprocessed with \fBstrftime()\fR.
+This will allow specifying a format string which includes the date and
+time, for example, for the created filename.
 
 If \fIfilename\fR is "-" and standard output is not connected to a
 terminal, \fBfstrm_capture\fR will write to standard output. Output
-splitting may not be used with a \fIfilename\fR of "-".
+splitting (\fB-s\fR) may not be used with a \fIfilename\fR of "-".
 
 .TP
 .B -t \fIcontent-type\fB | --type \fIcontent-type\fB
@@ -79,7 +81,7 @@ specified, concurrent connections are not limited.
 Set read buffer size to \fIbuffersize\fR. Combined with \fB-c\fR,
 this can be used to limit the total memory usage of \fBfstrm_capture\fR.
 The \fIbuffersize\fR also affects the maximum frame size which
-\fBfstrm_capture\fR will accept. Frames larger than \fIbufferszie\fR,
+\fBfstrm_capture\fR will accept. Frames larger than \fIbuffersize\fR,
 including the 4-byte framing overhead, will be discarded.
 
 The default \fIbuffersize\fR is 256KiB.
@@ -114,6 +116,8 @@ which more repetitions will have no effect.
 .SH EXAMPLES
 
 Receive dnstap data and save to hourly rotating files
+(with a converted filename such as
+\fI/var/log/dnstap/dnstap-2018-05-04-12:58:48.fstrm\fR).
 
 .nf
 	fstrm_capture -t protobuf:dnstap.Dnstap \\
@@ -124,8 +128,8 @@ Receive dnstap data and save to hourly rotating files
 
 .SH SEE ALSO
 
-.B fstrm_replay(1)
-.B fstrm_dump(1)
-.B strftime(3)
-
+.BR fstrm_dump (1),
+.BR fstrm_replay (1),
+.BR strftime (3),
+.br
 Frame Streams C Library \fBhttps://farsightsec.github.io/fstrm\fR
