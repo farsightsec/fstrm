@@ -14,6 +14,9 @@ fstrm_dump \- Display metadata and contents of Frame Streams file.
 opens
 .I input-file
 and prints its framing metadata to \fIstderr\fR and frame data to \fIstdout\fR.
+The
+.I input-file
+may be "-" to read Frame Streams data from standard input.
 
 Frame data is printed as a single line quoted string with non-printable
 characters replaced by backslash-prefixed hex escape sequences. For example,
@@ -45,12 +48,9 @@ This is mainly useful for regression testing of the
 .I fstrm_file_writer
 code.
 
-.I input-file
-may be "-", to read Frame Streams data from standard input.
-
 .SH SEE ALSO
 
-.B fstrm_capture(1)
-.B fstrm_replay(1)
-
+.BR fstrm_capture (1),
+.BR fstrm_replay (1),
+.br
 Frame Streams C Library \fBhttps://farsightsec.github.io/fstrm\fR
