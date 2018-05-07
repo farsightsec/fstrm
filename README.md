@@ -28,7 +28,7 @@ If building from a git checkout, the `autotools` (`autoconf`, `automake`, `libto
 
     ./autogen.sh && ./configure && make && make check && make install
 
-Reference programs `fstrm_capture` and `fstrm_dump` are provided. In order to build `fstrm_capture`, the [libevent](http://libevent.org/) library must be installed. The option `--disable-programs` can be passed to `configure` to disable building these programs.
+Reference programs `fstrm_capture`, `fstrm_dump`, and `fstrm_replay` are provided. In order to build `fstrm_capture`, the [libevent](http://libevent.org/) library must be installed. The option `--disable-programs` can be passed to `configure` to disable building these programs.
 
 ## Synopsis
 
