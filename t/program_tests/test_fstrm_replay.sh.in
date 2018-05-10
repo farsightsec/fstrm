@@ -1,0 +1,61 @@
+#!/bin/sh
+
+exedir="@abs_top_builddir@/src"
+testdir="@abs_top_srcdir@/t/program_tests"
+
+input="${testdir}/test.fstrm"
+input_txt="${testdir}/test-fstrm.txt"
+
+rc=0
+
+output=$(mktemp)
+sockpath=$(mktemp)
+
+test="fstrm_replay unix socket"
+args="-t test:hello -u $sockpath"
+$exedir/fstrm_capture -w $output $args &
+cappid=$!
+sleep 1
+
+if $exedir/fstrm_replay -r $input $args; then
+	kill $cappid
+	wait $cappid
+	if cmp $input $output; then
+		echo $test: PASS
+	else
+		echo $test: FAIL "(capture differs)"
+		rc=1
+	fi
+else
+	kill $cappid
+	echo $test: FAIL "(replay failed)"
+	rc=1
+fi
+
+rm -f $output
+output=$(mktemp)
+
+test="fstrm_replay tcp socket"
+args="-a 127.0.0.1 -p 15532 -t test:hello"
+$exedir/fstrm_capture -w $output $args &
+cappid=$!
+sleep 1
+
+if $exedir/fstrm_replay -r $input $args; then
+	kill $cappid
+	wait $cappid
+	if cmp $input $output; then
+		echo $test: PASS
+	else
+		echo $test: FAIL "(capture differs)"
+		rc=1
+	fi
+else
+	kill $cappid
+	echo $test: FAIL "(replay failed)"
+	rc=1
+fi
+
+rm -f $output
+
+exit $rc

@@ -10,6 +10,9 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 EXTRA_DIST += COPYRIGHT
 EXTRA_DIST += LICENSE
 EXTRA_DIST += README.md
+EXTRA_DIST += man/fstrm_capture.1
+EXTRA_DIST += man/fstrm_replay.1
+EXTRA_DIST += man/fstrm_dump.1
 
 AM_CPPFLAGS = \
 	-include $(top_builddir)/config.h \
@@ -35,7 +38,7 @@ CODE_COVERAGE_IGNORE_PATTERN = "$(abs_top_builddir)/t/*"
 ##
 #
 
-LIBFSTRM_VERSION_INFO=0:0:0
+LIBFSTRM_VERSION_INFO=1:0:1
 
 fstrm_libfstrm_la_DEPENDENCIES = \
 	$(top_srcdir)/fstrm/libfstrm.sym
@@ -49,6 +52,7 @@ nobase_include_HEADERS = \
 	fstrm/file.h		\
 	fstrm/rdwr.h		\
 	fstrm/reader.h		\
+	fstrm/tcp_writer.h	\
 	fstrm/unix_writer.h	\
 	fstrm/writer.h
 
@@ -59,6 +63,7 @@ fstrm_libfstrm_la_SOURCES = \
 	fstrm/iothr.c fstrm/iothr.h		\
 	fstrm/rdwr.c fstrm/rdwr.h		\
 	fstrm/reader.c fstrm/reader.h		\
+	fstrm/tcp_writer.c fstrm/tcp_writer.h	\
 	fstrm/time.c				\
 	fstrm/unix_writer.c fstrm/unix_writer.h	\
 	fstrm/writer.c fstrm/writer.h		\
@@ -134,19 +139,24 @@ t/run_test_fstrm_io_file.sh: t/test_fstrm_io_file
 TESTS += t/run_test_fstrm_io_file.sh
 EXTRA_DIST += t/run_test_fstrm_io_file.sh
 
-check_PROGRAMS += t/test_fstrm_io_unix
-t_test_fstrm_io_unix_SOURCES = \
-	t/test_fstrm_io_unix.c \
+check_PROGRAMS += t/test_fstrm_io_sock
+t_test_fstrm_io_sock_SOURCES = \
+	t/test_fstrm_io_sock.c \
 	libmy/my_alloc.h \
 	libmy/my_time.h \
 	libmy/print_string.h \
 	libmy/ubuf.h \
 	libmy/vector.h
-t_test_fstrm_io_unix_LDADD = \
+t_test_fstrm_io_sock_LDADD = \
 	fstrm/libfstrm.la
-t/run_test_fstrm_io_unix.sh: t/test_fstrm_io_unix
+
+t/run_test_fstrm_io_unix.sh: t/test_fstrm_io_sock
 TESTS += t/run_test_fstrm_io_unix.sh
 EXTRA_DIST += t/run_test_fstrm_io_unix.sh
+
+t/run_test_fstrm_io_tcp.sh: t/test_fstrm_io_sock
+TESTS += t/run_test_fstrm_io_tcp.sh
+EXTRA_DIST += t/run_test_fstrm_io_tcp.sh
 
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \
@@ -165,6 +175,14 @@ t_test_file_hello_LDADD = \
 	fstrm/libfstrm.la
 TESTS += t/test_file_hello
 
+# program tests
+EXTRA_DIST += \
+	t/program_tests/test_fstrm_dump.sh.in \
+	t/program_tests/test_fstrm_replay.sh.in \
+	t/program_tests/test.fstrm \
+	t/program_tests/test-fstrm.txt
+
+
 #
 ##
 ### programs
@@ -179,6 +197,13 @@ src_fstrm_dump_SOURCES = \
 src_fstrm_dump_LDADD = \
 	fstrm/libfstrm.la
 
+bin_PROGRAMS += src/fstrm_replay
+src_fstrm_replay_SOURCES = \
+	src/fstrm_replay.c \
+	libmy/argv.c libmy/argv.h libmy/argv_loc.h
+src_fstrm_replay_LDADD = \
+	fstrm/libfstrm.la
+
 bin_PROGRAMS += src/fstrm_capture
 src_fstrm_capture_CFLAGS = \
 	$(AM_CFLAGS) \
@@ -189,6 +214,11 @@ src_fstrm_capture_SOURCES = \
 src_fstrm_capture_LDADD = \
 	fstrm/libfstrm.la \
 	$(libevent_LIBS)
+
+man_MANS=man/fstrm_capture.1 man/fstrm_replay.1 man/fstrm_dump.1
+
+TESTS += t/program_tests/test_fstrm_dump.sh \
+	 t/program_tests/test_fstrm_replay.sh
 endif
 
 #

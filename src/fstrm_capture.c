@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 by Farsight Security, Inc.
+ * Copyright (c) 2014-2016, 2018 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -53,8 +54,6 @@
 # define fwrite fwrite_unlocked
 #endif
 
-#define CAPTURE_HIGH_WATERMARK	262144
-
 struct capture;
 struct capture_args;
 struct conn;
@@ -82,6 +81,7 @@ struct conn {
 	uint32_t		len_frame_total;
 	size_t			len_buf;
 	size_t			bytes_read;
+	size_t			bytes_skip;
 	size_t			count_read;
 	struct bufferevent	*bev;
 	struct evbuffer		*ev_input;
@@ -92,7 +92,8 @@ struct conn {
 struct capture {
 	struct capture_args	*args;
 
-	struct sockaddr_un	sa;
+	struct sockaddr_storage	ss;
+	socklen_t		ss_len;
 	evutil_socket_t		listen_fd;
 	struct event_base	*ev_base;
 	struct evconnlistener	*ev_connlistener;
@@ -104,6 +105,8 @@ struct capture {
 
 	size_t			bytes_written;
 	size_t			count_written;
+	size_t			capture_highwater;
+	int			remaining_connections;
 
 	struct tm *(*calendar_fn)(const time_t *, struct tm *);
 };
@@ -115,8 +118,12 @@ struct capture_args {
 	bool			gmtime;
 	char			*str_content_type;
 	char			*str_read_unix;
+	char			*str_read_tcp_address;
+	char			*str_read_tcp_port;
 	char			*str_write_fname;
 	int			split_seconds;
+	int			buffer_size;
+	int			count_connections;
 };
 
 static struct capture		g_program_ctx;
@@ -146,6 +153,30 @@ static argv_t g_args[] = {
 		&g_program_args.str_read_unix,
 		"<FILENAME>",
 		"Unix socket path to read from" },
+
+	{ 'a',	"tcp",
+		ARGV_CHAR_P,
+		&g_program_args.str_read_tcp_address,
+		"<ADDRESS>",
+		"TCP socket address to read from" },
+
+	{ 'p',	"port",
+		ARGV_CHAR_P,
+		&g_program_args.str_read_tcp_port,
+		"<PORT>",
+		"TCP socket port to read from" },
+
+	{ 'b',	"buffersize",
+		ARGV_INT,
+		&g_program_args.buffer_size,
+		"<SIZE>",
+		"read buffer size, in bytes (default 262144)" },
+
+	{ 'c', "maxconns",
+		ARGV_INT,
+		&g_program_args.count_connections,
+		"<COUNT>",
+		"maximum concurrent connections allowed" },
 
 	{ 'w',	"write",
 		ARGV_CHAR_P,
@@ -235,6 +266,7 @@ static void
 cb_close_conn(struct bufferevent *bev, short error, void *arg)
 {
 	struct conn *conn = (struct conn *) arg;
+	struct capture *ctx = conn->ctx;
 
 	if (error & BEV_EVENT_ERROR)
 		conn_log(CONN_CRITICAL, conn, "libevent error: %s (%d)",
@@ -250,6 +282,10 @@ cb_close_conn(struct bufferevent *bev, short error, void *arg)
 	 */
 	bufferevent_free(bev);
 	conn_destroy(&conn);
+
+	ctx->remaining_connections++;
+	if (ctx->remaining_connections == 1)
+		evconnlistener_enable(ctx->ev_connlistener);
 }
 
 static bool
@@ -275,8 +311,18 @@ parse_args(const int argc, char **argv, struct capture *ctx)
 		return false;
 	if (g_program_args.str_content_type == NULL)
 		usage("Frame Streams content type (--type) is not set");
-	if (g_program_args.str_read_unix == NULL)
-		usage("Unix socket path to read from (--unix) is not set");
+	if (g_program_args.str_read_unix == NULL &&
+	    g_program_args.str_read_tcp_address == NULL)
+		usage("One of --unix or --tcp must be set");
+	if (g_program_args.str_read_tcp_address != NULL &&
+	    g_program_args.str_read_tcp_port == NULL)
+		usage("If --tcp is set, --port must also be set");
+	g_program_ctx.capture_highwater = 262144;
+	if (g_program_args.buffer_size > 0)
+		g_program_ctx.capture_highwater = (size_t)g_program_args.buffer_size;
+	g_program_ctx.remaining_connections = -1; /* unlimited connections. */
+	if (g_program_args.count_connections > 0)
+		g_program_ctx.remaining_connections = (unsigned)g_program_args.count_connections;
 	if (g_program_args.str_write_fname == NULL)
 		usage("File path to write Frame Streams data to (--write) is not set");
 	if (strcmp(g_program_args.str_write_fname, "-") == 0) {
@@ -303,30 +349,69 @@ static bool
 open_read_unix(struct capture *ctx)
 {
 	int ret;
+	struct sockaddr_un *sa = (struct sockaddr_un *) &ctx->ss;
+
+	if (ctx->args->str_read_tcp_port != NULL)
+		fputs("Warning: Ignoring --port with --unix\n", stderr);
 
 	/* Construct sockaddr_un structure. */
 	if (strlen(ctx->args->str_read_unix) + 1 >
-	    sizeof(ctx->sa.sun_path))
+	    sizeof(sa->sun_path))
 	{
 		usage("Unix socket path is too long");
 		return false;
 	}
-	ctx->sa.sun_family = AF_UNIX;
-	strncpy(ctx->sa.sun_path,
+	sa->sun_family = AF_UNIX;
+	strncpy(sa->sun_path,
 		ctx->args->str_read_unix,
-		sizeof(ctx->sa.sun_path) - 1);
+		sizeof(sa->sun_path) - 1);
+	ctx->ss_len = SUN_LEN(sa);
 
 	/* Remove a previously bound socket existing on the filesystem. */
-	ret = remove(ctx->sa.sun_path);
+	ret = remove(sa->sun_path);
 	if (ret != 0 && errno != ENOENT) {
 		fprintf(stderr, "%s: failed to remove existing socket path %s\n",
-			argv_program, ctx->sa.sun_path);
+			argv_program, sa->sun_path);
 		return false;
 	}
 
 	/* Success. */
-	fprintf(stderr, "%s: listening on socket path %s\n",
-		argv_program, ctx->sa.sun_path);
+	fprintf(stderr, "%s: opening Unix socket path %s\n",
+		argv_program, sa->sun_path);
+	return true;
+}
+
+static bool
+open_read_tcp(struct capture *ctx)
+{
+	struct sockaddr_in *sai = (struct sockaddr_in *) &ctx->ss;
+	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *) &ctx->ss;
+	uint64_t port = 0;
+	char *endptr = NULL;
+
+	/* Parse TCP listen port. */
+	port = strtoul(ctx->args->str_read_tcp_port, &endptr, 0);
+	if (*endptr != '\0' || port > UINT16_MAX) {
+		usage("Failed to parse TCP listen port");
+		return false;
+	}
+
+	if (inet_pton(AF_INET, ctx->args->str_read_tcp_address, &sai->sin_addr) == 1) {
+		sai->sin_family = AF_INET;
+		sai->sin_port = htons(port);
+		ctx->ss_len = sizeof(*sai);
+	} else if (inet_pton(AF_INET6, ctx->args->str_read_tcp_address, &sai6->sin6_addr) == 1) {
+		sai6->sin6_family = AF_INET6;
+		sai6->sin6_port = htons(port);
+		ctx->ss_len = sizeof(*sai6);
+	} else {
+		usage("Failed to parse TCP listen address");
+		return false;
+	}
+
+	/* Success. */
+	fprintf(stderr, "%s: opening TCP socket [%s]:%s\n",
+		argv_program, ctx->args->str_read_tcp_address, ctx->args->str_read_tcp_port);
 	return true;
 }
 
@@ -728,8 +813,6 @@ process_control_frame_stop(struct conn *conn)
 {
 	fstrm_res res;
 
-	conn->state = CONN_STATE_STOPPED;
-
 	/* Setup the FINISH frame. */
 	fstrm_control_reset(conn->control);
 	res = fstrm_control_set_type(conn->control, FSTRM_CONTROL_FINISH);
@@ -740,8 +823,15 @@ process_control_frame_stop(struct conn *conn)
 	if (!write_control_frame(conn))
 		return false;
 	
-	/* Success, though we return false in order to shut down the connection. */
-	return false;
+	conn->state = CONN_STATE_STOPPED;
+
+	/* We return true here, which prevents the caller from closing
+	 * the connection directly (with the FINISH frame still in our
+	 * write buffer). The connection will be closed after the FINISH
+	 * frame is written and the write callback (cb_write) is called
+	 * to refill the write buffer.
+	 */
+	return true;
 }
 
 static bool
@@ -883,11 +973,29 @@ can_read_full_frame(struct conn *conn)
 	if (conn->len_buf < conn->len_frame_total) {
 		conn_log(CONN_TRACE, conn, "incomplete message (have %zd bytes, want %u)",
 			 conn->len_buf, conn->len_frame_total);
+		if (conn->len_frame_total > conn->ctx->capture_highwater) {
+			conn_log(CONN_WARNING, conn,
+				"Skipping %zd byte message (%zd buffer)",
+				conn->len_frame_total,
+				conn->ctx->capture_highwater);
+			conn->bytes_skip = conn->len_frame_total;
+		}
 		return false;
 	}
 
 	/* Success. The entire frame can now be read from the buffer. */
 	return true;
+}
+
+static void
+cb_write(struct bufferevent *bev, void *arg)
+{
+	struct conn *conn = (struct conn *) arg;
+
+	if (conn->state != CONN_STATE_STOPPED)
+		return;
+
+	cb_close_conn(bev, 0, arg);
 }
 
 static void
@@ -907,8 +1015,21 @@ cb_read(struct bufferevent *bev, void *arg)
 			return;
 
 		/* Check if the full frame has arrived. */
-		if (!can_read_full_frame(conn))
+		if ((conn->bytes_skip == 0) && !can_read_full_frame(conn))
 			return;
+
+		/* Skip bytes of oversized frames. */
+		if (conn->bytes_skip > 0) {
+			size_t skip = conn->bytes_skip;
+
+			if (skip > conn->len_buf)
+				skip = conn->len_buf;
+
+			conn_log(CONN_TRACE, conn, "Skipping %zd bytes", skip);
+			evbuffer_drain(conn->ev_input, skip);
+			conn->bytes_skip -= skip;
+			continue;
+		}
 
 		/* Process the frame. */
 		if (conn->len_frame_payload > 0) {
@@ -955,12 +1076,16 @@ cb_accept_conn(struct evconnlistener *listener, evutil_socket_t fd,
 		return;
 	}
 	struct conn *conn = conn_init(ctx);
-	bufferevent_setcb(bev, cb_read, NULL, cb_close_conn, (void *) conn);
-	bufferevent_setwatermark(bev, EV_READ, 0, CAPTURE_HIGH_WATERMARK);
+	bufferevent_setcb(bev, cb_read, cb_write, cb_close_conn, (void *) conn);
+	bufferevent_setwatermark(bev, EV_READ, 0, ctx->capture_highwater);
 	bufferevent_enable(bev, EV_READ | EV_WRITE);
 
 	if (ctx->args->debug >= CONN_INFO)
 		fprintf(stderr, "%s: accepted new connection fd %d\n", argv_program, fd);
+
+	ctx->remaining_connections--;
+	if (ctx->remaining_connections == 0)
+		evconnlistener_disable(listener);
 }
 
 static void
@@ -994,9 +1119,10 @@ setup_event_loop(struct capture *ctx)
 	flags |= LEV_OPT_CLOSE_ON_FREE; /* Closes underlying sockets. */
 	flags |= LEV_OPT_CLOSE_ON_EXEC; /* Sets FD_CLOEXEC on underlying fd's. */
 	flags |= LEV_OPT_REUSEABLE; /* Sets SO_REUSEADDR on listener. */
+
 	ctx->ev_connlistener = evconnlistener_new_bind(ctx->ev_base,
 		cb_accept_conn, (void *) ctx, flags, -1,
-		(struct sockaddr *) &ctx->sa, sizeof(ctx->sa));
+		(struct sockaddr *) &ctx->ss, ctx->ss_len);
 	if (!ctx->ev_connlistener) {
 		event_base_free(ctx->ev_base);
 		ctx->ev_base = NULL;
@@ -1060,9 +1186,19 @@ main(int argc, char **argv)
 	}
 	g_program_ctx.args = &g_program_args;
 
-	/* Open the Unix socket input. */
-	if (!open_read_unix(&g_program_ctx))
+	/* Open the Unix socket input, if specified. */
+	if (g_program_ctx.args->str_read_unix != NULL) {
+		if (!open_read_unix(&g_program_ctx))
+			return EXIT_FAILURE;
+	} else if (g_program_ctx.args->str_read_tcp_address != NULL &&
+		   g_program_ctx.args->str_read_tcp_port != NULL) {
+		/* Otherwise, open the TCP socket input. */
+		if (!open_read_tcp(&g_program_ctx))
+			return EXIT_FAILURE;
+	} else {
+		fprintf(stderr, "%s: failed to setup a listening socket\n", argv_program);
 		return EXIT_FAILURE;
+	}
 
 	/* Open the file output. */
 	if (!open_write_file(&g_program_ctx))

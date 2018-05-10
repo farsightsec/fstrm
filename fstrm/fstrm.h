@@ -44,7 +44,7 @@
  *
  * \authors Farsight Security, Inc. and the `fstrm` authors.
  *
- * \copyright 2013-2014. Licensed under the terms of the [Apache-2.0] license.
+ * \copyright 2013-2018. Licensed under the terms of the [Apache-2.0] license.
  *
  * [Protocol Buffers]: https://developers.google.com/protocol-buffers/
  * [XML]:              http://www.w3.org/TR/xml11/
@@ -285,6 +285,7 @@ struct fstrm_writer_options;
 #include <fstrm/iothr.h>
 #include <fstrm/rdwr.h>
 #include <fstrm/reader.h>
+#include <fstrm/tcp_writer.h>
 #include <fstrm/unix_writer.h>
 #include <fstrm/writer.h>
 

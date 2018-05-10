@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 by Farsight Security, Inc.
+ * Copyright (c) 2014, 2018 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,16 +82,6 @@ print_data_frame(const uint8_t *data, size_t len_data)
 	print_string(data, len_data, stdout);
 	putchar('\n');
 	return fstrm_res_success;
-}
-
-static fstrm_res
-write_data_frame(struct fstrm_writer *w, const uint8_t *data, size_t len_data)
-{
-	struct iovec iov = {
-		.iov_base = (void *) data,
-		.iov_len = len_data
-	};
-	return fstrm_writer_write(w, &iov, 1);
 }
 
 int main(int argc, char **argv)
@@ -187,7 +177,7 @@ int main(int argc, char **argv)
 			}
 			if (w != NULL) {
 				/* Write the data frame. */
-				res = write_data_frame(w, data, len_data);
+				res = fstrm_writer_write(w, data, len_data);
 				if (res != fstrm_res_success) {
 					fprintf(stderr, "Error: write_data_frame() failed.\n");
 					goto out;

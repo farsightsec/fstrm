@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 by Farsight Security, Inc.
+ * Copyright (c) 2013-2016, 2018 by Farsight Security, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -308,7 +309,7 @@ thr_consumer(void *arg)
 }
 
 static int
-get_server_socket(const char *socket_path)
+get_unix_server_socket(const char *socket_path)
 {
 	struct sockaddr_un sa;
 	int sfd;
@@ -341,30 +342,95 @@ get_server_socket(const char *socket_path)
 	return sfd;
 }
 
+static int
+get_tcp_server_socket(const char *socket_address, uint16_t *socket_port)
+{
+	struct sockaddr_storage ss = {0};
+	struct sockaddr_in *sai = (struct sockaddr_in *) &ss;
+	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *) &ss;
+	socklen_t ss_len = sizeof(ss);
+	int sfd;
+
+	if (inet_pton(AF_INET, socket_address, &sai->sin_addr) == 1) {
+		ss.ss_family = AF_INET;
+		ss_len = sizeof(*sai);
+	} else if (inet_pton(AF_INET6, socket_address, &sai6->sin6_addr) == 1) {
+		ss.ss_family = AF_INET6;
+		ss_len = sizeof(*sai6);
+	} else {
+		perror("inet_pton");
+		abort();
+	}
+
+	sfd = socket(ss.ss_family, SOCK_STREAM, 0);
+	if (sfd == -1) {
+		perror("socket");
+		abort();
+	}
+
+	if (bind(sfd, (struct sockaddr *) &ss, ss_len) == -1) {
+		perror("bind");
+		abort();
+	}
+
+	if (listen(sfd, 1) == -1) {
+		perror("listen");
+		abort();
+	}
+
+	if (socket_port != NULL) {
+		if (getsockname(sfd, (struct sockaddr *) &ss, &ss_len) == -1) {
+			perror("getsockname");
+			abort();
+		}
+		if (ss.ss_family == AF_INET) {
+			*socket_port = ntohs(sai->sin_port);
+		} else if (ss.ss_family == AF_INET6) {
+			*socket_port = ntohs(sai6->sin6_port);
+		} else {
+			perror("getsockname");
+			abort();
+		}
+	}
+
+	return sfd;
+}
+
 int
 main(int argc, char **argv)
 {
 	struct timespec ts_a, ts_b;
 	double elapsed;
-	char *socket_path;
+	char *socket_type;
+	char *socket_param;
 	char *queue_model_str;
 	unsigned num_messages;
 	unsigned num_threads;
+	char *unix_socket_path;
+	char *tcp_socket_address;
+	uint16_t tcp_socket_port;
+	char s_tcp_socket_port[16] = {0};
 	fstrm_iothr_queue_model queue_model;
+	bool is_unix;
 
-	if (argc != 5) {
-		fprintf(stderr, "Usage: %s <SOCKET> <QUEUE MODEL> <NUM THREADS> <NUM MESSAGES>\n", argv[0]);
+	if (argc != 6) {
+		fprintf(stderr, "Usage: %s <SOCKET TYPE> <SOCKET PARAM> <QUEUE MODEL> <NUM THREADS> <NUM MESSAGES>\n", argv[0]);
 		fprintf(stderr, "\n");
-		fprintf(stderr, "SOCKET is a filesystem path.\n");
+		fprintf(stderr, "SOCKET TYPE is 'tcp' or 'unix'.");
+		fprintf(stderr, "For SOCKET TYPE 'unix', SOCKET PARAMS should be a filesystem path.");
+		fprintf(stderr, "For SOCKET TYPE 'tcp', SOCKET PARAMS should be a socket address.");
 		fprintf(stderr, "QUEUE MODEL is the string 'SPSC' or 'MPSC'.\n");
 		fprintf(stderr, "NUM THREADS is an integer.\n");
 		fprintf(stderr, "NUM MESSAGES is an integer.\n");
+		fprintf(stderr, "\n");
 		return EXIT_FAILURE;
 	}
-	socket_path = argv[1];
-	queue_model_str = argv[2];
-	num_threads = atoi(argv[3]);
-	num_messages = atoi(argv[4]);
+	socket_type = argv[1];
+	socket_param = argv[2];
+	queue_model_str = argv[3];
+	num_threads = atoi(argv[4]);
+	num_messages = atoi(argv[5]);
+
 	if (num_threads < 1) {
 		fprintf(stderr, "%s: Error: invalid number of threads\n", argv[0]);
 		return EXIT_FAILURE;
@@ -383,21 +449,55 @@ main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	if (strcasecmp(socket_type, "unix") == 0) {
+		unix_socket_path = socket_param;
+		is_unix = true;
+	} else if (strcasecmp(socket_type, "tcp") == 0) {
+		tcp_socket_address = socket_param;
+		is_unix = false;
+	} else {
+		fprintf(stderr, "%s: Error: invalid SOCKET TYPE specified", argv[0]);
+		return EXIT_FAILURE;
+	}
+
 	printf("setting up 300 second timeout\n");
 	alarm(300);
 
-	printf("testing fstrm_iothr with socket= %s "
+	printf("testing fstrm_iothr with socket param %s "
 	       "queue_model= %s "
 	       "num_threads= %u "
 	       "num_messages= %u\n",
-	       socket_path, queue_model_str, num_threads, num_messages);
+	       socket_param, queue_model_str, num_threads, num_messages);
 
-	struct fstrm_unix_writer_options *uwopt;
-	uwopt = fstrm_unix_writer_options_init();
-	fstrm_unix_writer_options_set_socket_path(uwopt, socket_path);
-	struct fstrm_writer *w = fstrm_unix_writer_init(uwopt, NULL);
+	struct consumer test_consumer;
+	if (is_unix) {
+		printf("opening unix server socket on %s\n", unix_socket_path);
+		test_consumer.server_fd = get_unix_server_socket(unix_socket_path);
+	} else {
+		printf("opening tcp server socket on %s\n", tcp_socket_address);
+		test_consumer.server_fd = get_tcp_server_socket(tcp_socket_address, &tcp_socket_port);
+		snprintf(s_tcp_socket_port, sizeof(s_tcp_socket_port), "%u", tcp_socket_port);
+	}
+
+	struct fstrm_writer *w = NULL;
+
+	if (is_unix) {
+		struct fstrm_unix_writer_options *uwopt;
+		uwopt = fstrm_unix_writer_options_init();
+		fstrm_unix_writer_options_set_socket_path(uwopt, unix_socket_path);
+		w = fstrm_unix_writer_init(uwopt, NULL);
+		assert(w != NULL);
+		fstrm_unix_writer_options_destroy(&uwopt);
+	} else {
+		struct fstrm_tcp_writer_options *twopt;
+		twopt = fstrm_tcp_writer_options_init();
+		fstrm_tcp_writer_options_set_socket_address(twopt, tcp_socket_address);
+		fstrm_tcp_writer_options_set_socket_port(twopt, s_tcp_socket_port);
+		w = fstrm_tcp_writer_init(twopt, NULL);
+		assert(w != NULL);
+		fstrm_tcp_writer_options_destroy(&twopt);
+	}
 	assert(w != NULL);
-	fstrm_unix_writer_options_destroy(&uwopt);
 
 	struct fstrm_iothr_options *iothr_opt;
 	iothr_opt = fstrm_iothr_options_init();
@@ -410,10 +510,6 @@ main(int argc, char **argv)
 		assert(0); /* not reached */
 	}
 	fstrm_iothr_options_set_queue_model(iothr_opt, queue_model);
-
-	struct consumer test_consumer;
-	printf("opening server socket on %s\n", socket_path);
-	test_consumer.server_fd = get_server_socket(socket_path);
 
 	printf("creating consumer thread\n");
 	pthread_create(&test_consumer.thr, NULL, thr_consumer, &test_consumer);

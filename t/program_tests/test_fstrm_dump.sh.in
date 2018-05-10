@@ -1,0 +1,31 @@
+#!/bin/sh
+
+exedir="@abs_top_builddir@/src"
+testdir="@abs_top_srcdir@/t/program_tests"
+
+input="${testdir}/test.fstrm"
+input_txt="${testdir}/test-fstrm.txt"
+
+rc=0
+
+test="fstrm_dump display"
+if $exedir/fstrm_dump $input 2>&1 | cmp - $input_txt; then
+	echo $test: PASS
+else
+	echo $test: FAIL
+	rc=1
+fi
+
+output=$(mktemp)
+
+test="fstrm_dump copy"
+$exedir/fstrm_dump $input $output >/dev/null 2>&1
+if $exedir/fstrm_dump $output 2>&1 | cmp - $input_txt; then
+	echo $test: PASS
+else
+	echo $test: FAIL
+	rc=1
+fi
+
+rm -f $output
+exit $rc

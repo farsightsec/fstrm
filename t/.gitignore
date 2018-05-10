@@ -1,6 +1,8 @@
 test_control
 test_file_hello
 test_fstrm_io_file
-test_fstrm_io_unix
+test_fstrm_io_sock
 test_queue
 test_writer_hello
+program_tests/test_fstrm_dump.sh
+program_tests/test_fstrm_replay.sh

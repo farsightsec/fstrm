@@ -1,0 +1,75 @@
+.TH fstrm_replay 1
+
+.SH NAME
+
+fstrm_replay \- Replay saved Frame Streams data to a socket connection.
+
+.SH SYNOPSIS
+
+.B fstrm_replay -t \fIcontent-type\fB -r \fIfile\fB [ -r \fIfile\fB ... ]
+.br
+.B "	[ -u \fIsocket-path\fB ] [ -a \fIIP\fB -p \fIport\fB ]"
+
+.PP
+
+.B fstrm_replay --type \fIcontent-type\fB
+.br
+.B "	--read \fIfile\fB [ --read \fIfile\fB ... ]
+.br
+.B "	[ --unix \fIsocket-path\fB ] [ --tcp \fIIP\fB --port \fIport\fB ]"
+
+.SH DESCRIPTION
+
+.B fstrm_replay
+connects to a Frame Streams receiver on either the given UNIX domain
+\fIsocket-path\fR or TCP \fIaddress\fR and \fIport\fR, then reads
+and sends data of the supplied \fIcontent-type\fR from the given
+\fIfile(s)\fR.
+
+.SH OPTIONS
+
+.TP
+.B -t \fIcontent-type\fB | --type \fIcontent-type\fB
+Specify the \fIcontent-type\fR to read from files and send to the
+Frame Streams socket. Files whose content-type differ are skipped.
+If the socket server does not accept the \fIcontent-type\fR,
+.B fstrm_replay
+will fail.
+
+.TP
+.B -r \fIfile\fB | --read \fIfile\fB
+Read data from \fIfile\fR. Multiple files can be given with multiple
+\fB-r\fR options. Files which cannot be opened, or do not contain valid
+Frame Streams data will be skipped.
+
+.TP
+.B -u \fIsocket-path\fB | --unix \fIsocket-path\fR
+Connect to Unix domain \fIsocket-path\fR to write Frame Streams data.
+Only one of \fB-u\fR or \fB-a\fR may be given.
+
+.TP
+.B -a \fIIP\fB | --tcp \fIIP\fB
+Connect to TCP address \fIIP\fR to write Frame Streams data. Only one of
+\fB-u\fR or \fB-a\fR may be given. Use of \fB-a\fR requires a port
+given with \fB-p\fR.
+
+.TP
+.B -p \fIport\fB | --port \fIport\fB
+If \fB-a\fR is given, use TCP port \fIport\fR to write Frame Streams
+data.
+
+.SH EXAMPLES
+
+Replay dnstap data over UNIX domain socket:
+
+.nf
+	fstrm_replay -t protobuf:dnstap.Dnstap \\
+		-u /var/run/named/dnstap.sock -r dnstap-log.fstrm
+.fi
+
+.SH SEE ALSO
+
+.BR fstrm_capture (1),
+.BR fstrm_dump (1),
+.br
+Frame Streams C Library \fBhttps://farsightsec.github.io/fstrm\fR

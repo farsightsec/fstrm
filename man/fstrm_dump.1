@@ -1,0 +1,56 @@
+.TH fstrm_dump 1
+
+.SH NAME
+
+fstrm_dump \- Display metadata and contents of Frame Streams file.
+
+.SH SYNOPSIS
+
+.B fstrm_dump \fIinput-file\fB [\fIoutput-file\fB]
+
+.SH DESCRIPTION
+
+.B fstrm_dump
+opens
+.I input-file
+and prints its framing metadata to \fIstderr\fR and frame data to \fIstdout\fR.
+The
+.I input-file
+may be "-" to read Frame Streams data from standard input.
+
+Frame data is printed as a single line quoted string with non-printable
+characters replaced by backslash-prefixed hex escape sequences. For example,
+a frame containing "Hello, world\\n" would have its data printed as:
+
+	 "Hello, world\\x0a"
+
+The only framing metadata expected in a Frame Streams file are the
+start frame with a content type field, the data frame lengths, and
+the stop frame. These are printed, respectively, as:
+
+	FSTRM_CONTROL_START
+
+	FSTRM_CONTROL_FIELD_CONTENT_TYPE (\fIN\fR bytes)
+.br
+	 "\fIcontent-type\fR"
+
+	Data frame (\fIN\fR) bytes
+
+	FSTRM_CONTROL_STOP
+
+If
+.B fstrm_dump
+is given the second
+.I output-file
+parameter, input frames are additionally written to
+.I output-file.
+This is mainly useful for regression testing of the
+.I fstrm_file_writer
+code.
+
+.SH SEE ALSO
+
+.BR fstrm_capture (1),
+.BR fstrm_replay (1),
+.br
+Frame Streams C Library \fBhttps://farsightsec.github.io/fstrm\fR

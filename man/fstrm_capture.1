@@ -1,0 +1,138 @@
+.TH fstrm_capture 1
+
+.SH NAME
+
+fstrm_capture \- Receive and save Frame Streams data from a socket.
+
+.SH SYNOPSIS
+
+.B fstrm_capture -t \fIcontent-type\fB -w \fIfilename\fB
+.br
+.B "	[ -u \fIsocket-path\fB ] [ -a \fIIP\fB -p \fIport\fB ]"
+.br
+.B "	[ -c \fImax-connections\fB ] [ -b \fIbuffer-size\fB ]"
+.br
+.B "	[ -s \fIseconds\fB ] [ --gmtime ] [ --localtime ]"
+.br
+.B "	[ -d [-d ...] ]"
+
+.PP
+
+.B fstrm_capture --type \fIcontent-type\fB --write \fIfilename\fB
+.br
+.B "	[ --unix \fIsocket-path\fB ] [ --tcp \fIIP\fB --port \fIport\fB ]"
+.br
+.B "	[ --maxconns \fImax-connections\fB ] [ --buffersize \fIbuffer-size\fB ]"
+.br
+.B "	[ --split \fIseconds\fB ] [ --gmtime ] [ --localtime ]"
+.br
+.B "	[ --debug [--debug ...] ]"
+
+
+.SH DESCRIPTION
+
+.B fstrm_capture
+listens on a UNIX domain or TCP socket, receives Frame Streams data,
+and writes the data to a file.
+
+.SH OPTIONS
+
+.TP
+.B -w \fIfilename\fB | --write \fIfilename \fB
+Write data to the file \fIfilename\fR.
+
+If the \fB--gmtime\fR or \fB--localtime\fR option is given, \fIfilename\fR is
+preprocessed with \fBstrftime()\fR.
+This will allow specifying a format string which includes the date and
+time, for example, for the created filename.
+
+If \fIfilename\fR is "-" and standard output is not connected to a
+terminal, \fBfstrm_capture\fR will write to standard output. Output
+splitting (\fB-s\fR) may not be used with a \fIfilename\fR of "-".
+
+.TP
+.B -t \fIcontent-type\fB | --type \fIcontent-type\fB
+Specify the \fIcontent-type\fR to receive from the socket and write
+to the output \fIfilename\fR.
+
+.TP
+.B -u \fIsocket-path\fB | --unix \fIsocket-path\fB
+Listen on the Unix domain socket \fIsocket-path\fR to receive Frame
+Streams data. Only one of \fB-u\fR or \fB-a\fR may be given.
+
+.TP
+.B -a \fIIP\fB | --tcp \fIIP\fB
+Listen for TCP connections on address \fIIP\fR to receive Frame Streams
+data. Only one of \fB-u\fR or \fB-a\fR may be given. Use of \fB-a\fR
+requires a port given with \fB-p\fR.
+
+.TP
+.B -p \fIport\fB | --port \fIport\fB
+If \fB-a\fR is given, listen on TCP port \fIport\fR to receive Frame
+Streams data.
+
+.TP
+.B -c \fImax-conns\fB | --maxconns \fImax-conns\fB
+Allow at most \fImax-conns\fR concurrent connections. If not
+specified, concurrent connections are not limited.
+
+.TP
+.B -b \fIbuffersize\fB | --buffersize \fIbuffersize\fB
+Set read buffer size to \fIbuffersize\fR bytes. Combined with \fB-c\fR,
+this can be used to limit the total memory usage of \fBfstrm_capture\fR.
+The \fIbuffersize\fR also affects the maximum frame size which
+\fBfstrm_capture\fR will accept. Frames larger than \fIbuffersize\fR,
+including the 4-byte framing overhead, will be discarded.
+
+The default \fIbuffersize\fR is 262144 (256KiB).
+
+.TP
+.B -s \fIinterval\fB | --split \fIinterval\fB
+Reopen output file every \fIinterval\fR seconds. Requires the use of
+either the \fB--gmtime\fR or \fB--localtime\fR options.
+
+Note that this file rotation is triggered by incoming data,
+so it may be delayed after the interval.
+
+.TP
+.B --gmtime
+Process the \fB--write\fR filename through \fBstrftime()\fR with the current
+time in GMT.
+The \fB--gmtime\fR option may be used with \fB--split\fR to provide
+file rotation, or by itself to provide a timestamped output file for each
+start or restart of \fBfstrm_capture\fR.
+
+.TP
+.B --localtime
+Process the \fB--write\fR filename through \fBstrftime()\fR with the current
+time in the system local time zone.
+The \fB--localtime\fR option may be used with \fB--split\fR to provide
+file rotation, or by itself to provide a timestamped output file for each
+start or restart of \fBfstrm_capture\fR.
+
+.TP
+.B -d [ -d ... ] | --debug [ --debug ]
+Increase debugging level. Without \fB-d\fR, \fIfstrm_capture\fR prints only
+critical error messages. Up to five \fB-d\fR options may be specified, after
+which more repetitions will have no effect.
+
+.SH EXAMPLES
+
+Receive dnstap data and save to hourly rotating files
+(with a converted filename such as
+\fI/var/log/dnstap/dnstap-2018-05-04-12:58:48.fstrm\fR).
+
+.nf
+	fstrm_capture -t protobuf:dnstap.Dnstap \\
+		-u /var/run/named/dnstap.sock \\
+		-w /var/log/dnstap/dnstap-%F-%T.fstrm \\
+		-s 3600 --gmtime
+.fi
+
+.SH SEE ALSO
+
+.BR fstrm_dump (1),
+.BR fstrm_replay (1),
+.BR strftime (3),
+.br
+Frame Streams C Library \fBhttps://farsightsec.github.io/fstrm\fR

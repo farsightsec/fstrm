@@ -1,7 +1,7 @@
 AC_PREREQ(2.64)
 
 AC_INIT([fstrm],
-        [0.3.2],
+        [0.4.0],
         [https://github.com/farsightsec/fstrm/issues],
         [fstrm],
         [https://github.com/farsightsec/fstrm])
@@ -20,6 +20,12 @@ LT_INIT
 
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_FILES([Makefile fstrm/libfstrm.pc])
+
+AC_CONFIG_FILES([t/program_tests/test_fstrm_dump.sh],
+		[chmod +x t/program_tests/test_fstrm_dump.sh])
+
+AC_CONFIG_FILES([t/program_tests/test_fstrm_replay.sh],
+		[chmod +x t/program_tests/test_fstrm_replay.sh])
 
 my_PKG_CONFIG_FILES([LIBFSTRM_PC], [fstrm/libfstrm.pc])
 
