@@ -78,18 +78,21 @@ specified, concurrent connections are not limited.
 
 .TP
 .B -b \fIbuffersize\fB | --buffersize \fIbuffersize\fB
-Set read buffer size to \fIbuffersize\fR. Combined with \fB-c\fR,
+Set read buffer size to \fIbuffersize\fR bytes. Combined with \fB-c\fR,
 this can be used to limit the total memory usage of \fBfstrm_capture\fR.
 The \fIbuffersize\fR also affects the maximum frame size which
 \fBfstrm_capture\fR will accept. Frames larger than \fIbuffersize\fR,
 including the 4-byte framing overhead, will be discarded.
 
-The default \fIbuffersize\fR is 256KiB.
+The default \fIbuffersize\fR is 262144 (256KiB).
 
 .TP
 .B -s \fIinterval\fB | --split \fIinterval\fB
 Reopen output file every \fIinterval\fR seconds. Requires the use of
 either the \fB--gmtime\fR or \fB--localtime\fR options.
+
+Note that this file rotation is triggered by incoming data,
+so it may be delayed after the interval.
 
 .TP
 .B --gmtime
