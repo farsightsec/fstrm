@@ -47,7 +47,7 @@ Section: libdevel
 Architecture: any
 Depends: ${misc:Depends}, libfstrm0 (= ${binary:Version})
 Description: Frame Streams (fstrm) library (development files)
- This package contains the static library and development headers of the
+ This package contains the static library and development headers of
  the "fstrm" implementation of Frame Streams in C.
 
 Package: fstrm-bin
