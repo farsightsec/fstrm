@@ -1,3 +1,38 @@
+fstrm (0.4.0-1) debian-farsighsec; urgency=medium
+
+  * Added manual pages for fstrm_capture and fstrm_dump.
+
+  * Added new tool, fstrm_replay, for replaying saved Frame Streams data
+    to a socket connection.
+
+  * Adds TCP support. Add tcp_writer to the core library which
+    implements a bi-directional Frame Streams writer as a TCP socket
+    client. Introduces new developer API: fstrm_tcp_writer_init,
+    fstrm_tcp_writer_options_init, fstrm_tcp_writer_options_destroy,
+    fstrm_tcp_writer_options_set_socket_address, and
+    fstrm_tcp_writer_options_set_socket_port.
+
+  * fstrm_capture: new options for reading from TCP socket.
+
+  * fstrm_capture: add "-c" / "--connections" option to limit the
+    number of concurrent connections it will accept.
+
+  * fstrm_capture: add "-b / --buffer-size" option to set the read buffer
+    size (effectively the maximum frame size) to a value other than the
+    default 256 KiB.
+
+  * fstrm_capture: skip oversize messages to fix stalled connections
+    caused by messages larger than the read highwater mark of the input
+    buffer. Discarded messages are logged for the purposes of tuning
+    the input buffer size.
+
+  * fstrm_capture: complete sending of FINISH frame before closing
+    connection.
+
+  * Various test additions and improvements.
+
+ -- Farsight Security, Inc. <software@farsightsecurity.com>  Thu, 10 May 2018 09:52:45 -0500
+
 fstrm (0.3.2-1) debian-farsighsec; urgency=medium
 
   * Initial release.
