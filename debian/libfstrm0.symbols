@@ -1,5 +1,6 @@
 libfstrm.so.0 libfstrm0 #MINVER#
  LIBFSTRM_0.2.0@LIBFSTRM_0.2.0 0.2.0
+ LIBFSTRM_0.4.0@LIBFSTRM_0.4.0 0.4.0
  fstrm_control_add_field_content_type@LIBFSTRM_0.2.0 0.2.0
  fstrm_control_decode@LIBFSTRM_0.2.0 0.2.0
  fstrm_control_destroy@LIBFSTRM_0.2.0 0.2.0
@@ -56,6 +57,11 @@ libfstrm.so.0 libfstrm0 #MINVER#
  fstrm_reader_options_init@LIBFSTRM_0.2.0 0.2.0
  fstrm_reader_options_set_max_frame_size@LIBFSTRM_0.2.0 0.2.0
  fstrm_reader_read@LIBFSTRM_0.2.0 0.2.0
+ fstrm_tcp_writer_init@LIBFSTRM_0.4.0 0.4.0
+ fstrm_tcp_writer_options_destroy@LIBFSTRM_0.4.0 0.4.0
+ fstrm_tcp_writer_options_init@LIBFSTRM_0.4.0 0.4.0
+ fstrm_tcp_writer_options_set_socket_address@LIBFSTRM_0.4.0 0.4.0
+ fstrm_tcp_writer_options_set_socket_port@LIBFSTRM_0.4.0 0.4.0
  fstrm_unix_writer_init@LIBFSTRM_0.2.0 0.2.0
  fstrm_unix_writer_options_destroy@LIBFSTRM_0.2.0 0.2.0
  fstrm_unix_writer_options_init@LIBFSTRM_0.2.0 0.2.0
