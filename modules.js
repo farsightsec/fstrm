@@ -6,6 +6,7 @@ var modules =
     [ "fstrm_iothr", "group__fstrm__iothr.html", "group__fstrm__iothr" ],
     [ "fstrm_rdwr", "group__fstrm__rdwr.html", "group__fstrm__rdwr" ],
     [ "fstrm_reader", "group__fstrm__reader.html", "group__fstrm__reader" ],
+    [ "fstrm_tcp_writer", "group__fstrm__tcp__writer.html", "group__fstrm__tcp__writer" ],
     [ "fstrm_unix_writer", "group__fstrm__unix__writer.html", "group__fstrm__unix__writer" ],
     [ "fstrm_writer", "group__fstrm__writer.html", "group__fstrm__writer" ]
 ];

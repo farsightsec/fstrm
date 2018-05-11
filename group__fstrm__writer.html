@@ -26,7 +26,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">fstrm
-   &#160;<span id="projectnumber">0.3.2</span>
+   &#160;<span id="projectnumber">0.4.0</span>
    </div>
    <div id="projectbrief">Frame Streams implementation in C</div>
   </td>
@@ -61,7 +61,7 @@ $(document).ready(function(){initNavTree('group__fstrm__writer.html','');});
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p><code>fstrm_writer</code> is an interface for writing Frame Streams data into a byte stream. </p>
 <p>The underlying byte stream I/O operations are abstracted by the <a class="el" href="group__fstrm__rdwr.html">fstrm_rdwr</a> interface. Thus, the <code>fstrm_writer</code> interface can be used to write Frame Streams data to any type of output whose read/write operations are wrapped by an <code>fstrm_rdwr</code> object.</p>
-<p>Some basic <code>fstrm_writer</code> implementations are already provided in the <code>fstrm</code> library. See <a class="el" href="group__fstrm__file.html#ga0996800d71c6be618760328383be785e" title="Open a file for writing Frame Streams data. ">fstrm_file_writer_init()</a> for an implementation that writes to a regular file and <a class="el" href="group__fstrm__unix__writer.html#gaad9a7cbbc6ac5a50997cfba4a4fd8bba" title="Initialize the fstrm_writer object. ">fstrm_unix_writer_init()</a> for an implementation that writes to a Unix socket. </p>
+<p>Some basic <code>fstrm_writer</code> implementations are already provided in the <code>fstrm</code> library. See <a class="el" href="group__fstrm__file.html#ga0996800d71c6be618760328383be785e" title="Open a file for writing Frame Streams data. ">fstrm_file_writer_init()</a> for an implementation that writes to a regular file, <a class="el" href="group__fstrm__tcp__writer.html#ga07c5b023953b3aaaccccf8d017e040ce" title="Initialize the fstrm_writer object. ">fstrm_tcp_writer_init()</a> for an implementation that writes to a TCP socket, and <a class="el" href="group__fstrm__unix__writer.html#gaad9a7cbbc6ac5a50997cfba4a4fd8bba" title="Initialize the fstrm_writer object. ">fstrm_unix_writer_init()</a> for an implementation that writes to a Unix socket. </p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
