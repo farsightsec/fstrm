@@ -479,11 +479,11 @@ static	int	expand_buf(const void *buf, const int buf_size,
     
     /* did we find one? */
     if (*(spec_p - 1) != '\0') {
-      if (out_p + 2 >= max_p) {
+      if (out_p + 3 >= max_p) { /* make sure that snprintf has room to terminate its output */
 	break;
       }
-      LOC_SNPRINTF(SNP_ARG(out_p, 2), "\\%c", *(spec_p - 1));
-      out_p += 2;
+      LOC_SNPRINTF(SNP_ARG(out_p, 3), "\\%c", *(spec_p - 1)); /* outputing a backslash, a char, and a nul */
+      out_p += 2; /* don't include the nul in the final length */
       continue;
     }
     
@@ -496,10 +496,10 @@ static	int	expand_buf(const void *buf, const int buf_size,
       out_p += 1;
     }
     else {
-      if (out_p + 4 >= max_p) {
+      if (out_p + 5 >= max_p) {
 	break;
       }
-      LOC_SNPRINTF(SNP_ARG(out_p, 4), "\\%03o", *buf_p);
+      LOC_SNPRINTF(SNP_ARG(out_p, 5), "\\%03o", *buf_p); /* outputing a backslash, three digits, and a nul */
       out_p += 4;
     }
   }
