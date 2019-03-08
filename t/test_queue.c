@@ -103,7 +103,7 @@ maybe_wait_consumer(int64_t i)
 }
 
 static void *
-thr_producer(void *arg)
+thr_producer(__attribute__((unused)) void *arg)
 {
 	bool res;
 	unsigned space = 0;
@@ -137,7 +137,7 @@ out:
 }
 
 static void *
-thr_consumer(void *arg)
+thr_consumer(__attribute__((unused)) void *arg)
 {
 	bool res;
 	unsigned count = 0;
