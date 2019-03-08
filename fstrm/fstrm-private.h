@@ -73,7 +73,7 @@ typedef struct {
 	uint8_t		*data;
 } fs_buf;
 
-VECTOR_GENERATE(fs_bufvec, fs_buf);
+VECTOR_GENERATE(fs_bufvec, fs_buf)
 
 /* buffer helpers */
 
