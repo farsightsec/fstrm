@@ -59,33 +59,34 @@ static int			num_control_frames = 0;
 static int			num_iovecs = 0;
 
 static fstrm_res
-test_rdwr_destroy(void *obj)
+test_rdwr_destroy(__attribute__((unused)) void *obj)
 {
 	fprintf(stderr, "%s: called\n", __func__);
 	return fstrm_res_success;
 }
 
 static fstrm_res
-test_rdwr_open(void *obj)
+test_rdwr_open(__attribute__((unused)) void *obj)
 {
 	fprintf(stderr, "%s: called\n", __func__);
 	return fstrm_res_success;
 }
 
 static fstrm_res
-test_rdwr_close(void *obj)
+test_rdwr_close(__attribute__((unused)) void *obj)
 {
 	fprintf(stderr, "%s: called\n", __func__);
 	return fstrm_res_success;
 }
 
 static fstrm_res
-test_rdwr_write(void *obj, const struct iovec *iov, int iovcnt)
+test_rdwr_write(__attribute__((unused)) void *obj,
+	        const struct iovec *iov, int iovcnt)
 {
 	size_t nbytes = 0;
 
 	fprintf(stderr, "%s: called, iov= %p, iovcnt= %d\n",
-		__func__, iov, iovcnt);
+		__func__, (void *) iov, iovcnt);
 
 	assert(iovcnt > 0);
 
