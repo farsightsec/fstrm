@@ -1,4 +1,17 @@
-fstrm (0.4.0-1) debian-farsighsec; urgency=medium
+fstrm (0.5.0-1) debian-farsightsec; urgency=medium
+
+  * Change license to modern MIT license for compatibility with GPLv2
+    software.
+
+  * src/fstrm_replay.c: For OpenBSD and Posix portability include
+    netinet/in.h and sys/socket.h to get struct sockaddr_in and the AF_*
+    defines respectively.
+
+  * Fix various compiler warnings.
+
+ -- Farsight Security, Inc. <software@farsightsecurity.com>  Mon, 11 Mar 2019 16:59:05 -0400
+
+fstrm (0.4.0-1) debian-farsightsec; urgency=medium
 
   * Added manual pages for fstrm_capture and fstrm_dump.
 
