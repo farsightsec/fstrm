@@ -1,17 +1,25 @@
 /*
  * Copyright (c) 2014-2016, 2018 by Farsight Security, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
  */
 
 #include <arpa/inet.h>
@@ -202,7 +210,7 @@ static argv_t g_args[] = {
 		NULL,
 		"filter -w path with strftime (UTC)" },
 
-	{ ARGV_LAST },
+	{ ARGV_LAST, 0, 0, 0, 0, 0 },
 };
 
 static struct conn *
@@ -606,7 +614,8 @@ close_write_file(struct capture *ctx)
 
 	/* Success. */
 	fprintf(stderr, "%s: closed output file %s (wrote %zd frames, %zd bytes)\n",
-		argv_program, ctx->output_fname ? : ctx->args->str_write_fname,
+		argv_program,
+		ctx->output_fname ? ctx->output_fname : ctx->args->str_write_fname,
 		ctx->count_written, ctx->bytes_written);
 	return true;
 }
@@ -1061,7 +1070,8 @@ cb_read(struct bufferevent *bev, void *arg)
 
 static void
 cb_accept_conn(struct evconnlistener *listener, evutil_socket_t fd,
-	       struct sockaddr *sa, int socklen, void *arg)
+	       __attribute__((unused)) struct sockaddr *sa,
+	       __attribute__((unused)) int socklen, void *arg)
 {
 	struct capture *ctx = (struct capture *) arg;
 	struct event_base *base = evconnlistener_get_base(listener);
@@ -1089,7 +1099,8 @@ cb_accept_conn(struct evconnlistener *listener, evutil_socket_t fd,
 }
 
 static void
-cb_accept_error(struct evconnlistener *listener, void *arg)
+cb_accept_error(__attribute__((unused)) struct evconnlistener *listener,
+	        __attribute__((unused)) void *arg)
 {
 	const int err = EVUTIL_SOCKET_ERROR();
 	fprintf(stderr, "%s: accept() failed: %s\n", argv_program,
@@ -1097,7 +1108,8 @@ cb_accept_error(struct evconnlistener *listener, void *arg)
 }
 
 static void
-do_sighup(evutil_socket_t sig, short events, void *user_data)
+do_sighup(__attribute__((unused)) evutil_socket_t sig,
+	  __attribute__((unused)) short events, void *user_data)
 {
 	struct capture *ctx = user_data;
 	if (ctx->output_file) {
