@@ -210,7 +210,7 @@ static argv_t g_args[] = {
 		NULL,
 		"filter -w path with strftime (UTC)" },
 
-	{ ARGV_LAST },
+	{ ARGV_LAST, 0, 0, 0, 0, 0 },
 };
 
 static struct conn *

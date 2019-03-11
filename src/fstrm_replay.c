@@ -75,7 +75,7 @@ static argv_t g_args[] = {
 	/* ARGV_ONE_OF indicates that the user must specify the
 	 * previous option (-u) or next option (-a), but not both.
 	 */
-	{ ARGV_ONE_OF },
+	{ ARGV_ONE_OF, 0, 0, 0, 0, 0 },
 
 	{ 'a',  "tcp",
 		ARGV_CHAR_P,
@@ -95,7 +95,7 @@ static argv_t g_args[] = {
 		"<FILE>",
 		"Files to read Frame Streams data from" },
 
-	{ ARGV_LAST },
+	{ ARGV_LAST, 0, 0, 0, 0, 0 },
 };
 
 static void
