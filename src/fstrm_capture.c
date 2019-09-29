@@ -106,6 +106,7 @@ struct capture {
 	struct event_base	*ev_base;
 	struct evconnlistener	*ev_connlistener;
 	struct event		*ev_sighup;
+	struct event		*ev_sigusr1;
 
 	FILE			*output_file;
 	char			*output_fname;
@@ -674,6 +675,29 @@ process_data_frame(struct conn *conn)
 }
 
 static void
+rotate_output(struct capture *ctx)
+{
+	/* Don't rotate output file if we're writing to stdout. */
+	if (ctx->output_file == stdout) {
+		fprintf(stderr, "%s: %s: not rotating stdout\n",
+			argv_program, __func__);
+		return;
+	}
+
+	/* Rotate output file, fail hard if unsuccessful. */
+	if (!close_write_file(ctx)) {
+		fprintf(stderr, "%s: %s: close_write_file() failed\n",
+			argv_program, __func__);
+		exit(EXIT_FAILURE);
+	}
+	if (!open_write_file(ctx)) {
+		fprintf(stderr, "%s: %s: open_write_file() failed\n",
+			argv_program, __func__);
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void
 maybe_rotate_output(struct conn *conn)
 {
 	/* Output file rotation requested? */
@@ -682,17 +706,7 @@ maybe_rotate_output(struct conn *conn)
 
 		/* Is it time to rotate? */
 		if (t_now >= conn->ctx->output_open_timestamp + conn->ctx->args->split_seconds) {
-			/* Rotate output file, fail hard if unsuccessful. */
-			if (!close_write_file(conn->ctx)) {
-				fprintf(stderr, "%s: %s: close_write_file() failed\n",
-					argv_program, __func__);
-				exit(EXIT_FAILURE);
-			}
-			if (!open_write_file(conn->ctx)) {
-				fprintf(stderr, "%s: %s: open_write_file() failed\n",
-					argv_program, __func__);
-				exit(EXIT_FAILURE);
-			}
+			rotate_output(conn->ctx);
 		}
 	}
 }
@@ -1108,6 +1122,17 @@ cb_accept_error(__attribute__((unused)) struct evconnlistener *listener,
 }
 
 static void
+do_sigusr1(__attribute__((unused)) evutil_socket_t sig,
+	   __attribute__((unused)) short events, void *user_data)
+{
+	struct capture *ctx = user_data;
+	if (ctx->output_file) {
+		fprintf(stderr, "%s: received SIGUSR1, rotating output file\n", argv_program);
+		rotate_output(ctx);
+	}
+}
+
+static void
 do_sighup(__attribute__((unused)) evutil_socket_t sig,
 	  __attribute__((unused)) short events, void *user_data)
 {
@@ -1147,6 +1172,11 @@ setup_event_loop(struct capture *ctx)
 				      &g_program_ctx);
 	evsignal_add(ctx->ev_sighup, NULL);
 
+	/* Register our SIGUSR1 handler. */
+	ctx->ev_sigusr1 = evsignal_new(ctx->ev_base, SIGUSR1, &do_sigusr1,
+				       &g_program_ctx);
+	evsignal_add(ctx->ev_sigusr1, NULL);
+
 	/* Success. */
 	return true;
 }
@@ -1181,6 +1211,8 @@ cleanup(struct capture *ctx)
 	argv_cleanup(g_args);
 	if (ctx->ev_sighup != NULL)
 		event_free(ctx->ev_sighup);
+	if (ctx->ev_sigusr1 != NULL)
+		event_free(ctx->ev_sigusr1);
 	if (ctx->ev_connlistener != NULL)
 		evconnlistener_free(ctx->ev_connlistener);
 	if (ctx->ev_base != NULL)
