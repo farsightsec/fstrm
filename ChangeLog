@@ -1,3 +1,10 @@
+fstrm (0.6.0)
+
+  * fstrm_capture: Perform output file rotation when a SIGUSR1 signal
+    is received. This allows fstrm_capture's output file to be rotated
+    by logrotate or a similar external utility. (Output rotation is
+    suppressed if fstrm_capture is writing to stdout.)
+
 fstrm (0.5.0)
 
   * Change license to modern MIT license for compatibility with GPLv2
