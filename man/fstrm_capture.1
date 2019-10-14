@@ -50,6 +50,10 @@ If \fIfilename\fR is "-" and standard output is not connected to a
 terminal, \fBfstrm_capture\fR will write to standard output. Output
 splitting (\fB-s\fR) may not be used with a \fIfilename\fR of "-".
 
+Sending \fISIGHUP\fR to \fBfstrm_capture\fR will flush any buffered
+output to the file. Sending \fISIGUSR1\fR will close and reopen
+the file.
+
 .TP
 .B -t \fIcontent-type\fB | --type \fIcontent-type\fB
 Specify the \fIcontent-type\fR to receive from the socket and write
@@ -98,21 +102,24 @@ so it may be delayed after the interval.
 .B --gmtime
 Process the \fB--write\fR filename through \fBstrftime()\fR with the current
 time in GMT.
-The \fB--gmtime\fR option may be used with \fB--split\fR to provide
-file rotation, or by itself to provide a timestamped output file for each
-start or restart of \fBfstrm_capture\fR.
+This \fB--gmtime\fR option may be used to provide a timestamped output
+file when starting \fBfstrm_capture\fR or when reopening an output
+file using the \fB--split\fR option or when receiving a \fISIGUSR1\fR
+signal.
 
 .TP
 .B --localtime
 Process the \fB--write\fR filename through \fBstrftime()\fR with the current
 time in the system local time zone.
-The \fB--localtime\fR option may be used with \fB--split\fR to provide
-file rotation, or by itself to provide a timestamped output file for each
-start or restart of \fBfstrm_capture\fR.
+This \fB--localtime\fR option may be used to provide a timestamped output
+file when starting \fBfstrm_capture\fR or when reopening an output
+file using the \fB--split\fR option or when receiving a \fISIGUSR1\fR
+signal.
+
 
 .TP
 .B -d [ -d ... ] | --debug [ --debug ]
-Increase debugging level. Without \fB-d\fR, \fIfstrm_capture\fR prints only
+Increase debugging level. Without \fB-d\fR, \fBfstrm_capture\fR prints only
 critical error messages. Up to five \fB-d\fR options may be specified, after
 which more repetitions will have no effect.
 
