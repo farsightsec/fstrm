@@ -102,17 +102,20 @@ so it may be delayed after the interval.
 .B --gmtime
 Process the \fB--write\fR filename through \fBstrftime()\fR with the current
 time in GMT.
-The \fB--gmtime\fR option may be used with \fB--split\fR to provide
-file rotation, or by itself to provide a timestamped output file for each
-start or restart of or \fISIGUSR1\fR delivered to \fBfstrm_capture\fR.
+This \fB--gmtime\fR option may be used to provide a timestamped output
+file when starting \fBfstrm_capture\fR or when reopening an output
+file using the \fB--split\fR option or when receiving a \fISIGUSR1\fR
+signal.
 
 .TP
 .B --localtime
 Process the \fB--write\fR filename through \fBstrftime()\fR with the current
 time in the system local time zone.
-The \fB--localtime\fR option may be used with \fB--split\fR to provide
-file rotation, or by itself to provide a timestamped output file for each
-start or restart of or \fISIGUSR1\fR delivered to \fBfstrm_capture\fR.
+This \fB--localtime\fR option may be used to provide a timestamped output
+file when starting \fBfstrm_capture\fR or when reopening an output
+file using the \fB--split\fR option or when receiving a \fISIGUSR1\fR
+signal.
+
 
 .TP
 .B -d [ -d ... ] | --debug [ --debug ]
