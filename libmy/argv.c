@@ -482,7 +482,7 @@ static	int	expand_buf(const void *buf, const int buf_size,
       if (out_p + 2 >= max_p) {
 	break;
       }
-      LOC_SNPRINTF(SNP_ARG(out_p, 2), "\\%c", *(spec_p - 1));
+      LOC_SNPRINTF(SNP_ARG(out_p, 3), "\\%c", *(spec_p - 1));
       out_p += 2;
       continue;
     }
@@ -499,7 +499,7 @@ static	int	expand_buf(const void *buf, const int buf_size,
       if (out_p + 4 >= max_p) {
 	break;
       }
-      LOC_SNPRINTF(SNP_ARG(out_p, 4), "\\%03o", *buf_p);
+      LOC_SNPRINTF(SNP_ARG(out_p, 5), "\\%03o", *buf_p);
       out_p += 4;
     }
   }
