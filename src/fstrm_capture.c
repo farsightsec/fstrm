@@ -1201,6 +1201,10 @@ setup_signals(void)
 	if (sigaction(SIGINT, &sa, NULL) != 0)
 		return false;
 
+	sa.sa_handler = SIG_IGN;
+	if (sigaction(SIGPIPE, &sa, NULL) != 0)
+		return false;
+
 	/* Success. */
 	return true;
 }
