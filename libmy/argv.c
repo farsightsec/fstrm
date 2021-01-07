@@ -3193,29 +3193,36 @@ int	argv_process_no_env(argv_t *args, const int arg_n, char **argv)
     /* allocate our argument queue */
     queue_list = (argv_t **)malloc(sizeof(argv_t *) * total_arg_n);
     if (queue_list == NULL) {
+      if (env_vect_p != NULL) {
+	free(env_vect_p);
+	free(environ_p);
+      }
       return ERROR;
     }
     queue_head = 0;
     queue_tail = 0;
+
+    /* do the env args before? */
+    if (argv_process_env_b && (! argv_env_after_b) && env_vect_p != NULL) {
+	do_list(args, env_n, env_vect_p, queue_list, &queue_head, &queue_tail,
+		&okay_b);
+	free(env_vect_p);
+	free(environ_p);
+	env_vect_p = NULL;
+    }
+
+    /* do the external args */
+    if (arg_n > 0)
+      do_list(args, arg_n - 1, argv + 1, queue_list, &queue_head, &queue_tail,
+	      &okay_b);
+  
+    /* DO the env args after? */
+    if (argv_process_env_b && argv_env_after_b && env_vect_p != NULL)
+      do_list(args, env_n, env_vect_p, queue_list, &queue_head, &queue_tail,
+	      &okay_b);
   }
-  
-  /* do the env args before? */
-  if (argv_process_env_b && (! argv_env_after_b) && env_vect_p != NULL) {
-    do_list(args, env_n, env_vect_p, queue_list, &queue_head, &queue_tail,
-	    &okay_b);
-    free(env_vect_p);
-    free(environ_p);
-    env_vect_p = NULL;
-  }
-  
-  /* do the external args */
-  do_list(args, arg_n - 1, argv + 1, queue_list, &queue_head, &queue_tail,
-	  &okay_b);
-  
-  /* DO the env args after? */
-  if (argv_process_env_b && argv_env_after_b && env_vect_p != NULL) {
-    do_list(args, env_n, env_vect_p, queue_list, &queue_head, &queue_tail,
-	    &okay_b);
+
+  if (env_vect_p != NULL) {
     free(env_vect_p);
     free(environ_p);
     env_vect_p = NULL;
@@ -3233,7 +3240,7 @@ int	argv_process_no_env(argv_t *args, const int arg_n, char **argv)
   }
   
   /* if we allocated the space then free it */
-  if (arg_n > 0) {
+  if (queue_list) {
     free(queue_list);
   }
   
