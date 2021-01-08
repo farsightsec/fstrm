@@ -2226,7 +2226,7 @@ static	void	file_args(const char *path, argv_t *grid,
     *argv_p = string_copy(line);
     if (*argv_p == NULL) {
       *okay_bp = ARGV_FALSE;
-      return;
+      goto cleanup;
     }
     
     argv_p++;
@@ -2257,7 +2257,8 @@ static	void	file_args(const char *path, argv_t *grid,
   
   /* now do the list */
   do_list(grid, arg_c, argv, queue_list, queue_head_p, queue_tail_p, okay_bp);
-  
+
+cleanup:
   /* now free up the list */
   for (argv_p = argv; argv_p < argv + arg_c; argv_p++) {
     free(*argv_p);
