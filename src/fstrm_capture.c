@@ -998,7 +998,7 @@ can_read_full_frame(struct conn *conn)
 			 conn->len_buf, conn->len_frame_total);
 		if (conn->len_frame_total > conn->ctx->capture_highwater) {
 			conn_log(CONN_WARNING, conn,
-				"Skipping %zd byte message (%zd buffer)",
+				"Skipping %u byte message (%zd buffer)",
 				conn->len_frame_total,
 				conn->ctx->capture_highwater);
 			conn->bytes_skip = conn->len_frame_total;
