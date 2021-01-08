@@ -1806,7 +1806,7 @@ static	void	display_variables(const argv_t *args)
       int		entry_c, size = 0;
       
       /* find the type and the size for array */
-      if (type_p == NULL) {
+      if (type_p->at_value == 0) {
 	(void)fprintf(argv_error_stream, "%s: illegal variable type %d\n",
 		      __FILE__, val_type);
 	continue;
@@ -2721,7 +2721,9 @@ static	void	do_list(argv_t *grid, const int arg_c, char **argv,
 	    case ARGV_LONG:
 	    case ARGV_FLOAT:
 	    case ARGV_DOUBLE:
-              string_to_value(*arg_p, match_p->ar_variable, match_p->ar_type);
+              if (string_to_value(*arg_p, match_p->ar_variable, match_p->ar_type) != NOERROR) {
+		*okay_bp = ARGV_FALSE;
+	      }
 	      char_c = len;
 	      /* we actually used it so we advance the queue tail position */
 	      (*queue_tail_p)++;
