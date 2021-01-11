@@ -1223,12 +1223,15 @@ static	int	string_to_value(const char *arg, ARGV_PNT var,
     arr_p = (argv_array_t *)var;
     
     if (arr_p->aa_entry_n == 0) {
-      arr_p->aa_entries = (char *)malloc(ARRAY_INCR *size);
+      arr_p->aa_entries = (char *)calloc(ARRAY_INCR, size);
     }
     else if (arr_p->aa_entry_n % ARRAY_INCR == 0) {
       arr_p->aa_entries =
 	(char *)realloc(arr_p->aa_entries, (arr_p->aa_entry_n + ARRAY_INCR) *
 			size);
+      if (arr_p->aa_entries != NULL)
+	memset((char *)(arr_p->aa_entries) + arr_p->aa_entry_n * size, 0,
+	       ARRAY_INCR*size);
     }
     
     if (arr_p->aa_entries == NULL) {
