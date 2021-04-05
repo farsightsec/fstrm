@@ -1,3 +1,12 @@
+fstrm (0.6.1)
+
+  * fstrm_capture: ignore SIGPIPE, which will cause the
+    interrupted connections to generate an EPIPE instead.
+
+  * Fix truncation in snprintf calls in argument processing.
+
+  * fstrm_capture: Fix output printf format.
+
 fstrm (0.6.0)
 
   * fstrm_capture: Perform output file rotation when a SIGUSR1 signal

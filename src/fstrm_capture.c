@@ -998,7 +998,7 @@ can_read_full_frame(struct conn *conn)
 			 conn->len_buf, conn->len_frame_total);
 		if (conn->len_frame_total > conn->ctx->capture_highwater) {
 			conn_log(CONN_WARNING, conn,
-				"Skipping %zd byte message (%zd buffer)",
+				"Skipping %u byte message (%zd buffer)",
 				conn->len_frame_total,
 				conn->ctx->capture_highwater);
 			conn->bytes_skip = conn->len_frame_total;
@@ -1199,6 +1199,10 @@ setup_signals(void)
 	if (sigaction(SIGTERM, &sa, NULL) != 0)
 		return false;
 	if (sigaction(SIGINT, &sa, NULL) != 0)
+		return false;
+
+	sa.sa_handler = SIG_IGN;
+	if (sigaction(SIGPIPE, &sa, NULL) != 0)
 		return false;
 
 	/* Success. */
