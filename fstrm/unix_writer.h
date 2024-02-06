@@ -68,6 +68,11 @@ fstrm_unix_writer_options_set_socket_path(
 	struct fstrm_unix_writer_options *uwopt,
 	const char *socket_path);
 
+void
+fstrm_unix_writer_options_set_timeout(
+		struct fstrm_unix_writer_options *uwopt,
+		unsigned int timeout);
+
 /**
  * Initialize the `fstrm_writer` object. Note that the `AF_UNIX` socket will not
  * actually be opened until a subsequent call to fstrm_writer_open().

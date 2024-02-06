@@ -60,6 +60,7 @@ global:
         fstrm_unix_writer_options_destroy;
         fstrm_unix_writer_options_init;
         fstrm_unix_writer_options_set_socket_path;
+        fstrm_unix_writer_options_set_timeout;
         fstrm_writer_close;
         fstrm_writer_destroy;
         fstrm_writer_get_control;
@@ -80,5 +81,6 @@ global:
         fstrm_tcp_writer_options_destroy;
         fstrm_tcp_writer_options_set_socket_address;
         fstrm_tcp_writer_options_set_socket_port;
+        fstrm_tcp_writer_options_set_timeout;
         fstrm_tcp_writer_init;
 } LIBFSTRM_0.2.0;

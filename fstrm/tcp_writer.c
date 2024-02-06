@@ -34,11 +34,13 @@
 struct fstrm_tcp_writer_options {
 	char			*socket_address;
 	char			*socket_port;
+	unsigned int	timeout;
 };
 
 struct fstrm__tcp_writer {
 	bool			connected;
 	int			fd;
+	unsigned int	timeout;
 	struct sockaddr_storage	ss;
 	socklen_t		ss_len;
 };
@@ -79,22 +81,52 @@ fstrm_tcp_writer_options_set_socket_port(
 		twopt->socket_port = my_strdup(socket_port);
 }
 
+void
+fstrm_tcp_writer_options_set_timeout(
+		struct fstrm_tcp_writer_options *twopt,
+		unsigned int timeout)
+{
+	twopt->timeout = timeout;
+}
+
+static bool
+fstrm__tcp_writer_can_continue_read(int fd, void *clos)
+{
+	struct fstrm__tcp_writer *w = (struct fstrm__tcp_writer*) clos;
+	if (!w->connected || (w->timeout>0 && do_poll(fd, POLLIN, w->timeout) > poll_timeout))
+		return false;
+	return true;
+}
+
+static bool
+fstrm__tcp_writer_can_continue_write(int fd, void *clos)
+{
+	struct fstrm__tcp_writer *w = (struct fstrm__tcp_writer*) clos;
+	if (!w->connected || (w->timeout>0 && do_poll(fd, POLLOUT, w->timeout) > poll_timeout))
+		return false;
+	return true;
+}
+
 static fstrm_res
 fstrm__tcp_writer_op_open(void *obj)
 {
+	int sock_type = SOCK_STREAM;
 	struct fstrm__tcp_writer *w = obj;
 
 	/* Nothing to do if the socket is already connected. */
 	if (w->connected)
 		return fstrm_res_success;
 
+	if (w->timeout > 0)
+		sock_type |= SOCK_NONBLOCK;
+
 	/* Open an Internet socket. Request socket close-on-exec if available. */
 #if defined(SOCK_CLOEXEC)
-	w->fd = socket(w->ss.ss_family, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	w->fd = socket(w->ss.ss_family, sock_type | SOCK_CLOEXEC, 0);
 	if (w->fd < 0 && errno == EINVAL)
-		w->fd = socket(w->ss.ss_family, SOCK_STREAM, 0);
+		w->fd = socket(w->ss.ss_family, sock_type, 0);
 #else
-	w->fd = socket(w->ss.ss_family, SOCK_STREAM, 0);
+	w->fd = socket(w->ss.ss_family, sock_type, 0);
 #endif
 	if (w->fd < 0)
 		return fstrm_res_failure;
@@ -129,10 +161,15 @@ fstrm__tcp_writer_op_open(void *obj)
 	}
 #endif
 
-	/* Connect the TCP socket. */
-	if (connect(w->fd, (struct sockaddr *) &w->ss, w->ss_len) < 0) {
-		close(w->fd);
-		return fstrm_res_failure;
+	for(;;) {
+		/* Connect the TCP socket. */
+		if (connect(w->fd, (struct sockaddr *) &w->ss, w->ss_len) < 0) {
+			if (w->timeout && errno == EINPROGRESS && do_poll(w->fd, POLLOUT, w->timeout) == poll_success)
+				break;
+			close(w->fd);
+			return fstrm_res_failure;
+		}
+		break;
 	}
 
 	w->connected = true;
@@ -157,7 +194,7 @@ fstrm__tcp_writer_op_read(void *obj, void *buf, size_t nbytes)
 {
 	struct fstrm__tcp_writer *w = obj;
 	if (likely(w->connected)) {
-		if (read_bytes(w->fd, buf, nbytes))
+		if (read_bytes_ex(w->fd, buf, nbytes, fstrm__tcp_writer_can_continue_read, w))
 			return fstrm_res_success;
 	}
 	return fstrm_res_failure;
@@ -184,10 +221,15 @@ fstrm__tcp_writer_op_write(void *obj, const struct iovec *iov, int iovcnt)
 
 	for (;;) {
 		do {
+			if (!fstrm__tcp_writer_can_continue_write(w->fd, w))
+				return fstrm_res_failure;
 			written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
 		} while (written == -1 && errno == EINTR);
-		if (written == -1)
+		if (written == -1) {
+			if (w->timeout >0 && errno == EAGAIN)
+				continue;
 			return fstrm_res_failure;
+		}
 		if (cur == 0 && written == (ssize_t) nbytes)
 			return fstrm_res_success;
 
@@ -281,5 +323,6 @@ fstrm_tcp_writer_init(const struct fstrm_tcp_writer_options *twopt,
 	fstrm_rdwr_set_close(rdwr, fstrm__tcp_writer_op_close);
 	fstrm_rdwr_set_read(rdwr, fstrm__tcp_writer_op_read);
 	fstrm_rdwr_set_write(rdwr, fstrm__tcp_writer_op_write);
+	tw->timeout = twopt->timeout;
 	return fstrm_writer_init(wopt, &rdwr);
 }

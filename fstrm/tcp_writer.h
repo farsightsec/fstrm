@@ -83,6 +83,12 @@ fstrm_tcp_writer_options_set_socket_port(
 	struct fstrm_tcp_writer_options *twopt,
 	const char *socket_port);
 
+
+void
+fstrm_tcp_writer_options_set_timeout(
+		struct fstrm_tcp_writer_options *twopt,
+		unsigned int timeout);
+
 /**
  * Initialize the `fstrm_writer` object. Note that the TCP socket will not
  * actually be opened until a subsequent call to fstrm_writer_open().
