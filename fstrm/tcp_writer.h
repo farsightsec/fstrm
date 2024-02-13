@@ -83,6 +83,14 @@ fstrm_tcp_writer_options_set_socket_port(
 	struct fstrm_tcp_writer_options *twopt,
 	const char *socket_port);
 
+/**
+ * Set socket timeout in milliseconds
+ *
+ * \param uwopt
+ *	`fstrm_unix_writer_options` object.
+ * @param timeout
+ * The timeout in milliseconds
+ */
 void
 fstrm_tcp_writer_options_set_timeout(
 		struct fstrm_tcp_writer_options *twopt,

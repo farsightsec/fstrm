@@ -68,6 +68,14 @@ fstrm_unix_writer_options_set_socket_path(
 	struct fstrm_unix_writer_options *uwopt,
 	const char *socket_path);
 
+/**
+ * Set socket timeout in milliseconds
+ *
+ * \param uwopt
+ *	`fstrm_unix_writer_options` object.
+ * @param timeout
+ * The timeout in milliseconds
+ */
 void
 fstrm_unix_writer_options_set_timeout(
 		struct fstrm_unix_writer_options *uwopt,
