@@ -83,7 +83,6 @@ fstrm_tcp_writer_options_set_socket_port(
 	struct fstrm_tcp_writer_options *twopt,
 	const char *socket_port);
 
-
 void
 fstrm_tcp_writer_options_set_timeout(
 		struct fstrm_tcp_writer_options *twopt,

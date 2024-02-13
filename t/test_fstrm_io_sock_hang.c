@@ -34,13 +34,13 @@ typedef struct _fstrm_fd {
 
 
 static void
-debug(const char * msg, ...)
+debug(const char *msg, ...)
 {
 	va_list args;
 	va_start(args, msg);
-	fprintf(stderr,"%s[%d]: ", header, getpid());
+	fprintf(stderr, "%s[%d]: ", header, getpid());
 	vfprintf(stderr, msg, args);
-	fprintf(stderr,"\n");
+	fprintf(stderr, "\n");
 	fflush(stderr);
 	va_end(args);
 }
@@ -63,13 +63,14 @@ static void parse_args(int argc, char *argv[])
 {
 	if (argc < 2)
 		usage(argv[0]);
-	if (strcmp(argv[1], "tcp") == 0) {
+
+	if (!strcmp(argv[1], "tcp")) {
 		if (argc != 5)
 			usage(argv[0]);
 		address = argv[2];
 		port = argv[3];
 		g_timeout = atoi(argv[4]);
-	} else if (strcmp(argv[1], "unix") == 0) {
+	} else if (!strcmp(argv[1], "unix")) {
 		if (argc != 4)
 			usage(argv[0]);
 		sock_addr = argv[2];
@@ -155,7 +156,7 @@ get_unix_socket(const char *socket_path)
 }
 
 static int
-get_tcp_socket(const char *socket_address, const char * cport)
+get_tcp_socket(const char *socket_address, const char *cport)
 {
 	struct sockaddr_storage ss = {0};
 	struct sockaddr_in *sai = (struct sockaddr_in *) &ss;
@@ -197,7 +198,6 @@ get_tcp_socket(const char *socket_address, const char * cport)
 	return fd;
 }
 
-
 static fstrm_res
 reader_destroy(void *obj)
 {
@@ -217,7 +217,7 @@ reader_open(void *obj)
 	debug("reader_open");
 	ffd->lfd = (sock_addr ? get_unix_socket(sock_addr) : get_tcp_socket(address, port));
 	assert(ffd->lfd);
-	ffd->fd = accept(ffd->lfd, (struct sockaddr *)&c_addr, &c_len);
+	ffd->fd = accept(ffd->lfd, (struct sockaddr *) &c_addr, &c_len);
 	assert(ffd->fd);
 	return fstrm_res_success;
 }
@@ -283,12 +283,10 @@ reader_read(void *obj, void *data, size_t count)
 static void
 signal_handler(int signo)
 {
-	debug("Got signal");
 	if (signo == SIGUSR1) {
 		debug("Got SIGUSR1");
 		sigusr1 = true;
 	}
-
 }
 
 static int
@@ -327,6 +325,7 @@ writer_handler(void)
 	struct fstrm_iothr *iothr = NULL;
 	struct fstrm_iothr_queue *ioq = NULL;
 	struct fstrm_writer *wr = NULL;
+
 	header = "WRITER";
 	debug("writer_handler %d", getpid());
 	wr = (sock_addr ? get_unix_writer(sock_addr, g_timeout) : get_tcp_writer(address, port, g_timeout));
@@ -368,8 +367,9 @@ reader_handler(void)
 	fstrm_fd_t ffd;
 	struct fstrm_reader *r;
 	struct fstrm_rdwr *rdwr = fstrm_rdwr_init(&ffd);
-	header = "READER";
 	assert(rdwr != NULL);
+
+	header = "READER";
 	debug("reader_handler %d", getpid());
 	fstrm_rdwr_set_destroy(rdwr, reader_destroy);
 	fstrm_rdwr_set_open(rdwr, reader_open);
@@ -382,19 +382,19 @@ reader_handler(void)
 
 	assert(fstrm_reader_open(r) == fstrm_res_success);
 
-	debug( "READING...");
+	debug("READING...");
 	while (!sigusr1) {
 		const uint8_t *data;
 		size_t len_data;
 
 		res = fstrm_reader_read(r, &data, &len_data);
 		if (res != fstrm_res_success) {
-			debug( "OH NO: %u", res);
+			debug("OH NO: %u", res);
 			break;
 		}
-
 	}
-	debug( "Done reading");
+
+	debug("Done reading");
 
 	res = fstrm_reader_close(r);
 	if (res != fstrm_res_success)
