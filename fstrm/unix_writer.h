@@ -69,17 +69,17 @@ fstrm_unix_writer_options_set_socket_path(
 	const char *socket_path);
 
 /**
- * Set socket timeout in milliseconds
+ * Set socket read/write timeout in milliseconds.
  *
  * \param uwopt
  *	`fstrm_unix_writer_options` object.
  * @param timeout
- * The timeout in milliseconds
+ *	The timeout in milliseconds.
  */
 void
 fstrm_unix_writer_options_set_timeout(
-		struct fstrm_unix_writer_options *uwopt,
-		unsigned int timeout);
+	struct fstrm_unix_writer_options *uwopt,
+	unsigned int timeout);
 
 /**
  * Initialize the `fstrm_writer` object. Note that the `AF_UNIX` socket will not

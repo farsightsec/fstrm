@@ -32,13 +32,13 @@
 
 struct fstrm_unix_writer_options {
 	char			*socket_path;
-	unsigned int	timeout;
+	unsigned int		timeout;
 };
 
 struct fstrm__unix_writer {
 	bool			connected;
 	int			fd;
-	unsigned int	timeout;
+	unsigned int		timeout;
 	struct sockaddr_un	sa;
 };
 
@@ -69,8 +69,8 @@ fstrm_unix_writer_options_set_socket_path(
 
 void
 fstrm_unix_writer_options_set_timeout(
-		struct fstrm_unix_writer_options *uwopt,
-		unsigned int timeout)
+	struct fstrm_unix_writer_options *uwopt,
+	unsigned int timeout)
 {
 	uwopt->timeout = timeout;
 }
@@ -78,8 +78,10 @@ fstrm_unix_writer_options_set_timeout(
 static bool
 fstrm__unix_writer_can_continue_read(int fd, void *clos)
 {
-	struct fstrm__unix_writer *w = (struct fstrm__unix_writer*) clos;
-	if (!w->connected || (w->timeout > 0 && do_poll(fd, POLLIN, w->timeout) > poll_timeout))
+	struct fstrm__unix_writer *w = (struct fstrm__unix_writer *) clos;
+	unsigned int t = w->timeout;
+
+	if (!w->connected || (t > 0 && do_poll(fd, POLLIN, t) > poll_timeout))
 		return false;
 	return true;
 }
@@ -87,8 +89,10 @@ fstrm__unix_writer_can_continue_read(int fd, void *clos)
 static bool
 fstrm__unix_writer_can_continue_write(int fd, void *clos)
 {
-	struct fstrm__unix_writer *w = (struct fstrm__unix_writer*) clos;
-	if (!w->connected || (w->timeout > 0 && do_poll(fd, POLLOUT, w->timeout) > poll_timeout))
+	struct fstrm__unix_writer *w = (struct fstrm__unix_writer *) clos;
+	unsigned int t = w->timeout;
+
+	if (!w->connected || (t > 0 && do_poll(fd, POLLOUT, t) > poll_timeout))
 		return false;
 	return true;
 }
