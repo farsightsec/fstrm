@@ -202,12 +202,8 @@ fstrm__unix_writer_op_write(void *obj, const struct iovec *iov, int iovcnt)
 				return fstrm_res_failure;
 			written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
 		} while (written == -1 && errno == EINTR);
-		if (written == -1) {
-			if (w->timeout >0 && errno == EAGAIN)
-				continue;
+		if (written == -1)
 			return fstrm_res_failure;
-		}
-
 		if (cur == 0 && written == (ssize_t) nbytes)
 			return fstrm_res_success;
 
