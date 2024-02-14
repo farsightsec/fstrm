@@ -145,10 +145,8 @@ fstrm__unix_writer_op_open(void *obj)
 
 	/* Connect the AF_UNIX socket. */
 	if (connect(w->fd, (struct sockaddr *) &w->sa, sizeof(w->sa)) < 0) {
-		if (!w->timeout || errno != EINPROGRESS || do_poll(w->fd, POLLOUT, w->timeout) != poll_success) {
-			close(w->fd);
-			return fstrm_res_failure;
-		}
+		close(w->fd);
+		return fstrm_res_failure;
 	}
 
 	w->connected = true;

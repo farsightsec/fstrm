@@ -159,10 +159,8 @@ fstrm__tcp_writer_op_open(void *obj)
 
 	/* Connect the TCP socket. */
 	if (connect(w->fd, (struct sockaddr *) &w->ss, w->ss_len) < 0) {
-		if (!w->timeout || errno != EINPROGRESS || do_poll(w->fd, POLLOUT, w->timeout) != poll_success) {
-			close(w->fd);
-			return fstrm_res_failure;
-		}
+		close(w->fd);
+		return fstrm_res_failure;
 	}
 
 	w->connected = true;
