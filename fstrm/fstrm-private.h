@@ -66,6 +66,8 @@
 # define IOV_MAX 1024
 #endif
 
+#define FSTRM_WRITER_TIMEOUT 1000
+
 /* fs_buf, fs_bufvec */
 
 typedef struct {

@@ -48,7 +48,9 @@ struct fstrm__tcp_writer {
 struct fstrm_tcp_writer_options *
 fstrm_tcp_writer_options_init(void)
 {
-	return my_calloc(1, sizeof(struct fstrm_tcp_writer_options));
+	struct fstrm_tcp_writer_options *twopt = my_calloc(1, sizeof(struct fstrm_tcp_writer_options));
+	twopt->timeout = FSTRM_WRITER_TIMEOUT;
+	return twopt;
 }
 
 void
@@ -95,9 +97,10 @@ fstrm__tcp_writer_can_continue_read(int fd, void *clos)
 	struct fstrm__tcp_writer *w = (struct fstrm__tcp_writer *) clos;
 	unsigned int t = w->timeout;
 
-	if (!w->connected || (t > 0 && do_poll(fd, POLLIN, t) > poll_timeout))
-		return false;
-	return true;
+	if (t == 0)
+		return w->connected;
+
+	return w->connected && do_poll(fd, POLLIN, t) == poll_success;
 }
 
 static bool
@@ -106,9 +109,10 @@ fstrm__tcp_writer_can_continue_write(int fd, void *clos)
 	struct fstrm__tcp_writer *w = (struct fstrm__tcp_writer *) clos;
 	unsigned int t = w->timeout;
 
-	if (!w->connected || (t > 0 && do_poll(fd, POLLOUT, t) > poll_timeout))
-		return false;
-	return true;
+	if (t == 0)
+		return w->connected;
+
+	return w->connected && do_poll(fd, POLLOUT, t) == poll_success;
 }
 
 static fstrm_res

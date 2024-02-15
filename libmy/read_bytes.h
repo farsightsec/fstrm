@@ -26,8 +26,11 @@ do_poll(int fd, int events, int timeout)
 	fds[0].events = events;
 	res = poll(fds, 1, timeout);
 
-	if (res <= 0)
+	if (res < 0)
 		return poll_error;
+
+	if (res == 0)
+		return poll_timeout;
 
 	if ((fds[0].revents & POLLRDHUP) ||
 		(!(events & POLLIN) && (fds[0].revents & POLLHUP)) ||
@@ -38,7 +41,9 @@ do_poll(int fd, int events, int timeout)
 	if (fds[0].revents & events)
 		return poll_success;
 
-	return poll_timeout;
+	/* It shall never reach this */
+	assert(false);
+	return poll_error;
 }
 
 static inline bool

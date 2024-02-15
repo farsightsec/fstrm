@@ -25,6 +25,8 @@ fi
 do_test 0 124
 # Test with non zero timeout (non blocking socket) works
 do_test 1 0
+# Test with non zero timeout (non blocking socket) works
+do_test 1000 0
 
 
 
