@@ -162,7 +162,7 @@ get_tcp_socket(const char *socket_address, const char *cport)
 	struct sockaddr_in *sai = (struct sockaddr_in *) &ss;
 	struct sockaddr_in6 *sai6 = (struct sockaddr_in6 *) &ss;
 	socklen_t ss_len = sizeof(ss);
-	int fd;
+	int fd, optval = 1;
 
 	debug("Opening TCP socket %s:%s", socket_address, cport);
 
@@ -182,6 +182,11 @@ get_tcp_socket(const char *socket_address, const char *cport)
 	fd = socket(ss.ss_family, SOCK_STREAM, 0);
 	if (fd == -1) {
 		perror("socket");
+		abort();
+	}
+
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval)) < 0) {
+		perror("setsockopt");
 		abort();
 	}
 
