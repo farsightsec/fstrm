@@ -34,13 +34,13 @@
 struct fstrm_tcp_writer_options {
 	char			*socket_address;
 	char			*socket_port;
-	unsigned int		timeout;
+	unsigned int		read_timeout;
 };
 
 struct fstrm__tcp_writer {
 	bool			connected;
 	int			fd;
-	unsigned int		timeout;
+	unsigned int		read_timeout;
 	struct sockaddr_storage	ss;
 	socklen_t		ss_len;
 };
@@ -49,7 +49,7 @@ struct fstrm_tcp_writer_options *
 fstrm_tcp_writer_options_init(void)
 {
 	struct fstrm_tcp_writer_options *twopt = my_calloc(1, sizeof(struct fstrm_tcp_writer_options));
-	twopt->timeout = FSTRM_WRITER_TIMEOUT;
+	twopt->read_timeout = FSTRM_WRITER_TIMEOUT;
 	return twopt;
 }
 
@@ -84,11 +84,11 @@ fstrm_tcp_writer_options_set_socket_port(
 }
 
 void
-fstrm_tcp_writer_options_set_timeout(
+fstrm_tcp_writer_options_set_read_timeout(
 	struct fstrm_tcp_writer_options *twopt,
 	unsigned int timeout)
 {
-	twopt->timeout = timeout;
+	twopt->read_timeout = timeout;
 }
 
 static fstrm_res
@@ -112,10 +112,10 @@ fstrm__tcp_writer_op_open(void *obj)
 		return fstrm_res_failure;
 
 #if defined(SO_RCVTIMEO)
-	if (w->timeout) {
+	if (w->read_timeout > 0) {
 		struct timeval tv = {0};
-		tv.tv_sec = w->timeout / 1000;
-		tv.tv_usec = (w->timeout % 1000) * 1000;
+		tv.tv_sec = w->read_timeout / 1000;
+		tv.tv_usec = (w->read_timeout % 1000) * 1000;
 		if (setsockopt(w->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0) {
 			close(w->fd);
 			assert(false);
@@ -306,6 +306,6 @@ fstrm_tcp_writer_init(const struct fstrm_tcp_writer_options *twopt,
 	fstrm_rdwr_set_close(rdwr, fstrm__tcp_writer_op_close);
 	fstrm_rdwr_set_read(rdwr, fstrm__tcp_writer_op_read);
 	fstrm_rdwr_set_write(rdwr, fstrm__tcp_writer_op_write);
-	tw->timeout = twopt->timeout;
+	tw->read_timeout = twopt->read_timeout;
 	return fstrm_writer_init(wopt, &rdwr);
 }

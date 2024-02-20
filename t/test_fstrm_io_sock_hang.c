@@ -20,7 +20,7 @@ static const char *sock_addr = NULL;
 static const char *address = NULL;
 static const char *port = NULL;
 static const char *header = "MASTER";
-static int g_timeout = 1000;
+static int g_read_timeout = 1000;
 static bool sigusr1 = false;
 static int master = 0;
 static int reader = 0;
@@ -69,12 +69,12 @@ static void parse_args(int argc, char *argv[])
 			usage(argv[0]);
 		address = argv[2];
 		port = argv[3];
-		g_timeout = atoi(argv[4]);
+		g_read_timeout = atoi(argv[4]);
 	} else if (!strcmp(argv[1], "unix")) {
 		if (argc != 4)
 			usage(argv[0]);
 		sock_addr = argv[2];
-		g_timeout = atoi(argv[3]);
+		g_read_timeout = atoi(argv[3]);
 	} else
 		usage(argv[0]);
 }
@@ -87,7 +87,7 @@ get_unix_writer(const char *path, int timeout)
 
 	uwopt = fstrm_unix_writer_options_init();
 	fstrm_unix_writer_options_set_socket_path(uwopt, path);
-	fstrm_unix_writer_options_set_timeout(uwopt, timeout);
+	fstrm_unix_writer_options_set_read_timeout(uwopt, timeout);
 
 	debug("Opening UNIX socket %s with timeout %d", path, timeout);
 	wr = fstrm_unix_writer_init(uwopt, NULL);
@@ -108,7 +108,7 @@ get_tcp_writer(const char *addr, const char *cport, int timeout)
 	twopt = fstrm_tcp_writer_options_init();
 	fstrm_tcp_writer_options_set_socket_address(twopt, addr);
 	fstrm_tcp_writer_options_set_socket_port(twopt, cport);
-	fstrm_tcp_writer_options_set_timeout(twopt, timeout);
+	fstrm_tcp_writer_options_set_read_timeout(twopt, timeout);
 
 	debug("Opening TCP socket %s:%s with timeout %d", addr, port, timeout);
 	wr = fstrm_tcp_writer_init(twopt, NULL);
@@ -333,7 +333,7 @@ writer_handler(void)
 
 	header = "WRITER";
 	debug("writer_handler %d", getpid());
-	wr = (sock_addr ? get_unix_writer(sock_addr, g_timeout) : get_tcp_writer(address, port, g_timeout));
+	wr = (sock_addr ? get_unix_writer(sock_addr, g_read_timeout) : get_tcp_writer(address, port, g_read_timeout));
 	iothr = fstrm_iothr_init(NULL, &wr);
 	if (iothr == NULL) {
 		debug("Error: fstrm_iothr_init() failed.");
