@@ -69,7 +69,8 @@ fstrm_unix_writer_options_set_socket_path(
 	const char *socket_path);
 
 /**
- * Set socket read timeout in milliseconds.
+ * Set socket read timeout in milliseconds. This is useful for ensuring that
+ * fstrm sessions can be created and destroyed without indefinite delay.
  *
  * \param uwopt
  *	`fstrm_unix_writer_options` object.
