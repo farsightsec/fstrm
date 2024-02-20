@@ -88,7 +88,7 @@ fstrm_tcp_writer_options_set_socket_port(
  * fstrm sessions can be created and destroyed without indefinite delay.
  *
  * \param uwopt
- *	`fstrm_unix_writer_options` object.
+ *	`fstrm_tcp_writer_options` object.
  * @param timeout
  *	The timeout in milliseconds.
  */
