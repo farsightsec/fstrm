@@ -120,7 +120,6 @@ fstrm__unix_writer_op_open(void *obj)
 		tv.tv_usec = (w->read_timeout % 1000) * 1000;
 		if (setsockopt(w->fd, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) != 0) {
 			close(w->fd);
-			assert(false);
 			return fstrm_res_failure;
 		}
 	}
