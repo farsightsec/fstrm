@@ -91,30 +91,6 @@ fstrm_tcp_writer_options_set_timeout(
 	twopt->timeout = timeout;
 }
 
-static bool
-fstrm__tcp_writer_can_continue_read(int fd, void *clos)
-{
-	struct fstrm__tcp_writer *w = (struct fstrm__tcp_writer *) clos;
-	unsigned int t = w->timeout;
-
-	if (t == 0)
-		return w->connected;
-
-	return w->connected && do_poll(fd, POLLIN, t) == poll_success;
-}
-
-static bool
-fstrm__tcp_writer_can_continue_write(int fd, void *clos)
-{
-	struct fstrm__tcp_writer *w = (struct fstrm__tcp_writer *) clos;
-	unsigned int t = w->timeout;
-
-	if (t == 0)
-		return w->connected;
-
-	return w->connected && do_poll(fd, POLLOUT, t) == poll_success;
-}
-
 static fstrm_res
 fstrm__tcp_writer_op_open(void *obj)
 {
@@ -134,6 +110,19 @@ fstrm__tcp_writer_op_open(void *obj)
 #endif
 	if (w->fd < 0)
 		return fstrm_res_failure;
+
+#if defined(SO_RCVTIMEO)
+	if (w->timeout) {
+		struct timeval tv = {0};
+		tv.tv_sec = w->timeout / 1000;
+		tv.tv_usec = (w->timeout % 1000) * 1000;
+		if (setsockopt(w->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0) {
+			close(w->fd);
+			assert(false);
+			return fstrm_res_failure;
+		}
+	}
+#endif
 
 	/*
 	 * Request close-on-exec if available. There is nothing that can be done
@@ -193,7 +182,7 @@ fstrm__tcp_writer_op_read(void *obj, void *buf, size_t nbytes)
 {
 	struct fstrm__tcp_writer *w = obj;
 	if (likely(w->connected)) {
-		if (read_bytes_ex(w->fd, buf, nbytes, fstrm__tcp_writer_can_continue_read, w))
+		if (read_bytes(w->fd, buf, nbytes))
 			return fstrm_res_success;
 	}
 	return fstrm_res_failure;
@@ -220,8 +209,6 @@ fstrm__tcp_writer_op_write(void *obj, const struct iovec *iov, int iovcnt)
 
 	for (;;) {
 		do {
-			if (!fstrm__tcp_writer_can_continue_write(w->fd, w))
-				return fstrm_res_failure;
 			written = sendmsg(w->fd, &msg, MSG_NOSIGNAL);
 		} while (written == -1 && errno == EINTR);
 		if (written == -1)
