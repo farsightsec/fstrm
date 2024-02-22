@@ -32,18 +32,22 @@
 
 struct fstrm_unix_writer_options {
 	char			*socket_path;
+	unsigned int		read_timeout;
 };
 
 struct fstrm__unix_writer {
 	bool			connected;
 	int			fd;
+	unsigned int		read_timeout;
 	struct sockaddr_un	sa;
 };
 
 struct fstrm_unix_writer_options *
 fstrm_unix_writer_options_init(void)
 {
-	return my_calloc(1, sizeof(struct fstrm_unix_writer_options));
+	struct fstrm_unix_writer_options *uwopt = my_calloc(1, sizeof(struct fstrm_unix_writer_options));
+	uwopt->read_timeout = FSTRM_WRITER_READ_TIMEOUT;
+	return uwopt;
 }
 
 void
@@ -63,6 +67,14 @@ fstrm_unix_writer_options_set_socket_path(
 	my_free(uwopt->socket_path);
 	if (socket_path != NULL)
 		uwopt->socket_path = my_strdup(socket_path);
+}
+
+void
+fstrm_unix_writer_options_set_read_timeout(
+	struct fstrm_unix_writer_options *uwopt,
+	unsigned int timeout)
+{
+	uwopt->read_timeout = timeout;
 }
 
 static fstrm_res
@@ -98,6 +110,18 @@ fstrm__unix_writer_op_open(void *obj)
 	if (flags != -1) {
 		flags |= FD_CLOEXEC;
 		(void) fcntl(w->fd, F_SETFD, flags);
+	}
+#endif
+
+#if defined(SO_RCVTIMEO)
+	if (w->read_timeout > 0) {
+		struct timeval tv = {0};
+		tv.tv_sec = w->read_timeout / 1000;
+		tv.tv_usec = (w->read_timeout % 1000) * 1000;
+		if (setsockopt(w->fd, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) != 0) {
+			close(w->fd);
+			return fstrm_res_failure;
+		}
 	}
 #endif
 
@@ -212,6 +236,7 @@ fstrm_unix_writer_init(const struct fstrm_unix_writer_options *uwopt,
 
 	uw = my_calloc(1, sizeof(*uw));
 	uw->sa.sun_family = AF_UNIX;
+	uw->read_timeout = uwopt->read_timeout;
 	strncpy(uw->sa.sun_path, uwopt->socket_path, sizeof(uw->sa.sun_path) - 1);
 
 	rdwr = fstrm_rdwr_init(uw);

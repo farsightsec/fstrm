@@ -84,6 +84,20 @@ fstrm_tcp_writer_options_set_socket_port(
 	const char *socket_port);
 
 /**
+ * Set socket read timeout in milliseconds. This is useful for ensuring that
+ * fstrm sessions can be created and destroyed without indefinite delay.
+ *
+ * \param uwopt
+ *	`fstrm_tcp_writer_options` object.
+ * @param timeout
+ *	The timeout in milliseconds.
+ */
+void
+fstrm_tcp_writer_options_set_read_timeout(
+	struct fstrm_tcp_writer_options *twopt,
+	unsigned int timeout);
+
+/**
  * Initialize the `fstrm_writer` object. Note that the TCP socket will not
  * actually be opened until a subsequent call to fstrm_writer_open().
  *

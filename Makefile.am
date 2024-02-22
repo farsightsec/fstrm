@@ -158,6 +158,20 @@ t/run_test_fstrm_io_tcp.sh: t/test_fstrm_io_sock
 TESTS += t/run_test_fstrm_io_tcp.sh
 EXTRA_DIST += t/run_test_fstrm_io_tcp.sh
 
+check_PROGRAMS += t/test_fstrm_io_sock_hang
+t_test_fstrm_io_sock_hang_SOURCES = \
+	t/test_fstrm_io_sock_hang.c
+t_test_fstrm_io_sock_hang_LDADD = \
+	fstrm/libfstrm.la
+
+t/run_test_fstrm_io_unix_hang.sh: t/test_fstrm_io_sock_hang
+TESTS += t/run_test_fstrm_io_unix_hang.sh
+EXTRA_DIST += t/run_test_fstrm_io_unix_hang.sh
+
+t/run_test_fstrm_io_tcp_hang.sh: t/test_fstrm_io_sock_hang
+TESTS += t/run_test_fstrm_io_tcp_hang.sh
+EXTRA_DIST += t/run_test_fstrm_io_tcp_hang.sh
+
 check_PROGRAMS += t/test_writer_hello
 t_test_writer_hello_SOURCES = \
 	t/test_writer_hello.c \
