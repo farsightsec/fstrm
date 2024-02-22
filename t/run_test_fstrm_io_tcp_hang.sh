@@ -8,7 +8,7 @@ _res=0
 do_test() {
   _timeout=$1
   _result=$2
-  timeout 5 $DIRNAME/.libs/$TNAME tcp "$ADDRESS" $PORT $_timeout
+  timeout 10 $DIRNAME/.libs/$TNAME tcp "$ADDRESS" $PORT $_timeout
   _res=$?
   echo "Received result $_res. Expected $_result"
   if [ "$_res" != "$_result" ]; then
@@ -23,6 +23,8 @@ fi
 
 # Test with 0 read timeout should hang
 do_test 0 124
+# Test with default timeout should work
+do_test -1 0
 # Test with non zero read timeout should work
 do_test 1 0
 # Test with non zero read timeout should work
