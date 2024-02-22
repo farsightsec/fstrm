@@ -66,7 +66,7 @@
 # define IOV_MAX 1024
 #endif
 
-#define FSTRM_WRITER_TIMEOUT 5000
+#define FSTRM_WRITER_READ_TIMEOUT 5000
 
 /* fs_buf, fs_bufvec */
 

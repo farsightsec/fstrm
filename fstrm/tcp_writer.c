@@ -49,7 +49,7 @@ struct fstrm_tcp_writer_options *
 fstrm_tcp_writer_options_init(void)
 {
 	struct fstrm_tcp_writer_options *twopt = my_calloc(1, sizeof(struct fstrm_tcp_writer_options));
-	twopt->read_timeout = FSTRM_WRITER_TIMEOUT;
+	twopt->read_timeout = FSTRM_WRITER_READ_TIMEOUT;
 	return twopt;
 }
 

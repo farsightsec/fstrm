@@ -21,11 +21,11 @@ if [ -z "$DIRNAME" ]; then
     DIRNAME="$(dirname $(readlink -f $0))"
 fi
 
-# Test with 0 timeout (blocking socket) hangs
+# Test with 0 read timeout should hang
 do_test 0 124
-# Test with non zero timeout (non blocking socket) works
+# Test with non zero read timeout should work
 do_test 1 0
-# Test with non zero timeout (non blocking socket) works
+# Test with non zero read timeout should work
 do_test 1000 0
 
 

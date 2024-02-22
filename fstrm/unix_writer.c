@@ -46,7 +46,7 @@ struct fstrm_unix_writer_options *
 fstrm_unix_writer_options_init(void)
 {
 	struct fstrm_unix_writer_options *uwopt = my_calloc(1, sizeof(struct fstrm_unix_writer_options));
-	uwopt->read_timeout = FSTRM_WRITER_TIMEOUT;
+	uwopt->read_timeout = FSTRM_WRITER_READ_TIMEOUT;
 	return uwopt;
 }
 
