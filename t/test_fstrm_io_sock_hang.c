@@ -87,12 +87,16 @@ get_unix_writer(const char *path, int timeout)
 
 	uwopt = fstrm_unix_writer_options_init();
 	fstrm_unix_writer_options_set_socket_path(uwopt, path);
-	fstrm_unix_writer_options_set_read_timeout(uwopt, timeout);
+
+	if (timeout >= 0)
+		fstrm_unix_writer_options_set_read_timeout(uwopt, timeout);
 
 	debug("Opening UNIX socket %s with timeout %d", path, timeout);
 	wr = fstrm_unix_writer_init(uwopt, NULL);
-	if (!wr)
+	if (!wr) {
 		debug("Error: fstrm_unix_writer_init() failed.");
+		exit(EXIT_FAILURE);
+	}
 
 	fstrm_unix_writer_options_destroy(&uwopt);
 
@@ -108,7 +112,9 @@ get_tcp_writer(const char *addr, const char *cport, int timeout)
 	twopt = fstrm_tcp_writer_options_init();
 	fstrm_tcp_writer_options_set_socket_address(twopt, addr);
 	fstrm_tcp_writer_options_set_socket_port(twopt, cport);
-	fstrm_tcp_writer_options_set_read_timeout(twopt, timeout);
+
+	if (timeout >= 0)
+		fstrm_tcp_writer_options_set_read_timeout(twopt, timeout);
 
 	debug("Opening TCP socket %s:%s with timeout %d", addr, port, timeout);
 	wr = fstrm_tcp_writer_init(twopt, NULL);
@@ -221,9 +227,9 @@ reader_open(void *obj)
 
 	debug("reader_open");
 	ffd->lfd = (sock_addr ? get_unix_socket(sock_addr) : get_tcp_socket(address, port));
-	assert(ffd->lfd);
+	assert(ffd->lfd >= 0);
 	ffd->fd = accept(ffd->lfd, (struct sockaddr *) &c_addr, &c_len);
-	assert(ffd->fd);
+	assert(ffd->fd >= 0);
 	return fstrm_res_success;
 }
 
@@ -233,9 +239,9 @@ reader_close(void *obj)
 	fstrm_fd_t *ffd = (fstrm_fd_t *) obj;
 
 	debug("reader_close");
-	if (ffd->fd > 0)
+	if (ffd->fd >= 0)
 		close(ffd->fd);
-	if (ffd->lfd > 0)
+	if (ffd->lfd >= 0)
 		close(ffd->lfd);
 	ffd->fd = ffd->lfd = -1;
 
@@ -246,7 +252,6 @@ static fstrm_res
 reader_write(void *obj, const struct iovec *iov, int iovcnt)
 {
 	int n;
-	size_t total = 0;
 	fstrm_fd_t *ffd = (fstrm_fd_t *) obj;
 
 	debug("reader_write(%d)", ffd->fd);
@@ -256,7 +261,6 @@ reader_write(void *obj, const struct iovec *iov, int iovcnt)
 		res = write(ffd->fd, iov[n].iov_base, iov[n].iov_len);
 		assert(res >= 0);
 		assert((size_t) res == iov[n].iov_len);
-		total += res;
 	}
 
 	return fstrm_res_success;
@@ -273,11 +277,11 @@ reader_read(void *obj, void *data, size_t count)
 		ssize_t got;
 
 		got = read(ffd->fd, dptr, nleft);
+		assert(got >= 0);
 
 		if (got == 0)
 			return fstrm_res_stop;
 
-		assert(got > 0);
 		nleft -= got;
 		dptr += got;
 	}
@@ -299,7 +303,7 @@ fork_into(handler_func fn)
 {
 	int res = fork();
 	if (res < 0) {
-		perror("Fork failed");
+		perror("fork");
 		exit(EXIT_FAILURE);
 	}
 
@@ -315,7 +319,7 @@ do_kill(int pid, int signo)
 {
 	debug("Sending signal to %d", pid);
 	if (kill(pid, signo) < 0) {
-		perror("Failed to send signal");
+		perror("kill");
 		if (reader != 0)
 			kill(reader, SIGKILL);
 		if (writer != 0)
