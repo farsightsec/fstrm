@@ -115,6 +115,25 @@ fstrm__unix_writer_op_open(void *obj)
 	}
 #endif
 
+#if defined(SO_RCVTIMEO) || defined(SO_SNDTIMEO)
+	static const struct timeval timeout = {
+		.tv_sec = 1,
+		.tv_usec = 0
+	};
+#if defined(SO_RCVTIMEO)
+	if (setsockopt(w->fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) != 0) {
+		close(w->fd);
+		return fstrm_res_failure;
+	}
+#endif
+#if defined(SO_SNDTIMEO)
+	if (setsockopt(w->fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0) {
+		close(w->fd);
+		return fstrm_res_failure;
+	}
+#endif
+#endif
+
 	/* Connect the AF_UNIX socket. */
 	if (connect(w->fd, (struct sockaddr *) &w->sa, sizeof(w->sa)) < 0) {
 		close(w->fd);
